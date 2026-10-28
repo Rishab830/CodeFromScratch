@@ -135,6 +135,7 @@ html[data-theme=light] .theme-switch-options button[aria-pressed=true]{backgroun
 .editor-panel[data-code-theme] .theme-switch-options button{color:var(--code-muted)}
 .editor-panel[data-code-theme] .theme-switch-options button:hover{background:var(--code-surface);color:var(--code-text)}
 .editor-panel[data-code-theme] .theme-switch-options button[aria-pressed=true]{background:var(--code-button);color:var(--code-button-text)}
+.editor-panel[data-code-theme] .theme-switch svg{color:inherit}
 
 @media(max-width:850px){.profile{gap:13px}.site-header nav{gap:15px}.theme-switch{gap:5px}.theme-switch-options button{width:23px}}
 @media(max-width:580px){.profile{gap:12px}.profile>.theme-switch>.theme-switch-label{display:none}.theme-switch-options{padding:2px}.theme-switch-options button{width:23px;height:24px}.editor-titlebar .theme-switch-label{font-size:8px}.editor-titlebar .theme-switch-options button{width:23px;height:23px}}
