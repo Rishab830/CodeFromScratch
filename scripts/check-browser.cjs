@@ -10,6 +10,19 @@ let browser;
   browser = await chromium.launch({channel:'chrome',headless:true});
   const context = await browser.newContext({viewport:{width:1440,height:1100}});
   const page = await context.newPage();
+  if (process.env.EMULATE_CLEAN_URLS === '1') {
+    // Reproduce Vercel's extensionless directory-index URLs. A plain static
+    // server alone will not catch a missing base URL after slash removal.
+    await page.route(/\/runner(?:-2)?\/?$/, async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.endsWith('/')) {
+        await route.fulfill({status:308,headers:{location:url.pathname.slice(0,-1)}});
+      } else {
+        const response = await route.fetch({url:url.origin + url.pathname + '/index.html'});
+        await route.fulfill({response});
+      }
+    });
+  }
   await page.addInitScript(() => {
     window.__loadingEvents = [];
     window.addEventListener('message', (event) => {
@@ -36,7 +49,7 @@ let browser;
   console.log('PASS: Python and Pygame report real download progress; loader clears only when ready');
   console.log('PASS: branded root app, protected editor, and actual Pygame engine load');
   await page.screenshot({path:path.join(qa,'new-desktop.png'),fullPage:true});
-  const frame = page.frames().find(frame => frame.url().includes('/runner/'));
+  const frame = page.frames().find(frame => /\/runner\/?$/.test(new URL(frame.url()).pathname));
   const editor = page.locator('.cm-content');
   const getSource = () => editor.evaluate(node => node.cmTile.root.view.state.doc.toString());
   async function setBody(body) {
@@ -143,7 +156,7 @@ let browser;
   console.log('PASS: Level 2 loads its own source, locks the blue jump, and gives no solution hint');
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
   // The runner iframe changed when navigating; read the live one for Level 2.
-  const secondFrame=page.frames().find(entry=>entry.url().includes('/runner-2/'));
+  const secondFrame=page.frames().find(entry=>/\/runner-2\/?$/.test(new URL(entry.url()).pathname));
   async function secondPosition() {
     return secondFrame.evaluate(()=>{
       const canvas=document.querySelector('#canvas');

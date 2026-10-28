@@ -13,6 +13,19 @@ Open http://localhost:3000. The generated Pygame assets are included in `public/
 
 The loading bar follows four startup stages: Python, level files, Pygame, and game startup. It observes actual Fetch streams and XMLHttpRequest progress without changing the runtime responses. It shows transferred bytes and percentages when sizes are available; unknown-size downloads and initialization remain animated rather than using a timer-based percentage. A failed download or a long wait exposes **Retry loading**, which restarts the engine and resets the bar.
 
+## Vercel hosting
+
+Deploy the project root with the Next.js preset and `npm run build`. The app uses `/runner/` and `/runner-2/` for its iframe pages. Vercel can serve directory indexes at `/runner` and `/runner-2` while returning 404 for the explicit `/runner/index.html` URLs. Each generated runner includes its own absolute `<base>` so game archives still load from the correct directory when trailing slashes are removed. No additional CORS or cross-origin isolation headers are needed for this runtime.
+
+After updating the source, redeploy on Vercel. Both the application URL change and the regenerated `public/runner*/index.html` files must be included. Do not fix only the iframe URL: without the explicit base, a slashless page can incorrectly request its archive from `/game.apk` instead of `/runner/game.apk`.
+
+To reproduce production-style URL canonicalization during browser checks:
+
+```powershell
+$env:EMULATE_CLEAN_URLS='1'
+npm run test:browser
+```
+
 ## Play, edit, compile
 
 - Click **Play level**, then use Left / Right or A / D to move and Space / Up / W to jump. Touch controls are below the game.

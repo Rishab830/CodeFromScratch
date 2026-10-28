@@ -22,5 +22,12 @@ for number, slug, runner in [(1, "jumping-girl", "runner"), (2, "blue-leap", "ru
     subprocess.run([sys.executable, "-m", "pygbag", "--build", "--ume_block", "0", "--template", str(ROOT / "game" / "runner.tmpl"), str(folder)], check=True, cwd=ROOT)
     target = ROOT / "public" / runner
     shutil.copytree(folder / "build" / "web", target, dirs_exist_ok=True)
+    # Vercel can serve /runner/index.html at /runner. Keep relative archive
+    # requests inside the runner directory even after that canonicalization.
+    index = target / "index.html"
+    html = index.read_text(encoding="utf-8")
+    if html.count('__RUNNER_BASE__') != 1:
+        raise ValueError(f"Missing runner base placeholder in {index}")
+    index.write_text(html.replace('__RUNNER_BASE__', f'/{runner}/'), encoding="utf-8", newline="\n")
     (ROOT / "public" / "levels" / f"{slug}.py").write_text(lesson_source, encoding="utf-8", newline="\n")
     print(f"Level {number} built into {target}")

@@ -113,7 +113,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
     if (runtimeReady) return;
     const timer = setTimeout(() => {
       setMessage('The game engine is still loading. Check your connection or retry the download.');
-      setLoadingIssue('Taking longer than usual. The first download can be slow; you can keep waiting or retry.');
+      setLoadingIssue((current) => current || 'Taking longer than usual. The first download can be slow; you can keep waiting or retry.');
     }, 45000);
     return () => clearTimeout(timer);
   }, [runtimeReady, runtimeKey]);
@@ -145,6 +145,15 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
   function gameKey(key: string, down: boolean) {
     iframe.current?.contentWindow?.postMessage({channel:'scratch',type:'key',key,down}, '*');
   }
+  function checkGamePage() {
+    const document = iframe.current?.contentDocument;
+    if (document && document.readyState === 'complete' && document.URL !== 'about:blank' && !document.getElementById('canvas')) {
+      setLoadingIssue('The game page could not be opened. Please reload and try again.');
+      setMessage('The game page is unavailable. Please reload and try again.');
+    }
+  }
+  // A static iframe may finish before React hydrates and attaches onLoad.
+  useEffect(() => { checkGamePage(); }, [runtimeKey]);
   const busy = !runtimeReady || status === 'compiling';
   const isSecond = LEVEL.number === 2;
   const loadPercent = Math.round(((loading.phase - 1 + (loading.fraction ?? 0)) / 4) * 100);
@@ -167,7 +176,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
           <div className="scene" ref={scene}>
             <div className="game-goal" aria-label="Level goal"><span className="game-goal-icon"><Flag size={17}/></span><div><strong>Goal: Reach the flag on the left.</strong><p>{LEVEL.goal}</p></div></div>
             <div className="game-viewport">
-            <iframe key={runtimeKey} ref={iframe} src={LEVEL.runtime} title={LEVEL.title + ' playable Pygame level'} allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
+            <iframe key={runtimeKey} ref={iframe} src={LEVEL.runtime} onLoad={checkGamePage} title={LEVEL.title + ' playable Pygame level'} allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
             {!runtimeReady && <div className="runtime-loading"><div className="pixel-loader"><Braces size={27}/></div><strong>Building a little adventure...</strong><span className="loading-phase" aria-live="polite">{loading.label}</span><div className="startup-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={loadPercent} aria-valuetext={`Step ${loading.phase} of 4: ${loading.label}. ${downloadDetail}`}><div className="startup-progress-fill" style={{width:`${loadPercent}%`}}/>{loading.fraction === null && <div className="startup-progress-pulse" style={{left:`${(loading.phase - 1) * 25}%`}}/>}</div><div className="loading-numbers"><span>STEP {loading.phase} OF 4</span><span>{loading.fraction !== null ? `${Math.round(loading.fraction * 100)}% - ` : ''}{downloadDetail}</span></div><div className="loading-stages">{['Python','Level','Pygame','Play'].map((label,index) => <span key={label} className={index + 1 < loading.phase ? 'done' : index + 1 === loading.phase ? 'current' : ''}>{index + 1 < loading.phase ? 'OK' : String(index + 1).padStart(2,'0')} {label}</span>)}</div>{loadingIssue ? <div className="loading-retry"><p>{loadingIssue}</p><button onClick={reload}><RotateCcw size={12}/> Retry loading</button></div> : <p className="loading-note">First load is the slowest. Your browser caches the engine for later visits.</p>}</div>}
             {runtimeReady && status === 'ready' && <div className="start-overlay"><span className="pixel-spark">✦</span><span className="scene-eyebrow">WELCOME TO {LEVEL.world.toUpperCase()}</span><h2>Small world.<br/>Big possibilities.</h2><p>{LEVEL.intro}</p><button className="play-button" onClick={() => start(applied.current)}><Play size={15} fill="currentColor"/> Play level</button></div>}
             {status === 'dead' && <div className="outcome-overlay death-overlay" role="dialog" aria-label="Game over"><div className="outcome-symbol"><TriangleAlert size={26}/></div><span className="scene-eyebrow">A BUMP IN THE ADVENTURE</span><h2>Game over<span>!</span></h2><p>{LEVEL.death}<br/>Try again, or give your code a tiny tweak.</p><button className="play-button" onClick={() => start(applied.current)}><RotateCcw size={15}/> Restart level</button><button className="text-button" onClick={() => {setRevealToken((value) => value + 1);document.querySelector('.editor-panel')?.scrollIntoView({block:'nearest',behavior:'smooth'});}}>Take me to the code <ArrowRight size={13}/></button></div>}
