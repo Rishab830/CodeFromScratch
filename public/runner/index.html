@@ -35,17 +35,17 @@ var config = {
   user_canvas_managed: 0, gui_divider: 1, ume_block: 0, can_close: 0,
   archive: "game", gui_debug: 0,
   cdn: "https://pygame-web.github.io/cdn/0.9.3/", autorun: 0,
-  PYBUILD: "3.12", fb_ar: 1.8181818,
-  fb_width: 800, fb_height: 440
+  PYBUILD: "3.12", fb_ar: 1.7777778,
+  fb_width: 800, fb_height: 450
 };
 let pendingCommand = '';
 let touchKeys = new Set();
 window.lessonTakeCommand = () => { const command = pendingCommand; pendingCommand = ''; return command; };
-window.lessonEvent = (raw) => parent.postMessage({channel: 'codequest', ...JSON.parse(raw)}, '*');
+window.lessonEvent = (raw) => parent.postMessage({channel: 'scratch', ...JSON.parse(raw)}, '*');
 window.addEventListener('message', (event) => {
-  if (event.source !== parent || !event.data || event.data.channel !== 'codequest') return;
-  if (event.data.type === 'run') {
-    pendingCommand = JSON.stringify({body: event.data.body, mode: event.data.mode});
+  if (event.source !== parent || !event.data || event.data.channel !== 'scratch') return;
+  if (event.data.type === 'compile') {
+    pendingCommand = JSON.stringify({body: event.data.body});
     document.getElementById('canvas').focus();
   }
   if (event.data.type === 'key') {
@@ -64,14 +64,14 @@ function custom_prerun() {}
 function custom_postrun() {}
 </script>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#e8f1e3;font-family:system-ui}
-#canvas,#canvas3d{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;border:0;outline:0;object-fit:contain}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dad9f6;font-family:system-ui}
+#canvas,#canvas3d{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;border:0;outline:0;object-fit:contain;image-rendering:pixelated}
 #transfer,#infobox,#pyconsole,#system,#box,#info,#crt,#dlg,#html{display:none!important}
 </style></head>
 <body>
 <div id="transfer"><div id="status"></div><progress id="progress"></progress></div>
-<canvas id="canvas" width="800" height="440" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
-<canvas id="canvas3d" width="800" height="440" hidden></canvas>
+<canvas id="canvas" width="800" height="450" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<canvas id="canvas3d" width="800" height="450" hidden></canvas>
 <div id="infobox"></div><div id="html"></div><div id="crt"><div id="system"></div><div id="box"><div id="info"></div><iframe id="iframe" title="Runtime" hidden></iframe></div></div>
 <div id="dlg"><input id="dlg_multifile" type="file" hidden></div>
 <div id="pyconsole"><div id="terminal"></div></div>

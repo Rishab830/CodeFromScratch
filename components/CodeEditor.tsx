@@ -54,17 +54,17 @@ export default function CodeEditor({ source, onChange, revealToken }: { source: 
   const [view, setView] = useState<EditorView | null>(null);
   const extensions = useMemo(() => [python(), protectedCode, highlightedLines,
     EditorState.tabSize.of(4), EditorView.theme({
-      '&': { backgroundColor: '#24282b', color: '#d9dcd8', fontSize: '12px', height: '100%' },
+      '&': { backgroundColor: '#1b1c27', color: '#ddd2e8', fontSize: '12px', height: '100%' },
       '.cm-scroller': { fontFamily: '"Cascadia Code", "Consolas", monospace', lineHeight: '1.9', overflow: 'auto' },
-      '.cm-content': { padding: '18px 0 100px', caretColor: '#ecc28e' },
-      '.cm-gutters': { backgroundColor: '#24282b', color: '#747c7c', border: 'none', paddingRight: '12px' },
+      '.cm-content': { padding: '18px 0 100px', caretColor: '#d5b5f5' },
+      '.cm-gutters': { backgroundColor: '#1b1c27', color: '#746780', border: 'none', paddingRight: '12px' },
       '.cm-line': { paddingLeft: '12px' },
       '.cm-activeLine': { backgroundColor: 'transparent' },
       '.cm-activeLineGutter': { backgroundColor: 'transparent' },
-      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: '#4e5d59 !important' },
-      '.cm-cursor': { borderLeftColor: '#ffd1a0' },
-      '.editable-line': { backgroundColor: '#35443a', boxShadow: 'inset 3px 0 #b5d2a1' },
-      '.protected-line': { opacity: '.59' },
+      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: '#564265 !important' },
+      '.cm-cursor': { borderLeftColor: '#dcc2f8' },
+      '.editable-line': { backgroundColor: '#293d35', boxShadow: 'inset 3px 0 #b3d9bb' },
+      '.protected-line': { opacity: '.75' },
       '.cm-matchingBracket': { backgroundColor: '#57634c !important' }
     })], []);
   useEffect(() => {

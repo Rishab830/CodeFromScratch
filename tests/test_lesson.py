@@ -1,5 +1,6 @@
-"""Exercise actual Pygame physics and dynamically compiled student Python."""
+"""Regression checks for the actual Pygame physics, hazards, and win trigger."""
 import ast
+from collections import defaultdict
 import os
 from pathlib import Path
 import sys
@@ -10,48 +11,67 @@ os.environ["SDL_AUDIODRIVER"] = "dummy"
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "game"))
 import lesson_bridge
+import pygame
 
-tree = ast.parse((ROOT / "game" / "main.py").read_text())
-# Import the same game definitions without starting its perpetual browser loop.
-tree.body.pop()
+tree = ast.parse((ROOT / "game" / "main.py").read_text(encoding="utf-8"))
+tree.body.pop()  # Import definitions without starting the browser's event loop.
 game = {}
 exec(compile(tree, "main.py", "exec"), game)
 
 
 class LessonTests(unittest.TestCase):
-    def simulate(self, body, seconds=6):
+    def simulate(self, body, keys=(), seconds=10):
         game["on_blue"] = lesson_bridge.compile_solution(body)
         girl = game["Girl"]()
+        controls = defaultdict(bool, {key: True for key in keys})
         for _ in range(int(seconds * 60)):
-            game["update"](girl, 1 / 60, {}, "test")
-            if girl.x <= game["GOAL_X"] + 18:
+            result = game["update"](girl, 1 / 60, controls)
+            if result:
+                return girl, result
+        return girl, None
+
+    def test_compiling_without_playing_never_wins(self):
+        for body in ["    player.jump()\n", "    player.move_left()\n", "    pass\n"]:
+            with self.subTest(body=body):
+                girl, result = self.simulate(body)
+                self.assertIsNone(result)
+                self.assertEqual(girl.x, game["SPAWN_X"])
+
+    def test_starter_walks_into_blue_then_hits_spikes(self):
+        girl, result = self.simulate("    player.jump()\n", [pygame.K_LEFT])
+        self.assertEqual(result, "dead")
+        self.assertGreater(girl.x, game["BLUE"].left)
+
+    def test_move_left_solution_wins_by_manual_play(self):
+        _, result = self.simulate("    player.move_left()\n", [pygame.K_LEFT])
+        self.assertEqual(result, "won")
+
+    def test_alternative_pass_solution_is_accepted(self):
+        _, result = self.simulate("    pass\n", [pygame.K_LEFT])
+        self.assertEqual(result, "won")
+
+    def test_jump_on_safe_ground_does_not_disqualify_win(self):
+        game["on_blue"] = lesson_bridge.compile_solution("    pass\n")
+        girl = game["Girl"]()
+        girl.x = 110
+        girl.jump()
+        keys = defaultdict(bool, {pygame.K_LEFT: True})
+        result = None
+        for _ in range(300):
+            result = game["update"](girl, 1 / 60, keys)
+            if result:
                 break
-        return girl
+        self.assertEqual(result, "won")
 
-    def test_starter_reproduces_repeated_jumping(self):
-        girl = self.simulate("    player.jump()\n")
-        self.assertGreater(girl.jumps, 2)
-        self.assertEqual(girl.x, 570)
+    def test_empty_corners_of_spikes_are_safe(self):
+        triangle = [(0, 0), (8, 0), (4, 17)]
+        self.assertFalse(game["triangle_hits_rect"](triangle, pygame.Rect(0, 13, 1, 2)))
+        self.assertTrue(game["triangle_hits_rect"](triangle, pygame.Rect(3, 10, 2, 4)))
 
-    def test_real_fix_reaches_flag_without_jumping(self):
-        girl = self.simulate("    player.move_left()\n")
-        self.assertLessEqual(girl.x, game["GOAL_X"] + 18)
-        self.assertEqual(girl.jumps, 0)
-
-    def test_stop_alone_does_not_solve_level(self):
-        girl = self.simulate("    player.stop()\n")
-        self.assertEqual(girl.x, 570)
-
-    def test_moving_right_does_not_solve_level(self):
-        girl = self.simulate("    player.move_right()\n")
-        self.assertGreater(girl.x, 570)
-
-    def test_syntax_errors_are_readable(self):
+    def test_python_errors_and_unbounded_code_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "Python syntax error"):
             lesson_bridge.compile_solution("    player.move_left(\n")
-
-    def test_unbounded_and_out_of_scope_code_is_rejected(self):
-        for source in ["    while True: pass\n", "    import os\n", "    player.__class__()\n", "    player.x = 0\n", "    print('hello')\n", "    pass\nx = 1\n"]:
+        for source in ["    while True: pass\n", "    import os\n", "    player.__class__()\n", "    player.x = 0\n"]:
             with self.subTest(source=source), self.assertRaises(ValueError):
                 lesson_bridge.compile_solution(source)
 

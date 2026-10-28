@@ -1,39 +1,42 @@
-# CodeQuest — The Jumping Girl
+# Code From Scratch
 
-A Next.js application with a real Pygame game running in the browser through Pygbag / CPython WebAssembly. Students see the entire `main.py` file but can edit only the highlighted body of `on_blue(player)`.
+A Next.js website for learning Python through playable Pygame levels. The project lives directly in `CodeFromScratch/`; **The Jumping Girl** is the first lesson, not the application name.
 
-## Run locally
+## Run
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The generated Pygame assets are included in `public/runner`; Python is not needed to serve the application. The first game load downloads the CPython and Pygame runtime from pygame-web's CDN, so an internet connection is required.
+Open http://localhost:3000. The generated Pygame assets are included in `public/runner`, so Python is not required to serve the site. The first game load downloads its CPython WebAssembly runtime and Pygame from pygame-web's CDN.
 
-## The lesson
+## Play, edit, compile
 
-- The starter calls `player.jump()` every time Maya lands on blue, causing repeated jumps.
-- Students change it to `player.move_left()`.
-- **Play yourself:** click the game, then use Left / Right (or A / D) and Space. On-screen controls work on touch devices.
-- **Test my fix:** resets Maya on blue and runs an automatic attempt with keyboard input disabled. Success requires reaching the left flag within six seconds with no jumps.
-- Next-level access and 100 XP unlock after a successful automatic test. Level 2 is explicitly a placeholder in this one-level demo.
-- Edits and completion are stored locally in the browser. Reset restores the starter code; Reload game restarts the runtime.
+- Click **Play level**, then use Left / Right or A / D to move and Space / Up / W to jump. Touch controls are below the game.
+- Landing on blue calls `on_blue(player)`. The starter's `player.jump()` launches Maya into overhead spikes.
+- A spike collision ends the attempt and shows **Game over** with **Restart level**.
+- Read the entire Python file; only the green function body is editable. **Compile** validates and compiles that Python, applies it, and restarts the playable level. It does not run an automated attempt or grade a solution.
+- **Restart** reuses the last successfully compiled code. **Reset code** restores the starter in the editor; Compile is still required to apply those changes.
+- Reach the flag yourself to complete the level, earn 100 XP, and unlock the next-level placeholder. Any valid solution, route, or number of jumps is accepted. `player.move_left()` and `pass` both work with manual controls.
+- Edits and completed levels persist locally in this browser. The new manual-play level uses a separate progress key from the old automatic demo.
 
-## Implementation
+## Project structure
 
-`game/main.py` owns all physics, rendering, controls, and win conditions. It is also copied verbatim to `public/lesson.py` for the editor. CodeMirror transaction filtering protects everything outside the edit markers. Changes are sent by `postMessage` to the Pygame runner and compiled by Python immediately; there is no server-side build per attempt. `game/lesson_bridge.py` validates the solution AST before execution, limiting this introductory lesson to the player API, simple conditionals, and `pass`; loops, arbitrary imports, attribute writes, and unrelated calls are rejected. This is a bounded lesson runner, not a general-purpose Python sandbox. Client-side progress is suitable for a demo, not authoritative grading.
+`lib/levels.ts` registers the current lesson and its source, runtime, and storage keys. `game/main.py` owns the complete Pygame world, sprite art, physics, keyboard controls, collisions, and flag trigger. It draws a 320×180 pixel canvas and scales it up without smoothing. The same complete file is published as `public/levels/jumping-girl.py` for the protected editor.
 
-## Change the Pygame source
+`game/lesson_bridge.py` compiles the editable Python function and limits this introductory lesson to the player API, simple conditionals, and `pass`. It rejects loops, arbitrary imports, and attribute writes. This is a bounded lesson runner, not a general-purpose Python sandbox. Client-side progress is suitable for this prototype, not authoritative grading.
+
+## Rebuild the game
 
 ```powershell
 python -m pip install -r requirements.txt
 npm run build:game
 ```
 
-Rebuild after changing Python or the runner template. Python 3.12+ is recommended for build tooling. The browser uses Pygbag's own bundled CPython runtime.
+Rebuild after changing Python or the runner template. Pygbag uses its own CPython inside the browser.
 
-## Validate and build
+## Verify and build
 
 ```powershell
 npm run test:lesson
@@ -41,6 +44,4 @@ npm run typecheck
 npm run build
 ```
 
-For end-to-end checks, start `npm run dev` in another terminal, then run `npm run test:browser`. This uses an installed Google Chrome through Playwright and verifies the actual WASM game, keyboard and touch controls, protected editing, syntax errors, win conditions, reset, and mobile layout. Set `TEST_URL` to check a different serving URL.
-
-The app exports static files to `out/`, compatible with static hosting. There is no Python backend and no database.
+The production static site is exported to `out/`. To run the actual WASM end-to-end checks, serve the app, then set `TEST_URL` to that URL and run `npm run test:browser`. The checks use installed Google Chrome through Playwright and verify manual play, spike death/restart, Python compilation/errors, protected editing, multiple valid solutions, physical flag completion, touch controls, and mobile layout.

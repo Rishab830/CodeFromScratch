@@ -9,3 +9,5 @@ playwright-report/
 .openai/*.local.*
 /*.png
 /.site-archive.tar.gz
+/*.tar.gz
+/artifacts/

@@ -2,159 +2,162 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Braces, Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, Code2, Flag, Gamepad2, Lightbulb, LockKeyhole, Maximize2, Play, RotateCcw, Sparkles, Terminal, VolumeX, X } from 'lucide-react';
-import { solutionBody } from '../components/CodeEditor';
+import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Braces, Check, CheckCircle2, ChevronRight, Code2, Flag, Gamepad2, HelpCircle, Lightbulb, LockKeyhole, Maximize2, Play, RotateCcw, Sparkles, Terminal, TriangleAlert, X, Zap } from 'lucide-react';
+import { solutionBody, START, END } from '../components/CodeEditor';
+import { LEVEL } from '../lib/levels';
 
-const CodeEditor = dynamic(() => import('../components/CodeEditor'), { ssr: false, loading: () => <div className="editor-loading">Opening your Python file…</div> });
-type Status = 'loading' | 'ready' | 'running' | 'failed' | 'error' | 'won';
-const hints = [
-  'The game already knows when she touches blue. Look at the action inside on_blue(player).',
-  'jump() makes her jump every time she lands. Which action in the reference would send her toward the flag?',
-  'Replace player.jump() with player.move_left(), then select Test my fix.'
+const CodeEditor = dynamic(() => import('../components/CodeEditor'), { ssr: false });
+type Status = 'loading' | 'ready' | 'compiling' | 'playing' | 'dead' | 'error' | 'won';
+const HINTS = [
+  'Watch what happens when Maya lands on blue. Which action sends her toward those spikes?',
+  'The game already handles your arrow keys. You can change the blue action, or remove that automatic action.',
+  'Try player.move_left() instead of player.jump(). Or try pass to leave movement entirely to your controls. Compile, then play!'
 ];
 
 export default function Home() {
   const [source, setSource] = useState('');
   const [original, setOriginal] = useState('');
+  const [compiledBody, setCompiledBody] = useState('');
   const [status, setStatus] = useState<Status>('loading');
-  const [message, setMessage] = useState('Preparing your playground. The first visit takes a little longer.');
-  const [hint, setHint] = useState(-1);
-  const [tab, setTab] = useState<'mission' | 'reference'>('mission');
-  const [completed, setCompleted] = useState(false);
-  const [nextOpen, setNextOpen] = useState(false);
-  const [runtimeKey, setRuntimeKey] = useState(0);
-  const [mode, setMode] = useState<'play' | 'test'>('play');
-  const [focused, setFocused] = useState(false);
   const [runtimeReady, setRuntimeReady] = useState(false);
+  const [runtimeKey, setRuntimeKey] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [message, setMessage] = useState('Loading your little pixel world. The first visit takes a moment.');
+  const [tab, setTab] = useState<'mission' | 'reference'>('mission');
+  const [hint, setHint] = useState(-1);
   const [revealToken, setRevealToken] = useState(0);
+  const [modal, setModal] = useState<'help' | 'next' | null>(null);
+  const [focused, setFocused] = useState(false);
   const iframe = useRef<HTMLIFrameElement>(null);
   const scene = useRef<HTMLDivElement>(null);
-  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const applied = useRef('');
+  const pending = useRef('');
+  const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirty = !!source && solutionBody(source) !== compiledBody;
 
   useEffect(() => {
-    fetch('/lesson.py').then((response) => {
-      if (!response.ok) throw new Error('The lesson source could not be loaded.');
+    fetch(LEVEL.source).then((response) => {
+      if (!response.ok) throw new Error('The Python source could not be loaded. Reload to try again.');
       return response.text();
     }).then((text) => {
-      setSource(text); setOriginal(text);
-      const saved = localStorage.getItem('codequest-level-1-body');
-      if (saved !== null) {
-        const start = text.indexOf('    # EDIT START: fix the action below\n') + '    # EDIT START: fix the action below\n'.length;
-        const end = text.indexOf('    # EDIT END', start);
-        if (saved.endsWith('\n') && saved.length <= 2000) setSource(text.slice(0, start) + saved + text.slice(end));
-      }
-      setCompleted(localStorage.getItem('codequest-level-1-complete') === 'yes');
+      setOriginal(text); setSource(text);
+      applied.current = solutionBody(text); setCompiledBody(applied.current);
+      try {
+        const saved = localStorage.getItem(LEVEL.storage + ':body');
+        if (saved && saved.endsWith('\n') && saved.length <= 2000 && !saved.includes(END)) {
+          const start = text.indexOf(START) + START.length;
+          const end = text.indexOf(END, start);
+          setSource(text.slice(0, start) + saved + text.slice(end));
+        }
+        setCompleted(localStorage.getItem(LEVEL.storage + ':complete') === 'yes');
+      } catch { /* The game also works when browser storage is disabled. */ }
     }).catch((error) => { setStatus('error'); setMessage(error.message); });
   }, []);
 
   useEffect(() => {
-    function onMessage(event: MessageEvent) {
-      if (event.source !== iframe.current?.contentWindow || event.data?.channel !== 'codequest') return;
+    function receive(event: MessageEvent) {
+      if (event.source !== iframe.current?.contentWindow || event.data?.channel !== 'scratch') return;
       const data = event.data;
       if (data.type === 'ready') {
         setRuntimeReady(true); setStatus('ready');
-        setMessage('The bug is live! Click the game and use the arrow keys to explore.');
+        setMessage('Your world is ready. Play the level, spot the bug, and find your own way to the flag.');
       }
       if (data.type === 'started') {
-        setStatus(data.mode === 'test' ? 'running' : 'ready');
-        setMessage(data.mode === 'test' ? 'Testing your code… Can she reach the flag without jumping?' : 'Your turn! Move with ← → or A / D. Jump with Space.');
+        if (requestTimer.current) clearTimeout(requestTimer.current);
+        applied.current = pending.current; setCompiledBody(pending.current);
+        setAttempt(data.attempt); setStatus('playing');
+        setMessage('You’re in control. Use ← → to move and Space to jump. Watch the spikes above blue!');
       }
-      if (['won', 'failed', 'error'].includes(data.type) && timeout.current) clearTimeout(timeout.current);
+      if (data.type === 'dead') {
+        setStatus('dead'); setMessage('Ouch, spikes! Restart to try again, or edit your code and Compile.');
+      }
       if (data.type === 'won') {
-        setStatus('won'); setCompleted(true); setMessage(`You fixed it! She reached the flag in ${data.seconds}s without jumping. Level 2 is unlocked.`);
-        localStorage.setItem('codequest-level-1-complete', 'yes');
+        setStatus('won'); setCompleted(true);
+        setMessage('Flag reached! You cleared the level. Your route, your solution. +100 XP');
+        try { localStorage.setItem(LEVEL.storage + ':complete', 'yes'); } catch {}
       }
-      if (data.type === 'failed') { setStatus('failed'); setMessage(data.message + ' Change the highlighted action and try again.'); }
-      if (data.type === 'error') { setStatus('error'); setMessage(data.message); }
-      if (data.type === 'explored') setMessage('You reached the flag! Now use Test my fix to let your code solve the level on its own.');
+      if (data.type === 'error') {
+        if (requestTimer.current) clearTimeout(requestTimer.current);
+        setStatus('error'); setMessage(data.message);
+      }
     }
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    window.addEventListener('message', receive);
+    return () => { window.removeEventListener('message', receive); if (requestTimer.current) clearTimeout(requestTimer.current); };
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!runtimeReady) setMessage('The Python engine is still downloading. Check your connection, or use Reload game to retry.');
-    }, 45000);
+    if (runtimeReady) return;
+    const timer = setTimeout(() => setMessage('The game engine is still loading. Check your connection or choose Reload engine below.'), 45000);
     return () => clearTimeout(timer);
   }, [runtimeReady, runtimeKey]);
-  useEffect(() => () => { if (timeout.current) clearTimeout(timeout.current); }, []);
 
-  function run(runMode: 'play' | 'test') {
-    if (!runtimeReady || !source) return;
-    if (timeout.current) clearTimeout(timeout.current);
-    setMode(runMode); setStatus(runMode === 'test' ? 'running' : 'ready');
-    iframe.current?.contentWindow?.postMessage({ channel: 'codequest', type: 'run', mode: runMode, body: solutionBody(source) }, '*');
-    if (runMode === 'play') { iframe.current?.focus(); setFocused(true); }
-    if (runMode === 'test') timeout.current = setTimeout(() => {
-      setStatus('error'); setMessage('The test did not finish. Reload the game and try again.');
-    }, 15000);
+  function start(body: string) {
+    if (!runtimeReady) return;
+    if (requestTimer.current) clearTimeout(requestTimer.current);
+    pending.current = body;
+    setStatus('compiling'); setMessage('Compiling Python and restarting your adventure…');
+    iframe.current?.contentWindow?.postMessage({channel:'scratch',type:'compile',body}, '*');
+    iframe.current?.focus();
+    requestTimer.current = setTimeout(() => { setStatus('error'); setMessage('The engine did not respond. Choose Reload engine and try again.'); }, 12000);
   }
-  function changeSource(value: string) {
-    setSource(value); localStorage.setItem('codequest-level-1-body', solutionBody(value));
+  function edit(value: string) {
+    setSource(value);
+    try { localStorage.setItem(LEVEL.storage + ':body', solutionBody(value)); } catch {}
   }
-  function reset() {
-    setRevealToken((value) => value + 1);
-    setSource(original); setHint(-1); localStorage.removeItem('codequest-level-1-body');
-    if (runtimeReady) {
-      setMode('play');
-      iframe.current?.contentWindow?.postMessage({channel:'codequest',type:'run',mode:'play',body:solutionBody(original)}, '*');
-    }
+  function resetCode() {
+    edit(original); setHint(-1); setRevealToken((value) => value + 1);
+    setMessage('Starter code restored in the editor. Compile to apply it to the game.');
   }
   function reload() {
-    if (timeout.current) clearTimeout(timeout.current);
-    setRuntimeReady(false); setStatus('loading'); setRuntimeKey((key) => key + 1);
-    setMessage('Restarting the Python engine…');
+    if (requestTimer.current) clearTimeout(requestTimer.current);
+    setRuntimeReady(false); setStatus('loading'); setRuntimeKey((value) => value + 1);
+    if (original) { applied.current = solutionBody(original); setCompiledBody(applied.current); }
+    setMessage('Reloading the game engine…');
   }
-  function key(key: string, down: boolean) { iframe.current?.contentWindow?.postMessage({channel:'codequest',type:'key',key,down}, '*'); }
+  function gameKey(key: string, down: boolean) {
+    iframe.current?.contentWindow?.postMessage({channel:'scratch',type:'key',key,down}, '*');
+  }
+  const busy = !runtimeReady || status === 'compiling';
 
   return <div className="app-shell">
     <header className="site-header">
-      <a className="brand" href="/" aria-label="CodeQuest home"><span className="brand-icon"><Braces size={22} strokeWidth={2.4}/></span>code<span>quest</span><span className="beta">PLAY & LEARN</span></a>
-      <div className="course-nav"><span className="course-dot"/> Python adventures <ChevronDown size={14}/></div>
-      <div className="profile"><span className="xp"><Sparkles size={15}/> {completed ? '100' : '0'} XP</span><span className="avatar">Y</span></div>
+      <a className="brand" href="/" aria-label="Code From Scratch home"><span className="brand-icon"><Braces size={23}/></span><span>code<span className="brand-middle">from</span>scratch<span className="brand-period">.</span></span></a>
+      <nav aria-label="Main navigation"><a className="active" href="#levels">Adventures</a><button onClick={() => setModal('help')}>How to play <HelpCircle size={14}/></button></nav>
+      <div className="profile"><span className="xp"><Sparkles size={15}/> {completed ? '100' : '0'} XP</span><span className="avatar">YOU</span></div>
     </header>
 
     <main>
-      <div className="breadcrumbs"><span>Python adventures</span><ChevronRight size={13}/><span>Chapter 01</span><ChevronRight size={13}/><strong>The Jumping Girl</strong></div>
-      <div className="title-row"><div><div className="eyebrow">A LITTLE BUG. A BIG ADVENTURE.</div><h1>The Jumping Girl<span className="level-tag">LEVEL 01</span></h1><p>Something’s not quite right. A small change can make a big difference.</p></div><div className="lesson-meta"><span><span className="tiny-bars">▂▅▇</span> Beginner</span><i/><span>~5 min</span></div></div>
+      <div className="breadcrumbs"><a href="#levels">Your adventures</a><ChevronRight size={12}/><span>World 01</span><ChevronRight size={12}/><span className="breadcrumb-current">{LEVEL.world}</span></div>
+      <div className="title-row"><div><div className="eyebrow"><span/> LITTLE BUGS. BIG ADVENTURES.</div><h1>The Jumping Girl <span className="level-tag">LVL 01</span></h1><p>A curious little world. One troublesome line of code. Your move.</p></div><div className="level-reward"><span className="reward-icon"><Flag size={21}/></span><div><strong>Find your way to the flag</strong><span>Any route counts. You’ve got this.</span></div><span className="reward-xp">+100 XP</span></div></div>
 
       <div className="workspace">
-        <aside className="mission-panel">
-          <div className="panel-tabs"><button className={tab === 'mission' ? 'selected' : ''} onClick={() => setTab('mission')}><Flag size={15}/> Your mission</button><button className={tab === 'reference' ? 'selected' : ''} onClick={() => setTab('reference')}><BookOpen size={15}/> Reference</button></div>
-          {tab === 'mission' ? <div className="mission-content">
-            <div className="chapter-number">01 <span>/ THE FIRST ADVENTURE</span></div>
-            <h2>A jump in the<br/>wrong direction.</h2>
-            <p>Meet Maya. She’s on her way to the flag, but the blue platform has her a little confused.</p>
-            <div className="story-callout"><span className="blue-square"/><p>When she touches <strong>blue</strong>, she should move <strong>left</strong>.<br/>Instead, she keeps jumping!</p></div>
-            <h3>LET’S FIX THAT</h3>
-            <ol className="steps"><li><span>1</span><p><strong>Play & observe</strong><br/>Try the game. What goes wrong?</p></li><li><span>2</span><p><strong>Find the bug</strong><br/>Read the code. Edit the green section.</p></li><li><span>3</span><p><strong>Test your fix</strong><br/>Help Maya walk left to the flag.</p></li></ol>
-            <div className="goal-card"><Flag size={18}/><div><strong>Your goal</strong><p>Reach the flag by moving left on blue, without any automatic jumps.</p></div></div>
-          </div> : <div className="mission-content reference-content"><div className="chapter-number">YOUR TOOLKIT</div><h2>A few helpful<br/>player actions.</h2><p>The game calls <code>on_blue(player)</code> whenever Maya is standing on the blue platform.</p>{[['player.jump()', 'Jump up from the ground.'],['player.move_left()', 'Start moving toward the left.'],['player.move_right()', 'Start moving toward the right.'],['player.stop()', 'Stop horizontal movement.']].map(([code, text]) => <div className="api-item" key={code}><code>{code}</code><p>{text}</p></div>)}<div className="reference-note"><LockKeyhole size={16}/><p>The game loop and collision code are protected. Only the highlighted function body can be changed.</p></div></div>}
-          <div className="hint-section"><button onClick={() => setHint((value) => Math.min(value + 1, 2))}><Lightbulb size={17}/>{hint < 0 ? 'Need a little nudge?' : hint === 2 ? 'Solution revealed' : 'Show another hint'}<ChevronRight size={15}/></button>{hint >= 0 && <p role="status">{hints[hint]}</p>}</div>
-        </aside>
-
-        <section className="playground" aria-label="Game playground">
-          <div className="section-toolbar"><span><span className="live-dot"/> THE PLAYGROUND</span><div><span className="sound-label"><VolumeX size={14}/> Sound off</span><button className="icon-button" aria-label="Fullscreen game" onClick={() => scene.current?.requestFullscreen()}><Maximize2 size={15}/></button></div></div>
+        <section className="game-panel" aria-label="Playable level">
+          <div className="game-heading"><span><span className="live-dot"/> PASTEL MEADOW <i>/</i> 01</span><div><span className="attempt">{attempt ? `ATTEMPT ${String(attempt).padStart(2,'0')}` : 'LET’S EXPLORE'}</span><button className="icon-button" aria-label="Fullscreen game" onClick={() => scene.current?.requestFullscreen().catch(() => setMessage('Fullscreen is unavailable in this browser. You can still play here.'))}><Maximize2 size={15}/></button></div></div>
           <div className="scene" ref={scene}>
-            <iframe key={runtimeKey} ref={iframe} src="/runner/index.html" title="The Jumping Girl playable Pygame game" allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
-            {!runtimeReady && <div className="runtime-loading"><div className="loading-flower"><Braces size={28}/></div><strong>Waking up the adventure…</strong><span>Loading Python & Pygame</span><div className="loading-track"><i/></div></div>}
-            {runtimeReady && <div className="scene-badge"><span className="live-dot"/>{mode === 'test' && status === 'running' ? 'TESTING YOUR FIX' : 'LEVEL 01 · GREENWOOD'}</div>}
-            {status === 'won' && <div className="win-overlay"><div className="win-icon"><Check size={26}/></div><h2>A little fix. A big win.</h2><p>You got Maya moving in the right direction.</p><button onClick={() => setNextOpen(true)}>Next adventure <ArrowRight size={16}/></button><button className="replay-link" onClick={() => run('play')}>Play this level again</button></div>}
+            <iframe key={runtimeKey} ref={iframe} src={LEVEL.runtime} title="The Jumping Girl playable Pygame level" allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
+            {!runtimeReady && <div className="runtime-loading"><div className="pixel-loader"><Braces size={27}/></div><strong>Building a little adventure…</strong><span>Loading Python & Pygame</span><div className="loading-track"><i/></div></div>}
+            {runtimeReady && status === 'ready' && <div className="start-overlay"><span className="pixel-spark">✦</span><span className="scene-eyebrow">WELCOME TO PASTEL MEADOW</span><h2>Small world.<br/>Big possibilities.</h2><p>Get Maya to the flag. Mind the spikes.</p><button className="play-button" onClick={() => start(applied.current)}><Play size={15} fill="currentColor"/> Play level</button></div>}
+            {status === 'dead' && <div className="outcome-overlay death-overlay" role="dialog" aria-label="Game over"><div className="outcome-symbol"><TriangleAlert size={26}/></div><span className="scene-eyebrow">A BUMP IN THE ADVENTURE</span><h2>Game over<span>!</span></h2><p>Those spikes are a little too pointy.<br/>Try again, or give your code a tiny tweak.</p><button className="play-button" onClick={() => start(applied.current)}><RotateCcw size={15}/> Restart level</button><button className="text-button" onClick={() => {setRevealToken((value) => value + 1);document.querySelector('.editor-panel')?.scrollIntoView({block:'nearest',behavior:'smooth'});}}>Take me to the code <ArrowRight size={13}/></button></div>}
+            {status === 'won' && <div className="outcome-overlay win-overlay" role="dialog" aria-label="Level complete"><div className="outcome-symbol"><Flag size={26}/></div><span className="scene-eyebrow">YOUR WAY WAS THE RIGHT WAY</span><h2>Level complete<span>!</span></h2><p>You reached the flag. A little persistence<br/>goes a long way.</p><span className="win-xp"><Sparkles size={14}/> +100 XP earned</span><button className="play-button" onClick={() => setModal('next')}>Next adventure <ArrowRight size={15}/></button><button className="text-button" onClick={() => start(applied.current)}>Play again</button></div>}
           </div>
-          <div className="game-controls"><div className="keyboard-guide"><kbd>←</kbd><kbd>→</kbd><span>move</span><kbd className="space-key">space</kbd><span>jump</span></div><button className="play-yourself" disabled={!runtimeReady || status === 'running'} onClick={() => run('play')}><Gamepad2 size={16}/> Play yourself</button></div>
-          <div className="touch-controls" aria-label="Touch game controls">{[['ArrowLeft','Move left'],['ArrowRight','Move right'],[' ','Jump']].map(([value,label]) => <button key={value} aria-label={label} disabled={!runtimeReady || mode === 'test'} onPointerDown={(event) => {event.currentTarget.setPointerCapture(event.pointerId);key(value,true);}} onPointerUp={() => key(value,false)} onPointerCancel={() => key(value,false)}>{value === 'ArrowLeft' ? <ArrowLeft size={19}/> : value === 'ArrowRight' ? <ArrowRight size={19}/> : 'Jump'}</button>)}</div>
-          <div className="play-tip"><CircleHelp size={14}/>{mode === 'test' && status === 'running' ? 'Hands off! Your code is driving this attempt.' : focused ? 'You’re in control. Follow the flag to the left.' : 'Click the game to use your keyboard, or choose Play yourself.'}</div>
-          <div className="console-card"><div className="console-heading"><span><Terminal size={14}/> Adventure log</span><span className={'status-pill ' + status}>{status === 'loading' ? 'LOADING' : status === 'running' ? 'RUNNING' : status === 'won' ? 'SOLVED' : status === 'failed' || status === 'error' ? 'TRY AGAIN' : 'READY'}</span></div><div className={'console-message ' + status} aria-live="polite">{status === 'won' ? <CheckCircle2 size={17}/> : <ChevronRight size={17}/>}<p>{message}</p></div></div>
-          <div className="learning-note"><span>✦</span><p>Every great programmer starts with a bug.</p><span>✦</span></div>
+          <div className="game-controls"><div className="keyboard-guide"><span><kbd>←</kbd><kbd>→</kbd> Move</span><span><kbd className="space-key">SPACE</kbd> Jump</span></div><button className="restart-button" disabled={busy} onClick={() => start(applied.current)}><RotateCcw size={14}/> Restart</button></div>
+          <div className="touch-controls" aria-label="On-screen game controls">{[['ArrowLeft','Move left'],['ArrowRight','Move right'],[' ','Jump']].map(([key,label]) => <button key={key} aria-label={label} disabled={status !== 'playing'} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); gameKey(key,true); }} onPointerUp={() => gameKey(key,false)} onPointerCancel={() => gameKey(key,false)} onLostPointerCapture={() => gameKey(key,false)}>{key === 'ArrowLeft' ? <ArrowLeft size={18}/> : key === 'ArrowRight' ? <ArrowRight size={18}/> : 'Jump ↑'}</button>)}</div>
+          <div className="game-footnote"><Gamepad2 size={14}/><span>{focused && status === 'playing' ? 'You’re in control. Make your own way to the flag.' : 'Click inside the game to play with your keyboard.'}</span><span className="pixel-note">YOU ARE IN CONTROL</span></div>
+
+          <div className="lesson-card"><div className="panel-tabs"><button className={tab === 'mission' ? 'selected' : ''} onClick={() => setTab('mission')}><Flag size={15}/> The mission</button><button className={tab === 'reference' ? 'selected' : ''} onClick={() => setTab('reference')}><BookOpen size={15}/> Player actions</button><span className="beginner-tag">BEGINNER FRIENDLY</span></div>
+            {tab === 'mission' ? <div className="mission-content"><div className="mission-story"><span className="story-icon"><span/></span><div><h2>Blue shouldn’t mean “boing!”</h2><p>Maya should move left when she touches blue. Instead, she jumps straight toward the spikes. Something in her code is a little mixed up.</p></div></div><div className="mission-steps"><div><span>01</span><strong>Play & notice</strong><p>Find out what goes wrong.</p></div><div><span>02</span><strong>Edit & compile</strong><p>Change the green code section.</p></div><div><span>03</span><strong>Find your way</strong><p>Play to the flag. Any solution wins.</p></div></div></div> : <div className="reference-content"><p>The game calls <code>on_blue(player)</code> when Maya stands on blue. The rest of her movement is up to you.</p><div className="api-grid">{[['player.jump()','Jump from the ground.'],['player.move_left()','Move toward the left.'],['player.move_right()','Move toward the right.'],['player.stop()','Stop sideways movement.'],['pass','Do nothing. Let the controls do the work.']].map(([code,text]) => <div key={code}><code>{code}</code><p>{text}</p></div>)}</div></div>}
+            <div className="hint-section"><button onClick={() => setHint((value) => Math.min(2,value + 1))}><Lightbulb size={15}/>{hint < 0 ? 'A little hint, if you need it' : hint === 2 ? 'A couple of possible solutions' : 'Another little hint'}<ChevronRight size={14}/></button>{hint >= 0 && <p role="status">{HINTS[hint]}</p>}</div>
+          </div>
         </section>
 
-        <section className="editor-panel" aria-label="Python code editor"><div className="editor-titlebar"><div><Code2 size={16}/><span>main.py</span><span className="file-dot"/></div><span>PYTHON</span></div><div className="editor-notice"><LockKeyhole size={12}/><span>Full code visible. <strong>Green section editable.</strong></span><button title="Jump to editable section" aria-label="Jump to editable section" onClick={() => setRevealToken((value) => value + 1)}><ArrowDown size={13}/></button></div><div className="editor-body">{source && <CodeEditor source={source} onChange={changeSource} revealToken={revealToken}/>}</div><div className="editor-footer"><div className="editor-footer-note"><span className="edit-indicator"/> Your changes stay in this browser</div><div className="editor-actions"><button className="reset-button" onClick={reset} disabled={!original || status === 'running'} aria-label="Reset starter code"><RotateCcw size={15}/> Reset</button><button className="run-button" onClick={() => run('test')} disabled={!runtimeReady || status === 'running' || !source}><Play size={14} fill="currentColor"/>{status === 'running' ? 'Testing…' : 'Test my fix'}<span>↵</span></button></div></div></section>
+        <section className="editor-panel" aria-label="Python code editor"><div className="editor-titlebar"><div><Code2 size={17}/><span>main.py</span><span className="python-tag">PYTHON</span></div><span className="file-type">YOUR CODE, YOUR ADVENTURE</span></div><div className="editor-notice"><LockKeyhole size={12}/><span>Read everything. <strong>Edit the green section.</strong></span><button aria-label="Jump to editable section" title="Jump to editable section" onClick={() => setRevealToken((value) => value + 1)}><ArrowDown size={14}/></button></div><div className="editor-body">{source ? <CodeEditor source={source} onChange={edit} revealToken={revealToken}/> : <div className="editor-loading">Opening your Python file…</div>}</div><div className="editor-footer"><div className={'compile-state ' + (dirty ? 'dirty' : '')}><span/>{dirty ? 'Uncompiled changes' : 'All changes compiled'}<span className="saved-note">Saved on this device</span></div><div className="editor-actions"><button className="reset-button" disabled={!original || status === 'compiling'} onClick={resetCode}><RotateCcw size={14}/> Reset code</button><button className="compile-button" disabled={busy || !source} onClick={() => start(solutionBody(source))}><Zap size={15}/>{status === 'compiling' ? 'Compiling…' : 'Compile'}<span aria-hidden="true">↵</span></button></div><p className="compile-explainer">Compile applies your code and restarts the game. Then it’s your turn to play.</p></div><div className="console-card"><div className="console-heading"><span><Terminal size={13}/> Adventure log</span><span className={'status-pill '+status}>{status === 'loading' ? 'LOADING' : status === 'compiling' ? 'COMPILING' : status === 'playing' ? 'PLAYING' : status === 'won' ? 'CLEARED' : status === 'dead' ? 'GAME OVER' : status === 'error' ? 'CODE ERROR' : 'READY'}</span></div><div className={'console-message '+status} aria-live="polite">{status === 'won' ? <CheckCircle2 size={15}/> : status === 'dead' || status === 'error' ? <TriangleAlert size={15}/> : <ChevronRight size={15}/>}<p>{message}</p></div></div></section>
       </div>
 
-      <div className="journey"><div className="journey-title"><span className="journey-icon"><Flag size={17}/></span><div><strong>Your adventure</strong><span>One small fix at a time</span></div></div><div className="journey-stops"><div className={'journey-stop active ' + (completed ? 'done' : '')}><span>{completed ? <Check size={15}/> : '01'}</span><div><strong>The Jumping Girl</strong><small>{completed ? 'Completed · +100 XP' : 'You are here'}</small></div></div><div className="journey-line"/><button className={'journey-stop next ' + (completed ? 'unlocked' : '')} disabled={!completed} onClick={() => setNextOpen(true)}><span>{completed ? '02' : <LockKeyhole size={13}/>}</span><div><strong>The next adventure</strong><small>{completed ? 'Unlocked' : 'Complete level 1 to unlock'}</small></div></button></div><span className="journey-progress">{completed ? '1' : '0'} / 1 complete</span></div>
-      <footer className="page-footer"><span>Made for curious minds.</span><button onClick={reload}><RotateCcw size={12}/> Reload game</button><span>Learn by playing. Grow by debugging.</span></footer>
+      <section className="journey" id="levels" aria-label="Your adventures"><div className="journey-title"><span className="journey-icon"><Flag size={17}/></span><div><strong>Your adventure map</strong><span>One small discovery at a time.</span></div></div><div className={'journey-stop active '+(completed ? 'done':'')}><span>{completed ? <Check size={16}/> : '01'}</span><div><strong>The Jumping Girl</strong><small>{completed ? 'Flag reached · complete' : 'Pastel Meadow · you are here'}</small></div></div><div className="journey-line"/><button className={'journey-stop next '+(completed ? 'unlocked':'')} disabled={!completed} onClick={() => setModal('next')}><span>{completed ? '02' : <LockKeyhole size={13}/>}</span><div><strong>The next adventure</strong><small>{completed ? 'Unlocked. More worlds ahead!' : 'Reach the flag to unlock'}</small></div></button><div className="map-dots" aria-hidden="true"><i/><i/><i/></div></section>
+      <footer className="page-footer"><span><span className="footer-star">✦</span> Made for curious minds, from scratch.</span><button onClick={reload}><RotateCcw size={12}/> Reload engine</button><span>There’s more than one way to win.</span></footer>
     </main>
-    {nextOpen && <div className="modal-backdrop" onClick={() => setNextOpen(false)}><div className="next-modal" role="dialog" aria-modal="true" aria-labelledby="next-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" aria-label="Close" onClick={() => setNextOpen(false)}><X size={19}/></button><div className="modal-star"><Sparkles size={30}/></div><span className="eyebrow">LEVEL 01 COMPLETE · +100 XP</span><h2 id="next-title">Adventure unlocked.</h2><p>You spotted the wrong action and fixed it with Python. That’s debugging!</p><div className="next-preview"><span>02</span><div><strong>The next adventure</strong><p>This is a one-level demo. Your next lesson can go here.</p></div></div><button className="run-button" onClick={() => {setNextOpen(false);run('play');}}>Back to the playground <ArrowUpRight size={15}/></button></div></div>}
+
+    {modal && <div className="modal-backdrop" onClick={() => setModal(null)}><div className="info-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" aria-label="Close" onClick={() => setModal(null)}><X size={20}/></button><span className="modal-icon">{modal === 'help' ? <Gamepad2 size={28}/> : <Sparkles size={28}/>}</span><span className="eyebrow">CODE FROM SCRATCH</span><h2 id="modal-title">{modal === 'help' ? 'Play. Tinker. Try again.' : 'A new adventure awaits.'}</h2>{modal === 'help' ? <><p>Use the arrow keys or A / D to move. Press Space to jump. On a phone, use the buttons below the game.</p><p>Read the full Python file and edit the green section. <strong>Compile</strong> loads your changes and restarts the level. <strong>Restart</strong> replays your last compiled code.</p><p>Your only mission: reach the flag yourself. Any route or working solution counts.</p></> : <><p>You played your way to the flag. That’s the only rule for clearing a level here.</p><div className="next-preview"><span>02</span><div><strong>The next adventure</strong><p>This one-level example is ready for more worlds. The next lesson is coming later.</p></div></div></>}<button className="compile-button" onClick={() => setModal(null)}>{modal === 'help' ? 'Let’s play' : 'Back to the adventure'}<ArrowRight size={15}/></button></div></div>}
   </div>;
 }
