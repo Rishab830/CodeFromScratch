@@ -10,7 +10,7 @@ export default function LevelCoins({coins, collected}: {coins: readonly string[]
     {coins.map(name => {
       const filled = collected.includes(name);
       const colors: Record<string,string> = {o:filled ? '#bc843b' : '#ae9262', f:'#ffcf64', h:'#fff2b3'};
-      return <svg key={name} className={'result-coin ' + (filled ? 'collected' : 'missing')} viewBox="0 0 8 10" shapeRendering="crispEdges" role="img" aria-label={`${name === 'above' ? 'Upper' : 'Lower'} coin: ${filled ? 'collected' : 'not collected'}`}>
+      return <svg key={name} className={'result-coin ' + (filled ? 'collected' : 'missing')} viewBox="0 0 8 10" shapeRendering="crispEdges" role="img" aria-label={`${name === 'above' ? 'Upper coin' : name === 'below' ? 'Lower coin' : `Coin ${coins.indexOf(name) + 1}`}: ${filled ? 'collected' : 'not collected'}`}>
         {SPRITE.flatMap((row,y) => [...row].map((pixel,x) => colors[pixel] && (filled || pixel === 'o') ? <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={colors[pixel]}/> : null))}
       </svg>;
     })}

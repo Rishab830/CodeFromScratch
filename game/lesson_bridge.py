@@ -142,6 +142,81 @@ def browser():
     return None
 
 
+def compile_puzzle(body, name, arguments):
+    """Compile a small puzzle function; bound loops before they reach the game."""
+    if not isinstance(body, str) or len(body) > 8000:
+        raise ValueError("Keep your solution under 8,000 characters.")
+    filename = "<your-puzzle>"
+    try:
+        tree = ast.parse(f"def {name}({arguments}):\n" + body)
+    except SyntaxError as error:
+        raise ValueError(f"Python syntax error on editable line {max(1, (error.lineno or 2) - 1)}: {error.msg}") from error
+    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
+        raise ValueError("Keep the solution inside the green function body.")
+    allowed = (ast.Module, ast.FunctionDef, ast.arguments, ast.arg, ast.Return,
+               ast.Assign, ast.AugAssign, ast.Name, ast.Load, ast.Store, ast.Constant,
+               ast.List, ast.Tuple, ast.Dict, ast.Subscript, ast.Expr, ast.Call,
+               ast.Attribute, ast.If, ast.IfExp, ast.For, ast.While, ast.Break,
+               ast.Continue, ast.Pass, ast.Compare, ast.Eq, ast.NotEq, ast.Lt,
+               ast.LtE, ast.Gt, ast.GtE, ast.In, ast.NotIn, ast.BoolOp, ast.And,
+               ast.Or, ast.UnaryOp, ast.Not, ast.USub, ast.UAdd, ast.BinOp,
+               ast.Add, ast.Sub, ast.Mod)
+    nodes = list(ast.walk(tree))
+    if len(nodes) > 600:
+        raise ValueError("Keep this puzzle solution small.")
+    for node in nodes:
+        if not isinstance(node, allowed) or (isinstance(node, ast.FunctionDef) and node is not tree.body[0]):
+            raise ValueError("Use values, sequences, conditions, and small loops. Imports and extra functions are not needed.")
+        if isinstance(node, ast.Name) and node.id.startswith("__"):
+            raise ValueError("Runtime internals are not part of the puzzle.")
+        if isinstance(node, ast.Constant) and not (type(node.value) in (bool, type(None)) or
+                (type(node.value) in (int, float) and math.isfinite(node.value) and abs(node.value) <= 1000) or
+                (isinstance(node.value, str) and len(node.value) <= 64)):
+            raise ValueError("Use small numbers and short strings.")
+        if isinstance(node, (ast.List, ast.Tuple)) and len(node.elts) > 64:
+            raise ValueError("Use at most 64 steps.")
+        if isinstance(node, ast.Attribute) and not (isinstance(node.value, ast.Name) and node.attr == "append"):
+            raise ValueError("Use local lists and append() for your sequence.")
+        if isinstance(node, ast.Call):
+            if node.keywords or not ((isinstance(node.func, ast.Name) and node.func.id in {"range", "len", "min", "max", "abs", "int", "bool"}) or
+                    (isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.attr == "append" and len(node.args) == 1)):
+                raise ValueError("Use range(), len(), simple numeric functions, or list.append().")
+
+    def small_range(*args):
+        result = range(*args)
+        if len(result) > 64:
+            raise ValueError("Keep loops to 64 steps or fewer.")
+        return result
+
+    namespace = {"__builtins__": {"range": small_range, "len": len, "min": min,
+                                  "max": max, "abs": abs, "int": int, "bool": bool}}
+    exec(compile(tree, filename, "exec"), namespace)
+
+    def run(*args):
+        remaining = 2000
+        previous = sys.gettrace()
+
+        def trace(frame, event, argument):
+            nonlocal remaining
+            if frame.f_code.co_filename == filename and event in ("line", "call"):
+                remaining -= 1
+                if remaining <= 0:
+                    raise ValueError("That loop did not finish. Check its stopping condition.")
+            return trace
+
+        sys.settrace(trace)
+        try:
+            return namespace[name](*args)
+        finally:
+            sys.settrace(previous)
+    return run
+
+
+def read_input():
+    window = browser()
+    return str(window.lessonReadInput()) if window is not None else ""
+
+
 def emit(kind, **data):
     window = browser()
     if window is not None:

@@ -42,6 +42,8 @@ var config = {
 };
 let pendingCommand = '';
 let touchKeys = new Set();
+let puzzleInput = '';
+window.lessonReadInput = () => puzzleInput;
 window.lessonReadCoins = (level) => {
   try { return localStorage.getItem(`cfs:coins:level-${level}:v1`) || '[]'; }
   catch { return '[]'; }
@@ -58,6 +60,7 @@ window.lessonEvent = (raw) => {
 };
 window.addEventListener('message', (event) => {
   if (event.source !== parent || !event.data || event.data.channel !== 'scratch') return;
+  if (event.data.type === 'input') puzzleInput = String(event.data.value || '').slice(0,64);
   if (event.data.type === 'compile') {
     pendingCommand = JSON.stringify({body: event.data.body});
     document.getElementById('canvas').focus();
