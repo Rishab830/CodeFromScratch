@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+game/build/
+__pycache__/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.openai/*.local.*
+/*.png
+/.site-archive.tar.gz

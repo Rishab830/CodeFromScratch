@@ -1,0 +1,31 @@
+{
+  "name": "codequest-jumping-girl",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "build:game": "python scripts/build_game.py",
+    "test:lesson": "python -m unittest discover -s tests",
+    "test:browser": "node scripts/check-browser.cjs"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "lucide-react": "^0.468.0",
+    "@uiw/react-codemirror": "^4.23.0",
+    "@codemirror/lang-python": "^6.1.6",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.36.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@playwright/test": "^1.56.0"
+  }
+}
