@@ -10,6 +10,12 @@ let browser;
   browser = await chromium.launch({channel:'chrome',headless:true});
   const context = await browser.newContext({viewport:{width:1440,height:1100}});
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    window.__loadingEvents = [];
+    window.addEventListener('message', (event) => {
+      if (event.data?.channel === 'scratch' && event.data.type === 'loading') window.__loadingEvents.push(event.data);
+    });
+  });
   page.on('pageerror', error => console.log('PAGE ERROR', error.message));
   await page.goto(process.env.TEST_URL || 'http://127.0.0.1:3001');
   assert.match(await page.title(), /Code From Scratch/);
@@ -22,6 +28,12 @@ let browser;
   }, {timeout:20000});
   await page.screenshot({path:path.join(qa,'new-loading.png'),fullPage:true});
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
+  const progress = await page.evaluate(() => window.__loadingEvents);
+  assert(progress.some((event) => event.phase === 1 && event.loaded > 0), 'Python download never reported received bytes');
+  assert(progress.some((event) => event.phase === 3 && event.loaded > 0), 'Pygame download never reported received bytes');
+  assert(progress.some((event) => event.phase === 4), 'Game startup phase was missing');
+  assert.equal(await page.getByRole('progressbar',{name:'Game loading progress'}).count(), 0);
+  console.log('PASS: Python and Pygame report real download progress; loader clears only when ready');
   console.log('PASS: branded root app, protected editor, and actual Pygame engine load');
   await page.screenshot({path:path.join(qa,'new-desktop.png'),fullPage:true});
   const frame = page.frames().find(frame => frame.url().includes('/runner/'));

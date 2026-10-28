@@ -200,6 +200,7 @@ def draw_scene(surface, player, seconds, small):
 
 
 async def main():
+    lesson_bridge.emit("loading", phase=4, label="Starting your game", fraction=None, loaded=0, total=0)
     pygame.init()
     screen = pygame.display.set_mode((800, 450))
     surface = pygame.Surface((WIDTH, HEIGHT))

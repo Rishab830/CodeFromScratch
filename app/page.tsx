@@ -8,6 +8,7 @@ import { LEVELS, type Level } from '../lib/levels';
 
 const CodeEditor = dynamic(() => import('../components/CodeEditor'), { ssr: false });
 type Status = 'loading' | 'ready' | 'compiling' | 'playing' | 'dead' | 'error' | 'won';
+const formatBytes = (bytes:number) => bytes < 1048576 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 const HINTS = [
   'Watch what happens when Maya lands on blue. Which action sends her toward those spikes?',
   'The game already handles your arrow keys. You can change the blue action, or remove that automatic action.',
@@ -33,6 +34,8 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
   const [status, setStatus] = useState<Status>('loading');
   const [runtimeReady, setRuntimeReady] = useState(false);
   const [runtimeKey, setRuntimeKey] = useState(0);
+  const [loading, setLoading] = useState<{phase:number;label:string;fraction:number|null;loaded:number;total:number}>({phase:1,label:'Connecting to Python',fraction:null,loaded:0,total:0});
+  const [loadingIssue, setLoadingIssue] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [message, setMessage] = useState('Loading your little pixel world. The first visit takes a moment.');
   const [tab, setTab] = useState<'mission' | 'reference'>('mission');
@@ -70,6 +73,14 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
     function receive(event: MessageEvent) {
       if (event.source !== iframe.current?.contentWindow || event.data?.channel !== 'scratch') return;
       const data = event.data;
+      if (data.type === 'loading' && Number.isInteger(data.phase) && data.phase >= 1 && data.phase <= 4) {
+        setLoading((current) => data.phase < current.phase ? current : {
+          phase:data.phase,label:String(data.label),
+          fraction:typeof data.fraction === 'number' && Number.isFinite(data.fraction) ? Math.max(0,Math.min(1,data.fraction)) : null,
+          loaded:Math.max(0,Number(data.loaded) || 0),total:Math.max(0,Number(data.total) || 0)
+        });
+      }
+      if (data.type === 'load-error') setLoadingIssue('A game download failed. Check your connection and try again.');
       if (data.type === 'ready') {
         setRuntimeReady(true); setStatus('ready');
         setMessage('Your world is ready. Play the level, spot the bug, and find your own way to the flag.');
@@ -100,7 +111,10 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
 
   useEffect(() => {
     if (runtimeReady) return;
-    const timer = setTimeout(() => setMessage('The game engine is still loading. Check your connection or choose Reload engine below.'), 45000);
+    const timer = setTimeout(() => {
+      setMessage('The game engine is still loading. Check your connection or retry the download.');
+      setLoadingIssue('Taking longer than usual. The first download can be slow; you can keep waiting or retry.');
+    }, 45000);
     return () => clearTimeout(timer);
   }, [runtimeReady, runtimeKey]);
 
@@ -124,6 +138,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
   function reload() {
     if (requestTimer.current) clearTimeout(requestTimer.current);
     setRuntimeReady(false); setStatus('loading'); setRuntimeKey((value) => value + 1);
+    setLoading({phase:1,label:'Connecting to Python',fraction:null,loaded:0,total:0}); setLoadingIssue('');
     if (original) { applied.current = solutionBody(original); setCompiledBody(applied.current); }
     setMessage('Reloading the game engine…');
   }
@@ -132,6 +147,8 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
   }
   const busy = !runtimeReady || status === 'compiling';
   const isSecond = LEVEL.number === 2;
+  const loadPercent = Math.round(((loading.phase - 1 + (loading.fraction ?? 0)) / 4) * 100);
+  const downloadDetail = loading.total > 0 ? `${formatBytes(loading.loaded)} / ${formatBytes(loading.total)}` : loading.loaded > 0 ? `${formatBytes(loading.loaded)} downloaded` : 'Preparing…';
 
   return <div className="app-shell">
     <header className="site-header">
@@ -151,7 +168,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
             <div className="game-goal" aria-label="Level goal"><span className="game-goal-icon"><Flag size={17}/></span><div><strong>Goal: Reach the flag on the left.</strong><p>{LEVEL.goal}</p></div></div>
             <div className="game-viewport">
             <iframe key={runtimeKey} ref={iframe} src={LEVEL.runtime} title={LEVEL.title + ' playable Pygame level'} allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
-            {!runtimeReady && <div className="runtime-loading"><div className="pixel-loader"><Braces size={27}/></div><strong>Building a little adventure…</strong><span>Loading Python & Pygame</span><div className="loading-track"><i/></div></div>}
+            {!runtimeReady && <div className="runtime-loading"><div className="pixel-loader"><Braces size={27}/></div><strong>Building a little adventure...</strong><span className="loading-phase" aria-live="polite">{loading.label}</span><div className="startup-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={loadPercent} aria-valuetext={`Step ${loading.phase} of 4: ${loading.label}. ${downloadDetail}`}><div className="startup-progress-fill" style={{width:`${loadPercent}%`}}/>{loading.fraction === null && <div className="startup-progress-pulse" style={{left:`${(loading.phase - 1) * 25}%`}}/>}</div><div className="loading-numbers"><span>STEP {loading.phase} OF 4</span><span>{loading.fraction !== null ? `${Math.round(loading.fraction * 100)}% - ` : ''}{downloadDetail}</span></div><div className="loading-stages">{['Python','Level','Pygame','Play'].map((label,index) => <span key={label} className={index + 1 < loading.phase ? 'done' : index + 1 === loading.phase ? 'current' : ''}>{index + 1 < loading.phase ? 'OK' : String(index + 1).padStart(2,'0')} {label}</span>)}</div>{loadingIssue ? <div className="loading-retry"><p>{loadingIssue}</p><button onClick={reload}><RotateCcw size={12}/> Retry loading</button></div> : <p className="loading-note">First load is the slowest. Your browser caches the engine for later visits.</p>}</div>}
             {runtimeReady && status === 'ready' && <div className="start-overlay"><span className="pixel-spark">✦</span><span className="scene-eyebrow">WELCOME TO {LEVEL.world.toUpperCase()}</span><h2>Small world.<br/>Big possibilities.</h2><p>{LEVEL.intro}</p><button className="play-button" onClick={() => start(applied.current)}><Play size={15} fill="currentColor"/> Play level</button></div>}
             {status === 'dead' && <div className="outcome-overlay death-overlay" role="dialog" aria-label="Game over"><div className="outcome-symbol"><TriangleAlert size={26}/></div><span className="scene-eyebrow">A BUMP IN THE ADVENTURE</span><h2>Game over<span>!</span></h2><p>{LEVEL.death}<br/>Try again, or give your code a tiny tweak.</p><button className="play-button" onClick={() => start(applied.current)}><RotateCcw size={15}/> Restart level</button><button className="text-button" onClick={() => {setRevealToken((value) => value + 1);document.querySelector('.editor-panel')?.scrollIntoView({block:'nearest',behavior:'smooth'});}}>Take me to the code <ArrowRight size={13}/></button></div>}
             {status === 'won' && <div className="outcome-overlay win-overlay" role="dialog" aria-label="Level complete"><div className="outcome-symbol"><Flag size={26}/></div><span className="scene-eyebrow">YOUR WAY WAS THE RIGHT WAY</span><h2>Level complete<span>!</span></h2><p>You reached the flag. A little persistence<br/>goes a long way.</p><span className="win-xp"><Sparkles size={14}/> +100 XP earned</span><button className="play-button" onClick={() => isSecond ? setModal('next') : onNavigate(2)}>{isSecond ? 'Adventures complete' : 'Next adventure'} <ArrowRight size={15}/></button><button className="text-button" onClick={() => start(applied.current)}>Play again</button></div>}
