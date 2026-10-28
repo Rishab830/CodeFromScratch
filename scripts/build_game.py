@@ -1,13 +1,26 @@
-"""Build the real Pygame runtime, then copy its web assets to Next public/."""
+"""Build both real Pygame runtimes and publish their complete Python sources."""
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-subprocess.run([sys.executable, "-m", "pygbag", "--build", "--ume_block", "0", "--template", str(ROOT / "game" / "runner.tmpl"), str(ROOT / "game")], check=True, cwd=ROOT)
-target = ROOT / "public" / "runner"
-shutil.copytree(ROOT / "game" / "build" / "web", target, dirs_exist_ok=True)
 (ROOT / "public" / "levels").mkdir(exist_ok=True)
-shutil.copy2(ROOT / "game" / "main.py", ROOT / "public" / "levels" / "jumping-girl.py")
-print(f"Game built into {target}")
+source = (ROOT / "game" / "main.py").read_text(encoding="utf-8")
+
+for number, slug, runner in [(1, "jumping-girl", "runner"), (2, "blue-leap", "runner-2")]:
+    folder = ROOT / "game" if number == 1 else ROOT / "game" / "build" / "level2-source"
+    lesson_source = source
+    if number == 2:
+        folder.mkdir(parents=True, exist_ok=True)
+        lesson_source = source.replace("LEVEL_NUMBER = 1", "LEVEL_NUMBER = 2", 1)
+        # Lock the blue action; only the configure() body becomes editable.
+        lesson_source = lesson_source.replace("    # EDIT START\n    player.jump()\n    # EDIT END", "    player.jump()")
+        lesson_source = lesson_source.replace("def configure():\n    return -178", "def configure():\n    # EDIT START\n    return -110\n    # EDIT END")
+        (folder / "main.py").write_text(lesson_source, encoding="utf-8", newline="\n")
+        shutil.copy2(ROOT / "game" / "lesson_bridge.py", folder / "lesson_bridge.py")
+    subprocess.run([sys.executable, "-m", "pygbag", "--build", "--ume_block", "0", "--template", str(ROOT / "game" / "runner.tmpl"), str(folder)], check=True, cwd=ROOT)
+    target = ROOT / "public" / runner
+    shutil.copytree(folder / "build" / "web", target, dirs_exist_ok=True)
+    (ROOT / "public" / "levels" / f"{slug}.py").write_text(lesson_source, encoding="utf-8", newline="\n")
+    print(f"Level {number} built into {target}")

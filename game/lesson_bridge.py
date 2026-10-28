@@ -1,9 +1,10 @@
 """Browser transport and a deliberately small Python lesson API."""
 import ast
 import json
+import math
 import sys
 
-EDIT_START = "    # EDIT START: fix the action below\n"
+EDIT_START = "    # EDIT START\n"
 EDIT_END = "    # EDIT END"
 MAX_SOURCE = 2000
 ALLOWED_ACTIONS = {"jump", "move_left", "move_right", "stop"}
@@ -40,6 +41,29 @@ def compile_solution(body):
     namespace = {"__builtins__": {}}
     exec(compile(tree, "<your-solution>", "exec"), namespace)
     return namespace["on_blue"]
+
+
+def compile_settings(body):
+    if not isinstance(body, str) or len(body) > MAX_SOURCE:
+        raise ValueError("Keep your code under 2,000 characters.")
+    try:
+        tree = ast.parse("def configure():\n" + body)
+    except SyntaxError as error:
+        raise ValueError(f"Python syntax error on editable line {max(1, (error.lineno or 2) - 1)}: {error.msg}") from error
+    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
+        raise ValueError("Keep your code inside the green section.")
+    statements = tree.body[0].body
+    if len(statements) != 1 or not isinstance(statements[0], ast.Return):
+        raise ValueError("Keep a single return statement with a number.")
+    try:
+        value = ast.literal_eval(statements[0].value)
+    except (ValueError, TypeError):
+        raise ValueError("Return a number; the rest of this level’s code is locked.") from None
+    if type(value) not in (int, float) or not math.isfinite(value) or not -400 <= value <= -40:
+        raise ValueError("Use a finite negative number between -400 and -40.")
+    namespace = {"__builtins__": {}}
+    exec(compile(tree, "<your-code>", "exec"), namespace)
+    return namespace["configure"]
 
 
 def browser():

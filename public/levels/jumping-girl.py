@@ -1,16 +1,22 @@
-"""The Jumping Girl: compile your changes, then PLAY to reach the flag."""
+"""Compile your changes, then PLAY to reach the flag."""
 import asyncio
 import math
 import pygame
 import lesson_bridge
 
 # Low-resolution art scales up with crisp pixels, never smoothing.
+LEVEL_NUMBER = 1
 WIDTH, HEIGHT = 320, 180
 FLOOR = 141
-BLUE = pygame.Rect(194, FLOOR, 66, 7)
-SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)]
+BLUE = pygame.Rect(194, FLOOR, 66, 7) if LEVEL_NUMBER == 1 else pygame.Rect(237, FLOOR, 12, 7)
+SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)] if LEVEL_NUMBER == 1 else []
+GAP = (180, 236) if LEVEL_NUMBER == 2 else None
 GOAL = pygame.Rect(30, FLOOR - 30, 16, 32)
 SPAWN_X = 289
+
+
+def configure():
+    return -178
 
 
 class Girl:
@@ -21,7 +27,8 @@ class Girl:
 
     def jump(self):
         if self.grounded:
-            self.vy, self.grounded = -178, False
+            self.vy = configure()
+            self.grounded = False
 
     def move_left(self):
         self.vx = -55
@@ -34,7 +41,7 @@ class Girl:
 
 
 def on_blue(player):
-    # EDIT START: fix the action below
+    # EDIT START
     player.jump()
     # EDIT END
 
@@ -72,6 +79,8 @@ def triangle_hits_rect(triangle, rect):
 
 def outcome(player):
     bounds = player_bounds(player)
+    if player.y > HEIGHT + 22:
+        return "dead"
     for spike in SPIKES:
         triangle = [(spike.left, spike.top), (spike.right, spike.top), (spike.centerx, spike.bottom)]
         if bounds.colliderect(spike) and triangle_hits_rect(triangle, bounds):
@@ -96,11 +105,15 @@ def update(player, dt, keys):
     steps = max(1, math.ceil(dt / (1 / 180)))
     for _ in range(steps):
         step = dt / steps
+        previous_y = player.y
         player.vy += 460 * step
         player.x = max(7, min(WIDTH - 7, player.x + player.vx * step))
         player.y += player.vy * step
-        if player.y >= FLOOR:
+        has_ground = GAP is None or player.x <= GAP[0] or player.x >= GAP[1]
+        if player.y >= FLOOR and previous_y <= FLOOR and has_ground:
             player.y, player.vy, player.grounded = float(FLOOR), 0.0, True
+        elif not has_ground:
+            player.grounded = False
         result = outcome(player)
         if result:
             return result
@@ -154,9 +167,15 @@ def draw_scene(surface, player, seconds, small):
     pygame.draw.rect(surface, (185, 222, 249), (BLUE.x, BLUE.y, BLUE.width, 2))
     for x in range(BLUE.left + 4, BLUE.right, 8):
         pygame.draw.rect(surface, (169, 207, 244), (x, BLUE.y + 4, 3, 2))
-    # Downward spikes over blue leave a safe corridor for walking underneath.
-    pygame.draw.rect(surface, (157, 143, 190), (188, 76, 80, 7))
-    pygame.draw.rect(surface, (195, 181, 219), (188, 76, 80, 3))
+    if GAP:
+        pygame.draw.rect(surface, (187, 178, 218), (GAP[0], FLOOR, GAP[1] - GAP[0], HEIGHT - FLOOR))
+        pygame.draw.rect(surface, (154, 142, 189), (GAP[0], FLOOR + 15, GAP[1] - GAP[0], HEIGHT - FLOOR))
+        for x in range(GAP[0], GAP[1], 8):
+            pygame.draw.polygon(surface, (242, 174, 193), [(x, HEIGHT), (x + 4, HEIGHT - 9), (x + 8, HEIGHT)])
+    else:
+        # Overhead spikes leave a safe corridor for walking underneath.
+        pygame.draw.rect(surface, (157, 143, 190), (188, 76, 80, 7))
+        pygame.draw.rect(surface, (195, 181, 219), (188, 76, 80, 3))
     for spike in SPIKES:
         pygame.draw.polygon(surface, (170, 113, 148), [(spike.left, spike.top), (spike.right, spike.top), (spike.centerx, spike.bottom)])
         pygame.draw.polygon(surface, (242, 174, 193), [(spike.left + 1, spike.top), (spike.right - 2, spike.top), (spike.centerx, spike.bottom - 3)])
@@ -176,7 +195,8 @@ def draw_scene(surface, player, seconds, small):
                 offset = stride * (-1 if col < 5 else 1) if row >= 15 else 0
                 surface.set_at((max(0, min(WIDTH - 1, px + col + offset)), max(0, min(HEIGHT - 1, py + row))), PALETTE[pixel])
     surface.blit(small.render("GOAL", False, (112, 112, 142)), (26, 154))
-    surface.blit(small.render("BLUE = ?", False, (107, 134, 171)), (208, 154))
+    if not GAP:
+        surface.blit(small.render("BLUE = ?", False, (107, 134, 171)), (208, 154))
 
 
 async def main():
@@ -196,7 +216,10 @@ async def main():
         command = lesson_bridge.poll()
         if command:
             try:
-                globals()["on_blue"] = lesson_bridge.compile_solution(command["body"])
+                if LEVEL_NUMBER == 1:
+                    globals()["on_blue"] = lesson_bridge.compile_solution(command["body"])
+                else:
+                    globals()["configure"] = lesson_bridge.compile_settings(command["body"])
                 player, state, elapsed = Girl(), "playing", 0.0
                 attempt += 1
                 lesson_bridge.emit("started", attempt=attempt)

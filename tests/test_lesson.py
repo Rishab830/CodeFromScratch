@@ -76,5 +76,54 @@ class LessonTests(unittest.TestCase):
                 lesson_bridge.compile_solution(source)
 
 
+class BlueLeapTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        source = (ROOT / "public" / "levels" / "blue-leap.py").read_text(encoding="utf-8")
+        cls.source = source
+        tree = ast.parse(source)
+        tree.body.pop()
+        cls.game = {}
+        exec(compile(tree, "blue-leap.py", "exec"), cls.game)
+
+    def simulate(self, value, keys=(), seconds=12):
+        self.game["configure"] = lesson_bridge.compile_settings(f"    return {value}\n")
+        girl = self.game["Girl"]()
+        controls = defaultdict(bool, {key: True for key in keys})
+        for _ in range(int(seconds * 60)):
+            result = self.game["update"](girl, 1 / 60, controls)
+            if result:
+                return girl, result
+        return girl, None
+
+    def test_blue_action_is_outside_the_only_editable_region(self):
+        body = self.source.split(lesson_bridge.EDIT_START)[1].split(lesson_bridge.EDIT_END)[0]
+        self.assertEqual(body, "    return -110\n")
+        self.assertIn("def on_blue(player):\n    player.jump()", self.source)
+        self.assertEqual(self.source.count(lesson_bridge.EDIT_START), 1)
+
+    def test_starter_jumps_but_falls_into_gap(self):
+        girl, result = self.simulate(-110, [pygame.K_LEFT])
+        self.assertEqual(result, "dead")
+        self.assertGreater(girl.y, self.game["FLOOR"])
+        self.assertGreater(girl.x, self.game["GAP"][0])
+
+    def test_multiple_adjustments_allow_manual_completion(self):
+        for value in [-300, -320]:
+            with self.subTest(value=value):
+                _, result = self.simulate(value, [pygame.K_LEFT])
+                self.assertEqual(result, "won")
+
+    def test_adjusting_and_compiling_cannot_win_without_play(self):
+        girl, result = self.simulate(-300)
+        self.assertIsNone(result)
+        self.assertEqual(girl.x, self.game["SPAWN_X"])
+
+    def test_settings_cannot_disable_or_replace_locked_jump(self):
+        for body in ["    pass\n", "    player.jump()\n", "    return 0\n", "    return -300\n\ndef on_blue(player): pass\n", "    return -1e999\n"]:
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                lesson_bridge.compile_settings(body)
+
+
 if __name__ == "__main__":
     unittest.main()

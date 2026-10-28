@@ -30,7 +30,7 @@ let browser;
   async function setBody(body) {
     await editor.evaluate((node,body) => {
       const view = node.cmTile.root.view, text = view.state.doc.toString();
-      const start = text.indexOf('    # EDIT START: fix the action below\n') + '    # EDIT START: fix the action below\n'.length;
+      const start = text.indexOf('    # EDIT START\n') + '    # EDIT START\n'.length;
       const end = text.indexOf('    # EDIT END',start);
       view.dispatch({changes:{from:start,to:end,insert:body}});
     }, body);
@@ -112,5 +112,58 @@ let browser;
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
   await page.screenshot({path:path.join(qa,'new-mobile.png'),fullPage:true});
   console.log('PASS: reset changes require Compile, and mobile layout fits');
+  await page.setViewportSize({width:1440,height:1100});
+  await page.locator('.journey-stop.next').click();
+  await page.getByRole('heading',{name:'The Blue Leap',exact:false}).waitFor();
+  await page.waitForSelector('.editable-line');
+  const secondSource = await getSource();
+  assert.match(secondSource,/def configure\(\):\n    # EDIT START\n    return -110/);
+  assert.match(secondSource,/def on_blue\(player\):\n    player.jump\(\)/);
+  await editor.evaluate(node => {
+    const view=node.cmTile.root.view;
+    const start=view.state.doc.toString().indexOf('    player.jump()',view.state.doc.toString().indexOf('def on_blue'));
+    view.dispatch({changes:{from:start,to:start+17,insert:'    player.stop()'}});
+  });
+  assert.equal(await getSource(),secondSource);
+  assert.match(await page.locator('.mission-story').innerText(),/blue WILL make Maya jump/);
+  assert.doesNotMatch(await page.locator('.mission-story').innerText(),/distance|velocity|increase|return/i);
+  assert.equal(await page.locator('.hint-section').count(),0);
+  console.log('PASS: Level 2 loads its own source, locks the blue jump, and gives no solution hint');
+  await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
+  // The runner iframe changed when navigating; read the live one for Level 2.
+  const secondFrame=page.frames().find(entry=>entry.url().includes('/runner-2/'));
+  async function secondPosition() {
+    return secondFrame.evaluate(()=>{
+      const canvas=document.querySelector('#canvas');
+      const {data,width}=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height);
+      let sy=0,count=0;
+      for(let i=0;i<data.length;i+=4)if(data[i]===237&&data[i+1]===160&&data[i+2]===185){sy+=Math.floor((i/4)/width);count++;}
+      return sy/count;
+    });
+  }
+  await page.getByRole('button',{name:'Play level',exact:true}).click();
+  await playing();
+  const secondGround=await secondPosition();
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(950);
+  assert((await secondPosition()) < secondGround-7,'Blue did not force a jump');
+  await page.waitForTimeout(1800);await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor();
+  assert.match(await page.locator('.console-message').innerText(),/solid ground/);
+  console.log('PASS: blue forces an actual Pygame jump; the starter falls short of the ledge');
+  await setBody('    return -300\n');
+  await page.getByRole('button',{name:'Compile',exact:true}).click();
+  await playing();
+  await page.waitForTimeout(500);
+  assert.equal(await page.getByRole('dialog',{name:'Level complete'}).count(),0);
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(5000);await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
+  assert.match(await page.locator('.xp').innerText(),/200/);
+  await page.screenshot({path:path.join(qa,'level-2-win.png'),fullPage:true});
+  console.log('PASS: compiled adjustment changes the jump and manual play clears Level 2');
+  await page.locator('.journey-stop').first().click();
+  await page.getByRole('heading',{name:'The Jumping Girl',exact:false}).waitFor();
+  await page.waitForFunction(()=>document.querySelector('.cm-content')?.cmTile?.root?.view?.state.doc.toString().includes('LEVEL_NUMBER = 1'));
+  assert.match(await getSource(),/def on_blue\(player\):\n    # EDIT START/);
+  console.log('PASS: map navigation restores Level 1 with its own editable section');
   await browser.close();
 })().catch(async error => {console.error(error);if(browser)await browser.close();process.exit(1);});

@@ -6,7 +6,7 @@ import { python } from '@codemirror/lang-python';
 import { EditorState } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-export const START = '    # EDIT START: fix the action below\n';
+export const START = '    # EDIT START\n';
 export const END = '    # EDIT END';
 export function editableRange(source: string) {
   const start = source.indexOf(START) + START.length;
@@ -79,6 +79,6 @@ export default function CodeEditor({ source, onChange, revealToken }: { source: 
   }, [view, revealToken]);
 
   return <CodeMirror value={source} height="100%" theme="dark" extensions={extensions}
-    onChange={onChange} aria-label="Python source code; only the highlighted on_blue body is editable"
+    onChange={onChange} aria-label="Python source code; only the green section is editable"
     onCreateEditor={setView} basicSetup={{ foldGutter: true, highlightActiveLine: false, highlightActiveLineGutter: false, autocompletion: false, searchKeymap: true }} />;
 }
