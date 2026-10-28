@@ -10,6 +10,7 @@ WIDTH, HEIGHT = 320, 180
 FLOOR = 141
 BLUE = pygame.Rect(194, FLOOR, 66, 7)
 SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)]
+SPIKE_PLATFORM = pygame.Rect(188, 76, 80, 7)
 GAP = pygame.Rect(132, FLOOR, 12, HEIGHT - FLOOR)
 GOAL = pygame.Rect(30, FLOOR - 30, 16, 32)
 SPAWN_X = 289
@@ -43,7 +44,7 @@ def on_blue(player):
 
 
 def touching_blue(player):
-    return BLUE.left <= player.x <= BLUE.right and player.grounded
+    return BLUE.left <= player.x <= BLUE.right and player.grounded and player.y == FLOOR
 
 
 def player_bounds(player):
@@ -107,7 +108,11 @@ def update(player, dt, keys):
         player.y += player.vy * step
         # Either foot may land on an edge, but the open gap has no floor.
         supported = player.x - 4 < GAP.left or player.x + 4 > GAP.right
-        if supported and previous_y <= FLOOR <= player.y and player.vy >= 0:
+        above_platform = player.x + 4 > SPIKE_PLATFORM.left and player.x - 4 < SPIKE_PLATFORM.right
+        # In Level 2, land on the top while descending; the spikes below stay lethal.
+        if LEVEL_NUMBER == 2 and above_platform and previous_y <= SPIKE_PLATFORM.top <= player.y and player.vy >= 0:
+            player.y, player.vy, player.grounded = float(SPIKE_PLATFORM.top), 0.0, True
+        elif supported and previous_y <= FLOOR <= player.y and player.vy >= 0:
             player.y, player.vy, player.grounded = float(FLOOR), 0.0, True
         else:
             player.grounded = False
@@ -170,8 +175,8 @@ def draw_scene(surface, player, seconds, small):
     for x in range(BLUE.left + 4, BLUE.right, 8):
         pygame.draw.rect(surface, (169, 207, 244), (x, BLUE.y + 4, 3, 2))
     # Overhead spikes leave a safe corridor for walking underneath.
-    pygame.draw.rect(surface, (157, 143, 190), (188, 76, 80, 7))
-    pygame.draw.rect(surface, (195, 181, 219), (188, 76, 80, 3))
+    pygame.draw.rect(surface, (157, 143, 190), SPIKE_PLATFORM)
+    pygame.draw.rect(surface, (195, 181, 219), (SPIKE_PLATFORM.x, SPIKE_PLATFORM.y, SPIKE_PLATFORM.width, 3))
     for spike in SPIKES:
         pygame.draw.polygon(surface, (170, 113, 148), [(spike.left, spike.top), (spike.right, spike.top), (spike.centerx, spike.bottom)])
         pygame.draw.polygon(surface, (242, 174, 193), [(spike.left + 1, spike.top), (spike.right - 2, spike.top), (spike.centerx, spike.bottom - 3)])

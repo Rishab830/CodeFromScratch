@@ -109,6 +109,14 @@ class LessonTests(unittest.TestCase):
         self.assertFalse(game["triangle_hits_rect"](triangle, pygame.Rect(0, 13, 1, 2)))
         self.assertTrue(game["triangle_hits_rect"](triangle, pygame.Rect(3, 10, 2, 4)))
 
+    def test_level_one_does_not_land_on_the_spike_platform(self):
+        girl = game["Girl"]()
+        girl.x, girl.y, girl.vy, girl.grounded = 220, 70, 120, False
+        for _ in range(4):
+            self.assertIsNone(game["update"](girl, 1 / 60, defaultdict(bool)))
+        self.assertGreater(girl.y, game["SPIKE_PLATFORM"].top)
+        self.assertFalse(girl.grounded)
+
     def test_python_errors_and_unbounded_code_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "Python syntax error"):
             lesson_bridge.compile_solution("    player.move_left(\n")
@@ -158,7 +166,7 @@ class BlueLeapTests(unittest.TestCase):
         self.assertNotIn("def on_blue", self.body)
 
     def test_map_is_identical_to_level_one(self):
-        for name in ("WIDTH", "HEIGHT", "FLOOR", "BLUE", "SPIKES", "GAP", "GOAL", "SPAWN_X"):
+        for name in ("WIDTH", "HEIGHT", "FLOOR", "BLUE", "SPIKES", "SPIKE_PLATFORM", "GAP", "GOAL", "SPAWN_X"):
             self.assertEqual(self.game[name], game[name], name)
         self.assertLess(self.game["GAP"].right, self.game["BLUE"].left)
         self.assertGreater(self.game["GAP"].left, self.game["GOAL"].right)
@@ -186,6 +194,66 @@ class BlueLeapTests(unittest.TestCase):
         girl, result, _ = self.simulate(-40, jump_gap=False)
         self.assertEqual(result, "dead")
         self.assertGreater(girl.y, self.game["HEIGHT"])
+
+    def platform_girl(self):
+        girl = lesson_bridge.compile_girl(self.body, self.game["SPAWN_X"], self.game["FLOOR"])()
+        girl.x, girl.y, girl.vy, girl.grounded = 228, float(self.game["SPIKE_PLATFORM"].top), 0.0, True
+        return girl
+
+    def test_lands_on_top_and_stays_still_above_blue(self):
+        for velocity in (75, 10000):
+            with self.subTest(velocity=velocity):
+                girl = self.platform_girl()
+                girl.y, girl.vy, girl.grounded = 60, velocity, False
+                for _ in range(120):
+                    self.assertIsNone(self.game["update"](girl, 1 / 60, defaultdict(bool)))
+                self.assertEqual(girl.y, self.game["SPIKE_PLATFORM"].top)
+                self.assertEqual(girl.vy, 0)
+                self.assertTrue(girl.grounded)
+                self.assertFalse(self.game["touching_blue"](girl))
+
+    def test_can_walk_both_ways_on_the_platform(self):
+        for key, direction in ((pygame.K_LEFT, -1), (pygame.K_RIGHT, 1)):
+            with self.subTest(direction=direction):
+                girl = self.platform_girl()
+                initial_x = girl.x
+                controls = defaultdict(bool, {key: True})
+                for _ in range(20):
+                    self.assertIsNone(self.game["update"](girl, 1 / 60, controls))
+                    self.assertTrue(girl.grounded)
+                    self.assertEqual(girl.y, self.game["SPIKE_PLATFORM"].top)
+                self.assertGreater((girl.x - initial_x) * direction, 15)
+
+    def test_manual_jump_from_spawn_can_land_on_the_platform(self):
+        source = self.body.replace("self.vy = -178", "self.vy = -300")
+        girl = lesson_bridge.compile_girl(source, self.game["SPAWN_X"], self.game["FLOOR"])()
+        controls = defaultdict(bool, {pygame.K_LEFT: True, pygame.K_SPACE: True})
+        for _ in range(90):
+            self.assertIsNone(self.game["update"](girl, 1 / 60, controls))
+            controls[pygame.K_SPACE] = False
+        self.assertEqual(girl.y, self.game["SPIKE_PLATFORM"].top)
+        self.assertTrue(girl.grounded)
+
+    def test_can_jump_from_the_platform(self):
+        girl = self.platform_girl()
+        controls = defaultdict(bool, {pygame.K_SPACE: True})
+        self.assertIsNone(self.game["update"](girl, 1 / 60, controls))
+        self.assertLess(girl.y, self.game["SPIKE_PLATFORM"].top)
+        self.assertLess(girl.vy, 0)
+        self.assertFalse(girl.grounded)
+
+    def test_walking_off_platform_falls_back_to_floor(self):
+        girl = self.platform_girl()
+        girl.x = self.game["SPIKE_PLATFORM"].left - 2
+        controls = defaultdict(bool, {pygame.K_LEFT: True})
+        for _ in range(6):
+            self.assertIsNone(self.game["update"](girl, 1 / 60, controls))
+        self.assertGreater(girl.y, self.game["SPIKE_PLATFORM"].top)
+        self.assertFalse(girl.grounded)
+        for _ in range(28):
+            self.assertIsNone(self.game["update"](girl, 1 / 60, controls))
+        self.assertEqual(girl.y, self.game["FLOOR"])
+        self.assertTrue(girl.grounded)
 
     def test_other_class_methods_and_constructor_are_editable(self):
         body = self.body.replace("float(SPAWN_X)", "float(SPAWN_X - 1)").replace("self.vx = -55", "self.vx = -70").replace("self.vx = 55", "self.vx = 75")

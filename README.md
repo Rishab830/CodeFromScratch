@@ -38,6 +38,7 @@ The **Site** control in the header switches between the default dark palette and
 - Reach the flag yourself to complete a level and earn 100 XP. Clearing Level 1 unlocks Level 2 in the adventure map and through **Next adventure**. Any valid solution, route, or number of jumps is accepted.
 - Level 2 keeps the original map, blue platform, spikes, and flag. Its blue action calls `player.jump()` and remains locked. The complete `Girl` class is editable, including the constructor and movement methods; there is no extra configuration function. Students can clear the level with small jumps below the spikes or a manually timed high jump over them. The mission does not reveal these solutions, and Level 2 has no solution hints.
 - Each level keeps its own edits and completion. Revisit either unlocked lesson from the map.
+- In Level 2, the top of the overhead spike platform is walkable: Maya can land on it, stop, walk along it, or jump off it. Its underside spikes remain lethal, and standing above blue does not trigger the floor tile.
 - Edits and completed levels persist locally in this browser. The new manual-play level uses a separate progress key from the old automatic demo.
 
 ## Project structure

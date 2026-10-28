@@ -61,8 +61,8 @@ let browser, page;
       view.dispatch({changes:{from:start,to:end,insert:body}});
     }, body);
   }
-  async function position() {
-    return frame.evaluate(() => {
+  async function position(activeFrame = frame) {
+    return activeFrame.evaluate(() => {
       const canvas = document.querySelector('#canvas');
       const {data,width} = canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height);
       let x = 0, y = 0, count = 0;
@@ -213,10 +213,38 @@ let browser, page;
   await page.keyboard.down('Space');await page.waitForTimeout(80);await page.keyboard.up('Space');
   await page.waitForTimeout(300);
   await page.screenshot({path:path.join(qa,'level-2-high-jump.png'),fullPage:true});
-  await jumpAt(160,secondFrame);
+  await jumpAt(148,secondFrame);
   await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   console.log('PASS: a high manual jump clears the spikes and a second manual jump clears the gap');
+  await setBody(classSource.replace('self.vy = -178','self.vy = -300'));
+  await page.getByRole('button',{name:'Compile',exact:true}).click();
+  await playing();
+  await page.keyboard.down('ArrowLeft');
+  await page.keyboard.down('Space');await page.waitForTimeout(80);await page.keyboard.up('Space');
+  await page.waitForTimeout(1100);await page.keyboard.up('ArrowLeft');
+  const onTop = await position(secondFrame);
+  assert(onTop.y / 2.5 > 60 && onTop.y / 2.5 < 72, 'Maya did not land on the spike platform');
+  await page.waitForTimeout(500);
+  assert(Math.abs((await position(secondFrame)).y-onTop.y)<3, 'Standing above blue should not cause another jump');
+  await page.keyboard.down('ArrowRight');await page.waitForTimeout(200);await page.keyboard.up('ArrowRight');
+  const walkedRight = await position(secondFrame);
+  assert(walkedRight.x>onTop.x+15);
+  assert(Math.abs(walkedRight.y-onTop.y)<3);
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(200);await page.keyboard.up('ArrowLeft');
+  const walkedLeft = await position(secondFrame);
+  assert(walkedLeft.x<walkedRight.x-15);
+  assert(Math.abs(walkedLeft.y-onTop.y)<3);
+  await page.screenshot({path:path.join(qa,'level-2-walkable-top.png'),fullPage:true});
+  await page.keyboard.down('Space');await page.waitForTimeout(80);await page.keyboard.up('Space');
+  await page.waitForTimeout(100);
+  assert((await position(secondFrame)).y<onTop.y-20);
+  await page.waitForTimeout(1500);
+  assert(Math.abs((await position(secondFrame)).y-onTop.y)<3);
+  await page.keyboard.down('ArrowLeft');await jumpAt(148,secondFrame);
+  await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
+  console.log('PASS: Maya lands on the spike platform, stays still, walks both ways, jumps, and can finish the level');
   await page.locator('.journey-stop').first().click();
   await page.getByRole('heading',{name:'The Jumping Girl',exact:false}).waitFor();
   await page.waitForFunction(()=>document.querySelector('.cm-content')?.cmTile?.root?.view?.state.doc.toString().includes('LEVEL_NUMBER = 1'));
