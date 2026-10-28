@@ -10,6 +10,7 @@ WIDTH, HEIGHT = 320, 180
 FLOOR = 141
 BLUE = pygame.Rect(194, FLOOR, 66, 7)
 SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)]
+GAP = pygame.Rect(132, FLOOR, 12, HEIGHT - FLOOR)
 GOAL = pygame.Rect(30, FLOOR - 30, 16, 32)
 SPAWN_X = 289
 
@@ -100,11 +101,16 @@ def update(player, dt, keys):
     steps = max(1, math.ceil(dt / (1 / 180)))
     for _ in range(steps):
         step = dt / steps
+        previous_y = player.y
         player.vy += 460 * step
         player.x = max(7, min(WIDTH - 7, player.x + player.vx * step))
         player.y += player.vy * step
-        if player.y >= FLOOR:
+        # Either foot may land on an edge, but the open gap has no floor.
+        supported = player.x - 4 < GAP.left or player.x + 4 > GAP.right
+        if supported and previous_y <= FLOOR <= player.y and player.vy >= 0:
             player.y, player.vy, player.grounded = float(FLOOR), 0.0, True
+        else:
+            player.grounded = False
         result = outcome(player)
         if result:
             return result
@@ -154,6 +160,11 @@ def draw_scene(surface, player, seconds, small):
         pygame.draw.rect(surface, (196, 225, 185), (x, FLOOR, 10, 2))
         pygame.draw.rect(surface, (247, 215, 198), (x + 4, FLOOR + 19, 3, 2))
         pygame.draw.rect(surface, (218, 176, 174), (x + 11, FLOOR + 28, 3, 2))
+    # The same small pit follows blue and the spikes on the way to the flag.
+    pygame.draw.rect(surface, (103, 91, 134), GAP)
+    pygame.draw.rect(surface, (86, 76, 116), (GAP.x, FLOOR + 22, GAP.width, HEIGHT - FLOOR - 22))
+    pygame.draw.rect(surface, (163, 130, 149), (GAP.left, FLOOR + 7, 1, HEIGHT - FLOOR - 7))
+    pygame.draw.rect(surface, (163, 130, 149), (GAP.right - 1, FLOOR + 7, 1, HEIGHT - FLOOR - 7))
     pygame.draw.rect(surface, (131, 183, 231), BLUE)
     pygame.draw.rect(surface, (185, 222, 249), (BLUE.x, BLUE.y, BLUE.width, 2))
     for x in range(BLUE.left + 4, BLUE.right, 8):

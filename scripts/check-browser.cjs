@@ -4,12 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const qa = path.join(__dirname, '..', 'artifacts', 'qa');
 fs.mkdirSync(qa, {recursive:true});
-let browser;
+let browser, page;
 
 (async () => {
   browser = await chromium.launch({channel:'chrome',headless:true});
   const context = await browser.newContext({viewport:{width:1440,height:1100}});
-  const page = await context.newPage();
+  page = await context.newPage();
   if (process.env.EMULATE_CLEAN_URLS === '1') {
     // Reproduce Vercel's extensionless directory-index URLs. A plain static
     // server alone will not catch a missing base URL after slash removal.
@@ -72,6 +72,20 @@ let browser;
       return {x:x/count,y:y/count};
     });
   }
+  // Use visible sprite pixels to time the jump, so runtime speed and screenshot
+  // capture time cannot move the player past the edge between test actions.
+  async function jumpAt(x, activeFrame = frame) {
+    await activeFrame.waitForFunction(target => {
+      const canvas = document.querySelector('#canvas');
+      const {data,width} = canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height);
+      let sum = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) if (data[i] === 237 && data[i+1] === 160 && data[i+2] === 185) {
+        sum += (i / 4) % width; count++;
+      }
+      return count > 0 && sum / count <= target * width / 320;
+    }, x, {timeout:7000,polling:'raf'});
+    await page.keyboard.down('Space');await page.waitForTimeout(80);await page.keyboard.up('Space');
+  }
   async function playing() { await page.waitForFunction(() => document.querySelector('.status-pill').textContent === 'PLAYING'); }
   await page.getByRole('button',{name:'Play level',exact:true}).click();
   await playing();
@@ -110,17 +124,23 @@ let browser;
   assert.equal(await page.getByRole('dialog',{name:'Level complete'}).count(),0);
   console.log('PASS: compiling and waiting cannot win; no automatic grading remains');
   await page.keyboard.down('ArrowLeft');
-  await page.waitForTimeout(2300);
-  await page.keyboard.down('Space');
-  await page.waitForTimeout(150);
-  await page.keyboard.up('Space');
+  await page.waitForTimeout(3700);
+  await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor({timeout:5000});
+  await page.screenshot({path:path.join(qa,'level-1-gap-fall.png'),fullPage:true});
+  assert(await page.locator('.journey-stop.next').isDisabled());
+  await page.getByRole('button',{name:'Restart level',exact:true}).click();
+  await playing();
+  console.log('PASS: fixed Level 1 code still falls into the gap without a manual jump; Restart works');
+  await page.keyboard.down('ArrowLeft');
+  await jumpAt(160);
   await page.waitForTimeout(2500);
   await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   assert(!(await page.locator('.journey-stop.next').isDisabled()));
   assert.match(await page.locator('.xp').innerText(),/100/);
   await page.screenshot({path:path.join(qa,'new-win.png'),fullPage:true});
-  console.log('PASS: manually reaching the flag with alternate Python and a jump completes the level');
+  console.log('PASS: manually jumping the gap and reaching the flag completes Level 1');
 
   await page.getByRole('button',{name:'Play again',exact:true}).click();
   await playing();
@@ -145,7 +165,8 @@ let browser;
   await page.waitForSelector('.editable-line');
   const secondSource = await getSource();
   assert.match(secondSource,/# EDIT START\nclass Girl:/);
-  assert.doesNotMatch(secondSource,/configure|GAP/);
+  assert.doesNotMatch(secondSource,/configure/);
+  assert.match(secondSource,/GAP = pygame.Rect\(132, FLOOR, 12, HEIGHT - FLOOR\)/);
   assert.match(secondSource,/def on_blue\(player\):\n    player.jump\(\)/);
   await editor.evaluate(node => {
     const view=node.cmTile.root.view;
@@ -169,16 +190,22 @@ let browser;
   await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor();
   assert.match(await page.locator('.console-message').innerText(),/spikes/);
   console.log('PASS: Level 2 uses the original spike map; starter jump hits the spikes');
-  await setBody(classSource.replace('self.vy = -178','self.vy = -40'));
+  await setBody(classSource.replace('self.vy = -178','self.vy = -80'));
   await page.getByRole('button',{name:'Compile',exact:true}).click();
   await playing();
   await page.waitForTimeout(500);
   assert.equal(await page.getByRole('dialog',{name:'Level complete'}).count(),0);
-  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(5200);await page.keyboard.up('ArrowLeft');
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(3700);await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor({timeout:5000});
+  await page.getByRole('button',{name:'Restart level',exact:true}).click();
+  await playing();
+  console.log('PASS: Level 2 also falls into the gap if the player does not jump');
+  await page.keyboard.down('ArrowLeft');await jumpAt(148,secondFrame);
+  await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   assert.match(await page.locator('.xp').innerText(),/200/);
   await page.screenshot({path:path.join(qa,'level-2-small-jump-win.png'),fullPage:true});
-  console.log('PASS: full class compiles and small jumps pass beneath the spikes');
+  console.log('PASS: full class compiles; small jumps pass beneath the spikes and clear the floor gap');
   await setBody(classSource.replace('self.vy = -178','self.vy = -420'));
   await page.getByRole('button',{name:'Compile',exact:true}).click();
   await playing();
@@ -186,13 +213,14 @@ let browser;
   await page.keyboard.down('Space');await page.waitForTimeout(80);await page.keyboard.up('Space');
   await page.waitForTimeout(300);
   await page.screenshot({path:path.join(qa,'level-2-high-jump.png'),fullPage:true});
-  await page.waitForTimeout(5000);await page.keyboard.up('ArrowLeft');
+  await jumpAt(160,secondFrame);
+  await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
-  console.log('PASS: a high manual jump clears above the same spikes and is also accepted');
+  console.log('PASS: a high manual jump clears the spikes and a second manual jump clears the gap');
   await page.locator('.journey-stop').first().click();
   await page.getByRole('heading',{name:'The Jumping Girl',exact:false}).waitFor();
   await page.waitForFunction(()=>document.querySelector('.cm-content')?.cmTile?.root?.view?.state.doc.toString().includes('LEVEL_NUMBER = 1'));
   assert.match(await getSource(),/def on_blue\(player\):\n    # EDIT START/);
   console.log('PASS: map navigation restores Level 1 with its own editable section');
   await browser.close();
-})().catch(async error => {console.error(error);if(browser)await browser.close();process.exit(1);});
+})().catch(async error => {console.error(error);if(page)await page.screenshot({path:path.join(qa,'failure.png'),fullPage:true}).catch(()=>{});if(browser)await browser.close();process.exit(1);});

@@ -20,11 +20,16 @@ exec(compile(tree, "main.py", "exec"), game)
 
 
 class LessonTests(unittest.TestCase):
-    def simulate(self, body, keys=(), seconds=10):
+    def simulate(self, body, keys=(), seconds=10, jump_gap=False):
         game["on_blue"] = lesson_bridge.compile_solution(body)
         girl = game["Girl"]()
         controls = defaultdict(bool, {key: True for key in keys})
+        jumped = False
         for _ in range(int(seconds * 60)):
+            controls[pygame.K_SPACE] = False
+            if jump_gap and not jumped and girl.x <= game["GAP"].right - 1:
+                controls[pygame.K_SPACE] = True
+                jumped = True
             result = game["update"](girl, 1 / 60, controls)
             if result:
                 return girl, result
@@ -43,12 +48,48 @@ class LessonTests(unittest.TestCase):
         self.assertGreater(girl.x, game["BLUE"].left)
 
     def test_move_left_solution_wins_by_manual_play(self):
-        _, result = self.simulate("    player.move_left()\n", [pygame.K_LEFT])
+        _, result = self.simulate("    player.move_left()\n", [pygame.K_LEFT], jump_gap=True)
         self.assertEqual(result, "won")
 
     def test_alternative_pass_solution_is_accepted(self):
-        _, result = self.simulate("    pass\n", [pygame.K_LEFT])
+        _, result = self.simulate("    pass\n", [pygame.K_LEFT], jump_gap=True)
         self.assertEqual(result, "won")
+
+    def test_walking_into_gap_falls_instead_of_winning(self):
+        girl, result = self.simulate("    pass\n", [pygame.K_LEFT])
+        self.assertEqual(result, "dead")
+        self.assertGreater(girl.y, game["HEIGHT"])
+
+    def test_falling_cannot_jump_or_snap_back_onto_floor(self):
+        game["on_blue"] = lesson_bridge.compile_solution("    pass\n")
+        girl = game["Girl"]()
+        girl.x = game["GAP"].centerx
+        no_keys = defaultdict(bool)
+        game["update"](girl, 1 / 60, no_keys)
+        self.assertFalse(girl.grounded)
+        self.assertGreater(girl.y, game["FLOOR"])
+        girl.jump()
+        self.assertGreater(girl.vy, 0)
+        # Even leaving the hole horizontally cannot pull her up through dirt.
+        girl.x = game["GAP"].left - 5
+        game["update"](girl, 1 / 60, no_keys)
+        self.assertGreater(girl.y, game["FLOOR"])
+        self.assertFalse(girl.grounded)
+
+    def test_gap_can_be_jumped_in_both_directions(self):
+        game["on_blue"] = lesson_bridge.compile_solution("    pass\n")
+        for direction in (-1, 1):
+            with self.subTest(direction=direction):
+                girl = game["Girl"]()
+                girl.x = game["GAP"].right + 2 if direction == -1 else game["GAP"].left - 2
+                girl.jump()
+                key = pygame.K_LEFT if direction == -1 else pygame.K_RIGHT
+                controls = defaultdict(bool, {key: True})
+                for _ in range(50):
+                    self.assertIsNone(game["update"](girl, 1 / 60, controls))
+                self.assertTrue(girl.grounded)
+                self.assertEqual(girl.y, game["FLOOR"])
+                self.assertTrue(girl.x < game["GAP"].left if direction == -1 else girl.x > game["GAP"].right)
 
     def test_jump_on_safe_ground_does_not_disqualify_win(self):
         game["on_blue"] = lesson_bridge.compile_solution("    pass\n")
@@ -86,16 +127,19 @@ class BlueLeapTests(unittest.TestCase):
         exec(compile(tree, "blue-leap.py", "exec"), cls.game)
         cls.body = cls.source.split(lesson_bridge.EDIT_START)[1].split(lesson_bridge.EDIT_END)[0]
 
-    def simulate(self, velocity, moving=True, early_jump=False):
+    def simulate(self, velocity, moving=True, early_jump=False, jump_gap=True):
         source = self.body.replace("self.vy = -178", f"self.vy = {velocity}")
         self.game["Girl"] = lesson_bridge.compile_girl(source, self.game["SPAWN_X"], self.game["FLOOR"])
         girl = self.game["Girl"]()
-        minimum_y, jumped = girl.y, False
+        minimum_y, jumped, crossed = girl.y, False, False
         for _ in range(700):
             controls = defaultdict(bool, {pygame.K_LEFT: moving})
             if early_jump and not jumped and girl.x <= 279:
                 controls[pygame.K_SPACE] = True
                 jumped = True
+            if jump_gap and not crossed and girl.grounded and girl.x <= self.game["GAP"].right - 1:
+                controls[pygame.K_SPACE] = True
+                crossed = True
             result = self.game["update"](girl, 1 / 60, controls)
             minimum_y = min(minimum_y, girl.y)
             if result:
@@ -114,9 +158,10 @@ class BlueLeapTests(unittest.TestCase):
         self.assertNotIn("def on_blue", self.body)
 
     def test_map_is_identical_to_level_one(self):
-        for name in ("WIDTH", "HEIGHT", "FLOOR", "BLUE", "SPIKES", "GOAL", "SPAWN_X"):
+        for name in ("WIDTH", "HEIGHT", "FLOOR", "BLUE", "SPIKES", "GAP", "GOAL", "SPAWN_X"):
             self.assertEqual(self.game[name], game[name], name)
-        self.assertNotIn("GAP", self.game)
+        self.assertLess(self.game["GAP"].right, self.game["BLUE"].left)
+        self.assertGreater(self.game["GAP"].left, self.game["GOAL"].right)
 
     def test_starter_hits_original_overhead_spikes(self):
         _, result, _ = self.simulate(-178)
@@ -136,6 +181,11 @@ class BlueLeapTests(unittest.TestCase):
                 _, result, minimum_y = self.simulate(velocity, early_jump=True)
                 self.assertEqual(result, "won")
                 self.assertLess(minimum_y, 76)
+
+    def test_small_jump_solution_still_needs_to_jump_the_gap(self):
+        girl, result, _ = self.simulate(-40, jump_gap=False)
+        self.assertEqual(result, "dead")
+        self.assertGreater(girl.y, self.game["HEIGHT"])
 
     def test_other_class_methods_and_constructor_are_editable(self):
         body = self.body.replace("float(SPAWN_X)", "float(SPAWN_X - 1)").replace("self.vx = -55", "self.vx = -70").replace("self.vx = 55", "self.vx = 75")
