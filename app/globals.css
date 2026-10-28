@@ -22,3 +22,5 @@
 
 .journey{flex-wrap:wrap;row-gap:24px}.journey-title{min-width:100%}.map-entry{flex:0 1 auto;max-width:100%}.journey-stop{text-align:left}.password-control{display:flex;align-items:center;gap:12px;margin-top:12px;color:var(--muted);font-size:11px}.password-control input{min-width:0;flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);outline-color:var(--lavender)}.touch-controls button:last-child{white-space:nowrap}
 @media(max-width:580px){.password-control{font-size:10px;gap:8px}.password-control input{padding:9px;font-size:11px}.map-entry{flex:1 1 44%}.journey-stop strong{white-space:normal}.journey-line{display:none}.journey-stop small{white-space:normal}.level-coins{gap:5px}.result-coin{width:10px;height:13px}}
+
+.editor-titlebar>div:first-child{min-width:0}.editor-titlebar>div:first-child>span:first-of-type{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-titlebar>.theme-switch{flex-shrink:0}

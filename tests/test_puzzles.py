@@ -12,7 +12,9 @@ sys.path.insert(0, str(ROOT / "game"))
 sys.path.insert(0, str(ROOT / "scripts"))
 import lesson_bridge
 import pygame
-from puzzles import PUZZLES
+from levels import LEVELS
+
+PUZZLES = {number: slug for number, slug in LEVELS.items() if number >= 3}
 
 ROUTE = ["right", "right", "up", "up", "right", "right", "down", "right", "right", "down", "right", "right"]
 FIXES = {
@@ -28,7 +30,7 @@ class PuzzleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.worlds = {}
-        for number, (slug, _, _, _) in PUZZLES.items():
+        for number, slug in PUZZLES.items():
             source = (ROOT / "public" / "levels" / f"{slug}.py").read_text(encoding="utf-8")
             tree = ast.parse(source)
             tree.body.pop()
@@ -41,7 +43,7 @@ class PuzzleTests(unittest.TestCase):
         namespace = self.worlds[number]
         namespace["COLLECTED_COINS"].clear()
         if fixed:
-            _, name, arguments, _ = PUZZLES[number]
+            name, arguments = namespace["PUZZLE_NAME"], namespace["PUZZLE_ARGUMENTS"]
             return namespace["World"](lesson_bridge.compile_puzzle(FIXES[number], name, arguments))
         return namespace["World"]()
 
@@ -53,7 +55,7 @@ class PuzzleTests(unittest.TestCase):
         return None
 
     def test_all_starters_have_exactly_one_editable_body_and_draw(self):
-        for number, (slug, _, _, _) in PUZZLES.items():
+        for number, slug in PUZZLES.items():
             with self.subTest(level=number):
                 source = (ROOT / "public" / "levels" / f"{slug}.py").read_text(encoding="utf-8")
                 self.assertEqual(source.count("# EDIT START"), 1)

@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "game"))
 import lesson_bridge
 import pygame
 
-tree = ast.parse((ROOT / "game" / "main.py").read_text(encoding="utf-8"))
+tree = ast.parse((ROOT / "game" / "levels" / "jumping-girl.py").read_text(encoding="utf-8"))
 tree.body.pop()  # Import definitions without starting the browser's event loop.
 game = {}
 exec(compile(tree, "main.py", "exec"), game)

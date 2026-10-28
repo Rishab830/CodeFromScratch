@@ -3,10 +3,8 @@ import asyncio
 import math
 import pygame
 import lesson_bridge
-
-# Low-resolution art scales up with crisp pixels, never smoothing.
 LEVEL_NUMBER = 1
-WIDTH, HEIGHT = 320, 180
+WIDTH, HEIGHT = (320, 180)
 FLOOR = 141
 BLUE = pygame.Rect(194, FLOOR, 66, 7)
 SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)]
@@ -14,16 +12,14 @@ SPIKE_PLATFORM = pygame.Rect(188, 76, 80, 7)
 GAP = pygame.Rect(128, FLOOR, 21, HEIGHT - FLOOR)
 GOAL = pygame.Rect(30, FLOOR - 30, 16, 32)
 SPAWN_X = 289
-COINS = {"below": pygame.Rect(226, 126, 8, 10)}
-if LEVEL_NUMBER == 2:
-    COINS["above"] = pygame.Rect(226, 59, 8, 10)
+COINS = {'below': pygame.Rect(226, 126, 8, 10)}
 COLLECTED_COINS = set()
 
-
 class Girl:
+
     def __init__(self):
-        self.x, self.y = float(SPAWN_X), float(FLOOR)
-        self.vx, self.vy = 0.0, 0.0
+        self.x, self.y = (float(SPAWN_X), float(FLOOR))
+        self.vx, self.vy = (0.0, 0.0)
         self.grounded = True
 
     def jump(self):
@@ -48,12 +44,10 @@ def on_blue(player):
 
 
 def touching_blue(player):
-    return BLUE.left <= player.x <= BLUE.right and player.grounded and player.y == FLOOR
-
+    return BLUE.left <= player.x <= BLUE.right and player.grounded and (player.y == FLOOR)
 
 def player_bounds(player):
     return pygame.Rect(round(player.x) - 4, round(player.y) - 20, 8, 20)
-
 
 def collect_coins(player):
     for name, coin in COINS.items():
@@ -61,13 +55,9 @@ def collect_coins(player):
             COLLECTED_COINS.add(name)
             lesson_bridge.save_coins(LEVEL_NUMBER, COLLECTED_COINS)
 
-
 def triangle_hits_rect(triangle, rect):
-    # Clip the solid spike triangle to the character rectangle; its empty
-    # corners remain safe. This checks actual geometry, not an oversized box.
     points = [(float(x), float(y)) for x, y in triangle]
-    for axis, edge, above in [(0, rect.left, True), (0, rect.right, False),
-                              (1, rect.top, True), (1, rect.bottom, False)]:
+    for axis, edge, above in [(0, rect.left, True), (0, rect.right, False), (1, rect.top, True), (1, rect.bottom, False)]:
         clipped = []
         if not points:
             return False
@@ -77,25 +67,22 @@ def triangle_hits_rect(triangle, rect):
             current_in = current[axis] >= edge if above else current[axis] <= edge
             if current_in != previous_in:
                 fraction = (edge - previous[axis]) / (current[axis] - previous[axis])
-                clipped.append(tuple(previous[i] + fraction * (current[i] - previous[i]) for i in (0, 1)))
+                clipped.append(tuple((previous[i] + fraction * (current[i] - previous[i]) for i in (0, 1))))
             if current_in:
                 clipped.append(current)
-            previous, previous_in = current, current_in
+            previous, previous_in = (current, current_in)
         points = clipped
     return len(points) >= 3
-
 
 def outcome(player):
     bounds = player_bounds(player)
     if player.y > HEIGHT + 22:
-        return "dead"
+        return 'dead'
     for spike in SPIKES:
         triangle = [(spike.left, spike.top), (spike.right, spike.top), (spike.centerx, spike.bottom)]
         if bounds.colliderect(spike) and triangle_hits_rect(triangle, bounds):
-            return "dead"
-    # Any route, any valid solution, any number of jumps: the flag wins.
-    return "won" if bounds.colliderect(GOAL) else None
-
+            return 'dead'
+    return 'won' if bounds.colliderect(GOAL) else None
 
 def update(player, dt, keys):
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -108,8 +95,6 @@ def update(player, dt, keys):
         player.jump()
     if touching_blue(player):
         on_blue(player)
-
-    # Small physics steps prevent movement from skipping over a spike.
     steps = max(1, math.ceil(dt / (1 / 180)))
     for _ in range(steps):
         step = dt / steps
@@ -117,53 +102,31 @@ def update(player, dt, keys):
         player.vy += 460 * step
         player.x = max(7, min(WIDTH - 7, player.x + player.vx * step))
         player.y += player.vy * step
-        # Either foot may land on an edge, but the open gap has no floor.
         supported = player.x - 4 < GAP.left or player.x + 4 > GAP.right
-        above_platform = player.x + 4 > SPIKE_PLATFORM.left and player.x - 4 < SPIKE_PLATFORM.right
-        # In Level 2, land on the top while descending; the spikes below stay lethal.
-        if LEVEL_NUMBER == 2 and above_platform and previous_y <= SPIKE_PLATFORM.top <= player.y and player.vy >= 0:
-            player.y, player.vy, player.grounded = float(SPIKE_PLATFORM.top), 0.0, True
-        elif supported and previous_y <= FLOOR <= player.y and player.vy >= 0:
-            player.y, player.vy, player.grounded = float(FLOOR), 0.0, True
+        if supported and previous_y <= FLOOR <= player.y and (player.vy >= 0):
+            player.y, player.vy, player.grounded = (float(FLOOR), 0.0, True)
         else:
             player.grounded = False
         result = outcome(player)
-        if result != "dead":
+        if result != 'dead':
             collect_coins(player)
         if result:
             return result
     return None
-
-
-# Each character is one pixel: hair, skin, eyes, dress, ribbon, boots.
-GIRL_SPRITE = [
-    "...hhhh....", "..hhhhhh.pp", ".hhhhhhhhpp", ".hhsssshhh.",
-    ".hssessesh.", "..ssssssh..", "...ssss....", "....ss.....",
-    "..dddddd...", ".sdddddds..", ".sdddddds..", ".sdddddds..",
-    "..dddddd...", "..dddddd...", ".dddddddd..", "...s..s....",
-    "...s..s....", "...s..s....", "..bb..bb...", ".bbb..bbb..",
-]
-PALETTE = {"h": (88, 66, 99), "s": (255, 207, 173), "e": (65, 56, 85),
-           "d": (237, 160, 185), "p": (255, 223, 144), "b": (101, 85, 121)}
-COIN_SPRITE = [
-    "..oooo..", ".offffo.", "offffffo", "offhhffo", "offhhffo",
-    "offhhffo", "offhhffo", "offffffo", ".offffo.", "..oooo..",
-]
-
+GIRL_SPRITE = ['...hhhh....', '..hhhhhh.pp', '.hhhhhhhhpp', '.hhsssshhh.', '.hssessesh.', '..ssssssh..', '...ssss....', '....ss.....', '..dddddd...', '.sdddddds..', '.sdddddds..', '.sdddddds..', '..dddddd...', '..dddddd...', '.dddddddd..', '...s..s....', '...s..s....', '...s..s....', '..bb..bb...', '.bbb..bbb..']
+PALETTE = {'h': (88, 66, 99), 's': (255, 207, 173), 'e': (65, 56, 85), 'd': (237, 160, 185), 'p': (255, 223, 144), 'b': (101, 85, 121)}
+COIN_SPRITE = ['..oooo..', '.offffo.', 'offffffo', 'offhhffo', 'offhhffo', 'offhhffo', 'offhhffo', 'offffffo', '.offffo.', '..oooo..']
 
 def draw_coin(surface, coin, collected):
-    colors = {"o": (174, 146, 98) if collected else (188, 132, 59),
-              "f": (255, 207, 100), "h": (255, 242, 179)}
+    colors = {'o': (174, 146, 98) if collected else (188, 132, 59), 'f': (255, 207, 100), 'h': (255, 242, 179)}
     for y, row in enumerate(COIN_SPRITE):
         for x, pixel in enumerate(row):
-            if pixel in colors and (not collected or pixel == "o"):
+            if pixel in colors and (not collected or pixel == 'o'):
                 surface.set_at((coin.x + x, coin.y + y), colors[pixel])
-
 
 def pixel_cloud(surface, x, y):
     for dx, dy, w, h in [(6, 0, 20, 4), (2, 4, 33, 5), (0, 9, 39, 5), (5, 14, 29, 3)]:
         pygame.draw.rect(surface, (255, 247, 242), (x + dx, y + dy, w, h))
-
 
 def draw_scene(surface, player, seconds, small):
     surface.fill((218, 217, 246))
@@ -173,11 +136,7 @@ def draw_scene(surface, player, seconds, small):
     pygame.draw.rect(surface, (255, 238, 194), (265, 22, 14, 3))
     pixel_cloud(surface, 27, 23)
     pixel_cloud(surface, 125, 45)
-    for color, points in [
-        ((192, 201, 226), [(0, 116), (0, 95), (24, 95), (24, 88), (54, 88), (54, 79), (88, 79), (88, 85), (112, 85), (112, 99), (146, 99), (146, 116)]),
-        ((187, 214, 204), [(92, 141), (92, 119), (120, 119), (120, 109), (149, 109), (149, 101), (181, 101), (181, 107), (215, 107), (215, 118), (250, 118), (250, 141)]),
-        ((173, 204, 187), [(0, 141), (0, 125), (32, 125), (32, 117), (65, 117), (65, 122), (97, 122), (97, 133), (132, 133), (132, 141)]),
-    ]:
+    for color, points in [((192, 201, 226), [(0, 116), (0, 95), (24, 95), (24, 88), (54, 88), (54, 79), (88, 79), (88, 85), (112, 85), (112, 99), (146, 99), (146, 116)]), ((187, 214, 204), [(92, 141), (92, 119), (120, 119), (120, 109), (149, 109), (149, 101), (181, 101), (181, 107), (215, 107), (215, 118), (250, 118), (250, 141)]), ((173, 204, 187), [(0, 141), (0, 125), (32, 125), (32, 117), (65, 117), (65, 122), (97, 122), (97, 133), (132, 133), (132, 141)])]:
         pygame.draw.polygon(surface, color, points)
     for x, y in [(15, 111), (304, 108), (90, 116)]:
         pygame.draw.rect(surface, (164, 147, 173), (x - 2, y, 4, 29))
@@ -191,7 +150,6 @@ def draw_scene(surface, player, seconds, small):
         pygame.draw.rect(surface, (196, 225, 185), (x, FLOOR, 10, 2))
         pygame.draw.rect(surface, (247, 215, 198), (x + 4, FLOOR + 19, 3, 2))
         pygame.draw.rect(surface, (218, 176, 174), (x + 11, FLOOR + 28, 3, 2))
-    # The same small pit follows blue and the spikes on the way to the flag.
     pygame.draw.rect(surface, (103, 91, 134), GAP)
     pygame.draw.rect(surface, (86, 76, 116), (GAP.x, FLOOR + 22, GAP.width, HEIGHT - FLOOR - 22))
     pygame.draw.rect(surface, (163, 130, 149), (GAP.left, FLOOR + 7, 1, HEIGHT - FLOOR - 7))
@@ -200,7 +158,6 @@ def draw_scene(surface, player, seconds, small):
     pygame.draw.rect(surface, (185, 222, 249), (BLUE.x, BLUE.y, BLUE.width, 2))
     for x in range(BLUE.left + 4, BLUE.right, 8):
         pygame.draw.rect(surface, (169, 207, 244), (x, BLUE.y + 4, 3, 2))
-    # Overhead spikes leave a safe corridor for walking underneath.
     pygame.draw.rect(surface, (157, 143, 190), SPIKE_PLATFORM)
     pygame.draw.rect(surface, (195, 181, 219), (SPIKE_PLATFORM.x, SPIKE_PLATFORM.y, SPIKE_PLATFORM.width, 3))
     for spike in SPIKES:
@@ -216,34 +173,32 @@ def draw_scene(surface, player, seconds, small):
         pygame.draw.rect(surface, (255, 238, 185), (fx - 1, FLOOR - 7, 3, 3))
     for name, coin in COINS.items():
         draw_coin(surface, coin, name in COLLECTED_COINS)
-    px, py = round(player.x) - 5, round(player.y) - 20
+    px, py = (round(player.x) - 5, round(player.y) - 20)
     stride = 1 if abs(player.vx) and player.grounded and int(seconds * 9) % 2 else 0
     for row, line in enumerate(GIRL_SPRITE):
         for col, pixel in enumerate(line):
             if pixel in PALETTE:
                 offset = stride * (-1 if col < 5 else 1) if row >= 15 else 0
-                sx, sy = px + col + offset, py + row
+                sx, sy = (px + col + offset, py + row)
                 if 0 <= sx < WIDTH and 0 <= sy < HEIGHT:
                     surface.set_at((sx, sy), PALETTE[pixel])
-    # Follow very high jumps without smearing off-screen sprite pixels.
     if player.y < 20:
         x = max(5, min(WIDTH - 6, round(player.x)))
         pygame.draw.polygon(surface, (237, 160, 185), [(x, 3), (x - 4, 9), (x + 4, 9)])
-    surface.blit(small.render("GOAL", False, (112, 112, 142)), (26, 154))
-    surface.blit(small.render("BLUE = ?", False, (107, 134, 171)), (208, 154))
-    surface.blit(small.render(f"COINS {len(COLLECTED_COINS)}/{len(COINS)}", False, (112, 92, 135)), (8, 8))
-
+    surface.blit(small.render('GOAL', False, (112, 112, 142)), (26, 154))
+    surface.blit(small.render('BLUE = ?', False, (107, 134, 171)), (208, 154))
+    surface.blit(small.render(f'COINS {len(COLLECTED_COINS)}/{len(COINS)}', False, (112, 92, 135)), (8, 8))
 
 async def main():
-    lesson_bridge.emit("loading", phase=4, label="Starting your game", fraction=None, loaded=0, total=0)
+    lesson_bridge.emit('loading', phase=4, label='Starting your game', fraction=None, loaded=0, total=0)
     pygame.init()
     screen = pygame.display.set_mode((800, 450))
     surface = pygame.Surface((WIDTH, HEIGHT))
     small = pygame.font.Font(None, 10)
     clock = pygame.time.Clock()
     player = Girl()
-    COLLECTED_COINS.update(name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in COINS)
-    state, elapsed, attempt, has_input = "idle", 0.0, 0, False
+    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in COINS))
+    state, elapsed, attempt, has_input = ('idle', 0.0, 0, False)
     lesson_bridge.ready()
     while True:
         dt = min(clock.tick(60) / 1000, 0.04)
@@ -253,35 +208,30 @@ async def main():
         command = lesson_bridge.poll()
         if command:
             try:
-                if LEVEL_NUMBER == 1:
-                    globals()["on_blue"] = lesson_bridge.compile_solution(command["body"])
-                else:
-                    globals()["Girl"] = lesson_bridge.compile_girl(command["body"], SPAWN_X, FLOOR)
-                player, state, elapsed = Girl(), "playing", 0.0
+                globals()['on_blue'] = lesson_bridge.compile_solution(command['body'])
+                player, state, elapsed = (Girl(), 'playing', 0.0)
                 has_input = False
                 attempt += 1
-                lesson_bridge.emit("started", attempt=attempt)
+                lesson_bridge.emit('started', attempt=attempt)
             except Exception as error:
-                state = "idle"
-                lesson_bridge.emit("error", message=str(error))
-        if state == "playing":
+                state = 'idle'
+                lesson_bridge.emit('error', message=str(error))
+        if state == 'playing':
             try:
                 keys = pygame.key.get_pressed()
-                has_input = has_input or any(keys[key] for key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d, pygame.K_SPACE, pygame.K_UP, pygame.K_w))
+                has_input = has_input or any((keys[key] for key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d, pygame.K_SPACE, pygame.K_UP, pygame.K_w)))
                 result = update(player, dt, keys)
-                if result == "won" and not has_input:
+                if result == 'won' and (not has_input):
                     result = None
                 elapsed += dt
                 if result:
                     state = result
                     lesson_bridge.emit(result, seconds=round(elapsed, 1), coins=sorted(COLLECTED_COINS))
             except Exception as error:
-                state = "idle"
-                lesson_bridge.emit("error", message=str(error))
+                state = 'idle'
+                lesson_bridge.emit('error', message=str(error))
         draw_scene(surface, player, pygame.time.get_ticks() / 1000, small)
         pygame.transform.scale(surface, (800, 450), screen)
         pygame.display.flip()
         await asyncio.sleep(0)
-
-
 asyncio.run(main())

@@ -45,7 +45,9 @@ The **Site** control in the header switches between the default dark palette and
 
 ## Project structure
 
-`lib/levels.ts` registers the lessons and their source, runtime, and storage keys. `game/main.py` owns the complete Pygame world, sprite art, physics, keyboard controls, collisions, and flag trigger. It draws a 320×180 pixel canvas and scales it up without smoothing. The build generates complete per-level sources in `public/levels/` and separate runtimes in `public/runner/` through `public/runner-7/`. `game/adventure.py` is the shared source template for Levels 3-7; `scripts/puzzles.py` supplies each starting function and the build embeds all required sprite drawing code into each complete visible source. Each source contains exactly one editable region.
+`lib/levels.ts` registers the lessons and their source, runtime, and storage keys. Every level is maintained as its own complete Pygame file in `game/levels/`. Each file contains only that level's game state, controls, map, art, and editable region. The browser editor shows the level's filename and complete source. There is no shared multi-level game template or level-switching logic in these files.
+
+`scripts/levels.py` is the build manifest. `scripts/build_game.py` copies each dedicated source unchanged to `public/levels/<slug>.py` and into its own Pygbag archive in `public/runner/` through `public/runner-7/`. The internal archive calls its entrypoint `main.py`; that is only Pygbag packaging, not a combined game. The compiler/browser bridge (`game/lesson_bridge.py`) and HTML runner (`game/runner.tmpl`) are shared infrastructure.
 
 `game/lesson_bridge.py` compiles the editable Python. Level 1 permits the player API, simple conditionals, and `pass`. Level 2 compiles one complete `Girl` class with numeric state, methods, conditions, and arithmetic, while keeping world code outside its namespace. Method execution is bounded so recursive mistakes do not hang the game. Levels 3-7 compile a bounded puzzle function with lists, dictionaries, sequences, conditions, and loops. Loops have a step limit and execution budget, so an endless loop reports a Python error instead of freezing the game. Imports and runtime internals are rejected. Reaching the flag still requires manual input after compilation. This is a bounded lesson runner, not a general-purpose Python sandbox. Client-side progress is suitable for this prototype, not authoritative grading.
 
@@ -56,7 +58,7 @@ python -m pip install -r requirements.txt
 npm run build:game
 ```
 
-Rebuild after changing Python or the runner template. Pygbag uses its own CPython inside the browser.
+Edit the appropriate file under `game/levels/`, then rebuild after changing Python or the runner template. Pygbag uses its own CPython inside the browser.
 
 ## Verify and build
 
@@ -83,3 +85,5 @@ The production static site is exported to `out/`. To run the actual WASM end-to-
 Each has a protected world, one green editable function body, complete visible Python source, Compile/Restart, saved edits and coins, and a coin summary on completion. Level 5's machine inventory resets each attempt; its five coin badges remain saved. Completing an adventure requires real player input and reaching its destination, never compiling or waiting alone. Any function producing a working route is accepted.
 
 With the static site served locally, `npm run test:adventures` plays every starter and a valid compiled solution through the actual WASM runtime, checks sequential locks, wrong passwords, robot detours, bounded loops, coin results, mobile layout, and the final seven-level celebration. `npm run test:browser` continues to cover the first two adventures.
+
+`npm run test:sources` verifies that all seven editor filenames and visible sources match the dedicated files on disk without overflowing mobile screens. The Python tests also verify that each runtime archive contains only its own game and the compiler bridge, with no branches for other levels.
