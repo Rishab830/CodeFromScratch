@@ -32,7 +32,7 @@ The **Site** control in the header switches between the default dark palette and
 
 - Click **Play level**, then use Left / Right or A / D to move and Space / Up / W to jump. Touch controls are below the game.
 - Landing on blue calls `on_blue(player)`. The starter's `player.jump()` launches Maya into overhead spikes.
-- Both levels have the same small gap after blue and the spikes, on the way to the flag. Jump across it; walking off the edge makes Maya fall. A spike collision or falling into the gap ends the attempt and shows **Game over** with **Restart level**.
+- Both levels have the same 21-pixel gap after blue and the spikes, on the way to the flag. This is half Maya's default running-jump distance, rounded to a whole pixel: speed 55 × airtime (2 × 178 / 460) gives about 42.6 pixels. The gap stays fixed when students edit her movement. Jump across it; walking off the edge makes Maya fall. A spike collision or falling into the gap ends the attempt and shows **Game over** with **Restart level**.
 - Read the entire Python file; the green on_blue body is editable in Level 1, and the entire green Girl class is editable in Level 2. **Compile** validates and compiles that Python, applies it, and restarts the playable level. It does not run an automated attempt or grade a solution.
 - **Restart** reuses the last successfully compiled code. **Reset code** restores the starter in the editor; Compile is still required to apply those changes.
 - Reach the flag yourself to complete a level and earn 100 XP. Clearing Level 1 unlocks Level 2 in the adventure map and through **Next adventure**. Any valid solution, route, or number of jumps is accepted.

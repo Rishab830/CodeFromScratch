@@ -192,7 +192,7 @@ let browser, page;
   const secondSource = await getSource();
   assert.match(secondSource,/# EDIT START\nclass Girl:/);
   assert.doesNotMatch(secondSource,/configure/);
-  assert.match(secondSource,/GAP = pygame.Rect\(132, FLOOR, 12, HEIGHT - FLOOR\)/);
+  assert.match(secondSource,/GAP = pygame.Rect\(128, FLOOR, 21, HEIGHT - FLOOR\)/);
   assert.match(secondSource,/def on_blue\(player\):\n    player.jump\(\)/);
   await editor.evaluate(node => {
     const view=node.cmTile.root.view;

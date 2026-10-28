@@ -94,6 +94,20 @@ class LessonTests(unittest.TestCase):
                 self.assertEqual(girl.y, game["FLOOR"])
                 self.assertTrue(girl.x < game["GAP"].left if direction == -1 else girl.x > game["GAP"].right)
 
+    def test_gap_is_half_the_default_running_jump(self):
+        game["on_blue"] = lesson_bridge.compile_solution("    pass\n")
+        girl = game["Girl"]()
+        girl.x = 70.0
+        start = girl.x
+        girl.jump()
+        controls = defaultdict(bool, {pygame.K_RIGHT: True})
+        for _ in range(300):
+            self.assertIsNone(game["update"](girl, 1 / 180, controls))
+            if girl.grounded:
+                break
+        self.assertTrue(girl.grounded)
+        self.assertAlmostEqual(game["GAP"].width, (girl.x - start) / 2, delta=0.5)
+
     def test_jump_on_safe_ground_does_not_disqualify_win(self):
         game["on_blue"] = lesson_bridge.compile_solution("    pass\n")
         girl = game["Girl"]()
@@ -179,7 +193,7 @@ class BlueLeapTests(unittest.TestCase):
         self.assertEqual(result, "dead")
 
     def test_small_jumps_can_pass_under_spikes(self):
-        for velocity in (-40, -80):
+        for velocity in (-70, -80):
             with self.subTest(velocity=velocity):
                 _, result, minimum_y = self.simulate(velocity)
                 self.assertEqual(result, "won")
