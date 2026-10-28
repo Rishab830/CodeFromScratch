@@ -61,9 +61,11 @@ export default function CodeEditor({ source, onChange, revealToken }: { source: 
       '.cm-line': { paddingLeft: '12px' },
       '.cm-activeLine': { backgroundColor: 'transparent' },
       '.cm-activeLineGutter': { backgroundColor: 'transparent' },
-      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: '#564265 !important' },
+      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: '#3b6eac !important' },
       '.cm-cursor': { borderLeftColor: '#dcc2f8' },
-      '.editable-line': { backgroundColor: '#293d35', boxShadow: 'inset 3px 0 #b3d9bb' },
+      // CodeMirror draws selections behind the text. Keep this line tint
+      // translucent so it cannot cover the selection layer underneath.
+      '.editable-line': { backgroundColor: 'rgba(100, 184, 105, 0.2)', boxShadow: 'inset 3px 0 #b3d9bb' },
       '.protected-line': { opacity: '.75' },
       '.cm-matchingBracket': { backgroundColor: '#57634c !important' }
     })], []);
