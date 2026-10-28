@@ -165,6 +165,8 @@ let browser, page;
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   assert(!(await page.locator('.journey-stop.next').isDisabled()));
   assert.match(await page.locator('.xp').innerText(),/100/);
+  assert.equal(await page.getByRole('group',{name:'Coins collected: 1 of 1',exact:true}).count(),1);
+  assert.equal(await page.locator('.result-coin.collected').count(),1);
   await page.screenshot({path:path.join(qa,'new-win.png'),fullPage:true});
   console.log('PASS: manually jumping the gap and reaching the flag completes Level 1');
 
@@ -236,6 +238,20 @@ let browser, page;
   await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   assert.match(await page.locator('.xp').innerText(),/200/);
+  assert.equal(await page.getByRole('group',{name:'Coins collected: 1 of 2',exact:true}).count(),1);
+  assert.equal(await page.getByRole('img',{name:'Upper coin: not collected',exact:true}).count(),1);
+  assert.equal(await page.getByRole('img',{name:'Lower coin: collected',exact:true}).count(),1);
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:path.join(qa,'coin-results-mobile.png'),fullPage:true});
+  const mobileWin = page.getByRole('dialog',{name:'Level complete',exact:true});
+  for (const selector of ['.level-coins','.play-button','.text-button']) {
+    const fits = await mobileWin.locator(selector).evaluate(node => {
+      const item = node.getBoundingClientRect(), overlay = node.closest('.win-overlay').getBoundingClientRect();
+      return item.top >= overlay.top && item.bottom <= overlay.bottom;
+    });
+    assert(fits,`${selector} is clipped in the mobile win screen`);
+  }
+  await page.setViewportSize({width:1440,height:1100});
   await page.screenshot({path:path.join(qa,'level-2-small-jump-win.png'),fullPage:true});
   console.log('PASS: full class compiles; small jumps pass beneath the spikes and clear the floor gap');
   await setBody(classSource.replace('self.vy = -178','self.vy = -420'));
@@ -279,6 +295,10 @@ let browser, page;
   await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   console.log('PASS: Maya lands on the spike platform, stays still, walks both ways, jumps, and can finish the level');
+  assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
+  assert.equal(await page.locator('.result-coin.collected').count(),2);
+  assert.equal(await page.locator('.result-coin.missing').count(),0);
+  await page.screenshot({path:path.join(qa,'coin-results-all.png'),fullPage:true});
   console.log('PASS: Level 2 coins above and below the spikes are saved independently and leave outlines');
   await page.locator('.journey-stop').first().click();
   await page.getByRole('heading',{name:'The Jumping Girl',exact:false}).waitFor();
@@ -298,5 +318,20 @@ let browser, page;
   await checkCoin('below',true,revisitedSecond);
   await checkCoin('above',true,revisitedSecond);
   console.log('PASS: coin outlines restore in both levels after map navigation and a full page reload');
+  // Any route is valid. Start to the left of the gap with a class edit, then
+  // manually walk to the flag to verify a real completion with zero coins.
+  await page.evaluate(()=>localStorage.removeItem('cfs:coins:level-2:v1'));
+  await page.getByRole('button',{name:'Reload engine',exact:true}).click();
+  await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
+  await setBody(classSource.replace('float(SPAWN_X)','float(80)'));
+  await page.getByRole('button',{name:'Compile',exact:true}).click();
+  await playing();
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(900);await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
+  assert.equal(await page.getByRole('group',{name:'Coins collected: 0 of 2',exact:true}).count(),1);
+  assert.equal(await page.locator('.result-coin.missing').count(),2);
+  assert.equal(await page.locator('.result-coin.collected').count(),0);
+  await page.screenshot({path:path.join(qa,'coin-results-none.png'),fullPage:true});
+  console.log('PASS: completion shows filled collected coins and missing outlines for zero, partial, and full collections; mobile controls fit');
   await browser.close();
 })().catch(async error => {console.error(error);if(page)await page.screenshot({path:path.join(qa,'failure.png'),fullPage:true}).catch(()=>{});if(browser)await browser.close();process.exit(1);});

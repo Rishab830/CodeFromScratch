@@ -274,7 +274,7 @@ async def main():
                 elapsed += dt
                 if result:
                     state = result
-                    lesson_bridge.emit(result, seconds=round(elapsed, 1))
+                    lesson_bridge.emit(result, seconds=round(elapsed, 1), coins=sorted(COLLECTED_COINS))
             except Exception as error:
                 state = "idle"
                 lesson_bridge.emit("error", message=str(error))
