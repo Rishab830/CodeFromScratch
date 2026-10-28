@@ -15,5 +15,4 @@
 @media(max-width:580px){.runtime-loading{gap:6px;padding:12px}.runtime-loading .pixel-loader{display:none}.runtime-loading strong{margin-top:0;font-size:17px}.runtime-loading .loading-phase{font-size:9px}.runtime-loading .startup-progress{height:8px;margin-top:4px}.loading-numbers,.loading-stages{font-size:7px}.runtime-loading .loading-note,.loading-retry p{font-size:8px;line-height:1.5}.loading-stages{gap:7px;margin-top:0}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
-.mission-intro{padding:19px 20px;margin-bottom:16px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--lavender);border-radius:9px}.mission-intro .mission-story h2{font-size:19px}.mission-intro .mission-story p{font-size:12px;max-width:none}.mission-content .mission-steps{padding-top:0;margin-top:0;border-top:0}
-@media(max-width:580px){.mission-intro{padding:16px 14px;margin-bottom:15px}.mission-intro .mission-story h2{font-size:17px}.mission-intro .mission-story p{font-size:11px}}
+.game-panel>.lesson-card{margin-bottom:16px}
