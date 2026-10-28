@@ -3,9 +3,10 @@ import ast
 import json
 import math
 import sys
+import types
 
-EDIT_START = "    # EDIT START\n"
-EDIT_END = "    # EDIT END"
+EDIT_START = "# EDIT START\n"
+EDIT_END = "# EDIT END"
 MAX_SOURCE = 2000
 ALLOWED_ACTIONS = {"jump", "move_left", "move_right", "stop"}
 
@@ -43,27 +44,95 @@ def compile_solution(body):
     return namespace["on_blue"]
 
 
-def compile_settings(body):
-    if not isinstance(body, str) or len(body) > MAX_SOURCE:
-        raise ValueError("Keep your code under 2,000 characters.")
+def compile_girl(source, spawn_x, floor):
+    """Compile the editable class without exposing the protected game world."""
+    if not isinstance(source, str) or len(source) > 8000:
+        raise ValueError("Keep your class under 8,000 characters.")
+    filename = "<your-Girl-class>"
     try:
-        tree = ast.parse("def configure():\n" + body)
+        tree = ast.parse(source)
     except SyntaxError as error:
-        raise ValueError(f"Python syntax error on editable line {max(1, (error.lineno or 2) - 1)}: {error.msg}") from error
-    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
-        raise ValueError("Keep your code inside the green section.")
-    statements = tree.body[0].body
-    if len(statements) != 1 or not isinstance(statements[0], ast.Return):
-        raise ValueError("Keep a single return statement with a number.")
-    try:
-        value = ast.literal_eval(statements[0].value)
-    except (ValueError, TypeError):
-        raise ValueError("Return a number; the rest of this level’s code is locked.") from None
-    if type(value) not in (int, float) or not math.isfinite(value) or not -400 <= value <= -40:
-        raise ValueError("Use a finite negative number between -400 and -40.")
-    namespace = {"__builtins__": {}}
-    exec(compile(tree, "<your-code>", "exec"), namespace)
-    return namespace["configure"]
+        raise ValueError(f"Python syntax error on editable line {error.lineno}: {error.msg}") from error
+    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.ClassDef) or tree.body[0].name != "Girl":
+        raise ValueError("Keep one class named Girl in the green section. The rest of the game is locked.")
+    definition = tree.body[0]
+    if definition.bases or definition.keywords or definition.decorator_list:
+        raise ValueError("Define Girl directly, without inheritance or decorators.")
+    allowed = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.arguments, ast.arg,
+               ast.Assign, ast.AugAssign, ast.Expr, ast.If, ast.IfExp, ast.Return,
+               ast.Pass, ast.Tuple, ast.Load, ast.Store, ast.Call, ast.keyword,
+               ast.Attribute, ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp,
+               ast.BoolOp, ast.Compare, ast.Add, ast.Sub, ast.Mult, ast.Div,
+               ast.FloorDiv, ast.Mod, ast.UAdd, ast.USub, ast.Not, ast.And,
+               ast.Or, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE)
+    safe_calls = {"float": float, "int": int, "bool": bool, "abs": abs,
+                  "min": min, "max": max, "round": round}
+    tuple_assignments = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+            tuple_assignments.update((id(node.targets[0]), id(node.value)))
+    for node in ast.walk(tree):
+        if not isinstance(node, allowed):
+            raise ValueError("Use class methods, assignments, conditions, and arithmetic. Imports and loops are not needed here.")
+        if isinstance(node, ast.Tuple) and id(node) not in tuple_assignments:
+            raise ValueError("Use numeric player attributes instead of collections.")
+        if isinstance(node, ast.FunctionDef):
+            if node.decorator_list or node.args.vararg or node.args.kwarg or (node.name.startswith("__") and node.name != "__init__"):
+                raise ValueError("Use ordinary player methods without decorators or special methods other than __init__.")
+        if isinstance(node, ast.Name) and node.id.startswith("__"):
+            raise ValueError("Use player state inside Girl; runtime internals are not available.")
+        if isinstance(node, ast.Attribute) and (not isinstance(node.value, ast.Name) or node.value.id != "self" or node.attr.startswith("__")):
+            raise ValueError("Access player attributes through self.")
+        if isinstance(node, ast.Call):
+            if not ((isinstance(node.func, ast.Name) and node.func.id in safe_calls) or
+                    (isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "self")):
+                raise ValueError("Call your own self methods or basic numeric functions.")
+        if isinstance(node, ast.Constant) and (type(node.value) not in (int, float, bool, type(None)) or (type(node.value) in (int, float) and (not math.isfinite(node.value) or abs(node.value) > 10000))):
+            raise ValueError("Use finite numeric values and booleans for player state.")
+    namespace = {"__builtins__": {"__build_class__": __build_class__, **safe_calls},
+                 "__name__": "student_level", "SPAWN_X": spawn_x, "FLOOR": floor}
+    exec(compile(tree, filename, "exec"), namespace)
+    girl = namespace["Girl"]
+    context = {"active": False, "remaining": 0}
+
+    def bounded(method):
+        def call(*args, **kwargs):
+            if context["active"]:
+                return method(*args, **kwargs)
+            context.update(active=True, remaining=2000)
+            previous_trace = sys.gettrace()
+
+            def trace(frame, event, argument):
+                if frame.f_code.co_filename == filename and event in ("call", "line"):
+                    context["remaining"] -= 1
+                    if context["remaining"] <= 0:
+                        raise ValueError("That method did not finish. Check for repeated method calls.")
+                return trace
+
+            sys.settrace(trace)
+            try:
+                return method(*args, **kwargs)
+            finally:
+                sys.settrace(previous_trace)
+                context["active"] = False
+        return call
+
+    for name, method in list(vars(girl).items()):
+        if isinstance(method, types.FunctionType):
+            setattr(girl, name, bounded(method))
+    required_methods = ("jump", "move_left", "move_right", "stop")
+    if not all(callable(getattr(girl, name, None)) for name in required_methods):
+        raise ValueError("Girl needs jump(), move_left(), move_right(), and stop() methods.")
+    player = girl()
+    for name in ("x", "y", "vx", "vy"):
+        value = getattr(player, name, None)
+        if type(value) not in (int, float) or not math.isfinite(value) or abs(value) > 1000000:
+            raise ValueError("Girl needs finite numeric x, y, vx, and vy attributes.")
+    if type(getattr(player, "grounded", None)) is not bool:
+        raise ValueError("Girl needs a grounded attribute set to True or False.")
+    if not all(callable(getattr(player, name, None)) for name in required_methods):
+        raise ValueError("Keep the player action methods callable.")
+    return girl
 
 
 def browser():

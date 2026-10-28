@@ -33,10 +33,10 @@ The **Site** control in the header switches between the default dark palette and
 - Click **Play level**, then use Left / Right or A / D to move and Space / Up / W to jump. Touch controls are below the game.
 - Landing on blue calls `on_blue(player)`. The starter's `player.jump()` launches Maya into overhead spikes.
 - A spike collision ends the attempt and shows **Game over** with **Restart level**.
-- Read the entire Python file; only the green function body is editable. **Compile** validates and compiles that Python, applies it, and restarts the playable level. It does not run an automated attempt or grade a solution.
+- Read the entire Python file; the green on_blue body is editable in Level 1, and the entire green Girl class is editable in Level 2. **Compile** validates and compiles that Python, applies it, and restarts the playable level. It does not run an automated attempt or grade a solution.
 - **Restart** reuses the last successfully compiled code. **Reset code** restores the starter in the editor; Compile is still required to apply those changes.
 - Reach the flag yourself to complete a level and earn 100 XP. Clearing Level 1 unlocks Level 2 in the adventure map and through **Next adventure**. Any valid solution, route, or number of jumps is accepted.
-- In Level 2, the blue action always calls `player.jump()` and is locked. A different section is editable. Its mission and reference state that blue makes Maya jump, without explaining the adjustment students need to discover. Level 2 has no solution hints.
+- Level 2 keeps the original map, blue platform, spikes, and flag. Its blue action calls `player.jump()` and remains locked. The complete `Girl` class is editable, including the constructor and movement methods; there is no extra configuration function. Students can clear the level with small jumps below the spikes or a manually timed high jump over them. The mission does not reveal these solutions, and Level 2 has no solution hints.
 - Each level keeps its own edits and completion. Revisit either unlocked lesson from the map.
 - Edits and completed levels persist locally in this browser. The new manual-play level uses a separate progress key from the old automatic demo.
 
@@ -44,7 +44,7 @@ The **Site** control in the header switches between the default dark palette and
 
 `lib/levels.ts` registers the lessons and their source, runtime, and storage keys. `game/main.py` owns the complete Pygame world, sprite art, physics, keyboard controls, collisions, and flag trigger. It draws a 320×180 pixel canvas and scales it up without smoothing. The build generates complete per-level sources in `public/levels/` and separate runtimes in `public/runner/` and `public/runner-2/`. Each source contains exactly one editable region.
 
-`game/lesson_bridge.py` compiles the editable Python function. Level 1 permits the player API, simple conditionals, and `pass`. Level 2 permits a bounded numeric return from `configure()` while preserving the jump action. Both reject unrelated executable code. This is a bounded lesson runner, not a general-purpose Python sandbox. Client-side progress is suitable for this prototype, not authoritative grading.
+`game/lesson_bridge.py` compiles the editable Python. Level 1 permits the player API, simple conditionals, and `pass`. Level 2 compiles one complete `Girl` class with numeric state, methods, conditions, and arithmetic, while keeping world code outside its namespace. Method execution is bounded so recursive mistakes do not hang the game. Both reject unrelated executable code. Reaching the flag still requires manual input after compilation. This is a bounded lesson runner, not a general-purpose Python sandbox. Client-side progress is suitable for this prototype, not authoritative grading.
 
 ## Rebuild the game
 

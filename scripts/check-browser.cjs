@@ -55,8 +55,9 @@ let browser;
   async function setBody(body) {
     await editor.evaluate((node,body) => {
       const view = node.cmTile.root.view, text = view.state.doc.toString();
-      const start = text.indexOf('    # EDIT START\n') + '    # EDIT START\n'.length;
-      const end = text.indexOf('    # EDIT END',start);
+      const marker = /^[ \t]*# EDIT START\n/m.exec(text);
+      const start = marker.index + marker[0].length;
+      const end = start + /^[ \t]*# EDIT END/m.exec(text.slice(start)).index;
       view.dispatch({changes:{from:start,to:end,insert:body}});
     }, body);
   }
@@ -124,6 +125,7 @@ let browser;
   await page.getByRole('button',{name:'Play again',exact:true}).click();
   await playing();
   const touchBefore = await position();
+  await page.getByRole('button',{name:'Move left',exact:true}).scrollIntoViewIfNeeded();
   const button = await page.getByRole('button',{name:'Move left',exact:true}).boundingBox();
   await page.mouse.move(button.x+button.width/2,button.y+button.height/2);
   await page.mouse.down();await page.waitForTimeout(350);await page.mouse.up();
@@ -142,7 +144,8 @@ let browser;
   await page.getByRole('heading',{name:'The Blue Leap',exact:false}).waitFor();
   await page.waitForSelector('.editable-line');
   const secondSource = await getSource();
-  assert.match(secondSource,/def configure\(\):\n    # EDIT START\n    return -110/);
+  assert.match(secondSource,/# EDIT START\nclass Girl:/);
+  assert.doesNotMatch(secondSource,/configure|GAP/);
   assert.match(secondSource,/def on_blue\(player\):\n    player.jump\(\)/);
   await editor.evaluate(node => {
     const view=node.cmTile.root.view;
@@ -157,34 +160,35 @@ let browser;
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
   // The runner iframe changed when navigating; read the live one for Level 2.
   const secondFrame=page.frames().find(entry=>/\/runner-2\/?$/.test(new URL(entry.url()).pathname));
-  async function secondPosition() {
-    return secondFrame.evaluate(()=>{
-      const canvas=document.querySelector('#canvas');
-      const {data,width}=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height);
-      let sy=0,count=0;
-      for(let i=0;i<data.length;i+=4)if(data[i]===237&&data[i+1]===160&&data[i+2]===185){sy+=Math.floor((i/4)/width);count++;}
-      return sy/count;
-    });
-  }
+  const classSource=secondSource.split('# EDIT START\n')[1].split('# EDIT END')[0];
+  assert.match(classSource,/def __init__/);
+  assert.match(classSource,/def stop/);
   await page.getByRole('button',{name:'Play level',exact:true}).click();
   await playing();
-  const secondGround=await secondPosition();
-  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(950);
-  assert((await secondPosition()) < secondGround-7,'Blue did not force a jump');
-  await page.waitForTimeout(1800);await page.keyboard.up('ArrowLeft');
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(1100);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor();
-  assert.match(await page.locator('.console-message').innerText(),/solid ground/);
-  console.log('PASS: blue forces an actual Pygame jump; the starter falls short of the ledge');
-  await setBody('    return -300\n');
+  assert.match(await page.locator('.console-message').innerText(),/spikes/);
+  console.log('PASS: Level 2 uses the original spike map; starter jump hits the spikes');
+  await setBody(classSource.replace('self.vy = -178','self.vy = -40'));
   await page.getByRole('button',{name:'Compile',exact:true}).click();
   await playing();
   await page.waitForTimeout(500);
   assert.equal(await page.getByRole('dialog',{name:'Level complete'}).count(),0);
-  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(5000);await page.keyboard.up('ArrowLeft');
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(5200);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   assert.match(await page.locator('.xp').innerText(),/200/);
-  await page.screenshot({path:path.join(qa,'level-2-win.png'),fullPage:true});
-  console.log('PASS: compiled adjustment changes the jump and manual play clears Level 2');
+  await page.screenshot({path:path.join(qa,'level-2-small-jump-win.png'),fullPage:true});
+  console.log('PASS: full class compiles and small jumps pass beneath the spikes');
+  await setBody(classSource.replace('self.vy = -178','self.vy = -420'));
+  await page.getByRole('button',{name:'Compile',exact:true}).click();
+  await playing();
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(190);
+  await page.keyboard.down('Space');await page.waitForTimeout(80);await page.keyboard.up('Space');
+  await page.waitForTimeout(300);
+  await page.screenshot({path:path.join(qa,'level-2-high-jump.png'),fullPage:true});
+  await page.waitForTimeout(5000);await page.keyboard.up('ArrowLeft');
+  await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
+  console.log('PASS: a high manual jump clears above the same spikes and is also accepted');
   await page.locator('.journey-stop').first().click();
   await page.getByRole('heading',{name:'The Jumping Girl',exact:false}).waitFor();
   await page.waitForFunction(()=>document.querySelector('.cm-content')?.cmTile?.root?.view?.state.doc.toString().includes('LEVEL_NUMBER = 1'));

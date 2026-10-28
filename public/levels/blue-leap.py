@@ -8,19 +8,13 @@ import lesson_bridge
 LEVEL_NUMBER = 2
 WIDTH, HEIGHT = 320, 180
 FLOOR = 141
-BLUE = pygame.Rect(194, FLOOR, 66, 7) if LEVEL_NUMBER == 1 else pygame.Rect(237, FLOOR, 12, 7)
-SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)] if LEVEL_NUMBER == 1 else []
-GAP = (180, 236) if LEVEL_NUMBER == 2 else None
+BLUE = pygame.Rect(194, FLOOR, 66, 7)
+SPIKES = [pygame.Rect(x, 83, 8, 17) for x in range(192, 264, 8)]
 GOAL = pygame.Rect(30, FLOOR - 30, 16, 32)
 SPAWN_X = 289
 
 
-def configure():
-    # EDIT START
-    return -110
-    # EDIT END
-
-
+# EDIT START
 class Girl:
     def __init__(self):
         self.x, self.y = float(SPAWN_X), float(FLOOR)
@@ -29,7 +23,7 @@ class Girl:
 
     def jump(self):
         if self.grounded:
-            self.vy = configure()
+            self.vy = -178
             self.grounded = False
 
     def move_left(self):
@@ -40,6 +34,7 @@ class Girl:
 
     def stop(self):
         self.vx = 0
+# EDIT END
 
 
 def on_blue(player):
@@ -105,15 +100,11 @@ def update(player, dt, keys):
     steps = max(1, math.ceil(dt / (1 / 180)))
     for _ in range(steps):
         step = dt / steps
-        previous_y = player.y
         player.vy += 460 * step
         player.x = max(7, min(WIDTH - 7, player.x + player.vx * step))
         player.y += player.vy * step
-        has_ground = GAP is None or player.x <= GAP[0] or player.x >= GAP[1]
-        if player.y >= FLOOR and previous_y <= FLOOR and has_ground:
+        if player.y >= FLOOR:
             player.y, player.vy, player.grounded = float(FLOOR), 0.0, True
-        elif not has_ground:
-            player.grounded = False
         result = outcome(player)
         if result:
             return result
@@ -167,15 +158,9 @@ def draw_scene(surface, player, seconds, small):
     pygame.draw.rect(surface, (185, 222, 249), (BLUE.x, BLUE.y, BLUE.width, 2))
     for x in range(BLUE.left + 4, BLUE.right, 8):
         pygame.draw.rect(surface, (169, 207, 244), (x, BLUE.y + 4, 3, 2))
-    if GAP:
-        pygame.draw.rect(surface, (187, 178, 218), (GAP[0], FLOOR, GAP[1] - GAP[0], HEIGHT - FLOOR))
-        pygame.draw.rect(surface, (154, 142, 189), (GAP[0], FLOOR + 15, GAP[1] - GAP[0], HEIGHT - FLOOR))
-        for x in range(GAP[0], GAP[1], 8):
-            pygame.draw.polygon(surface, (242, 174, 193), [(x, HEIGHT), (x + 4, HEIGHT - 9), (x + 8, HEIGHT)])
-    else:
-        # Overhead spikes leave a safe corridor for walking underneath.
-        pygame.draw.rect(surface, (157, 143, 190), (188, 76, 80, 7))
-        pygame.draw.rect(surface, (195, 181, 219), (188, 76, 80, 3))
+    # Overhead spikes leave a safe corridor for walking underneath.
+    pygame.draw.rect(surface, (157, 143, 190), (188, 76, 80, 7))
+    pygame.draw.rect(surface, (195, 181, 219), (188, 76, 80, 3))
     for spike in SPIKES:
         pygame.draw.polygon(surface, (170, 113, 148), [(spike.left, spike.top), (spike.right, spike.top), (spike.centerx, spike.bottom)])
         pygame.draw.polygon(surface, (242, 174, 193), [(spike.left + 1, spike.top), (spike.right - 2, spike.top), (spike.centerx, spike.bottom - 3)])
@@ -193,10 +178,15 @@ def draw_scene(surface, player, seconds, small):
         for col, pixel in enumerate(line):
             if pixel in PALETTE:
                 offset = stride * (-1 if col < 5 else 1) if row >= 15 else 0
-                surface.set_at((max(0, min(WIDTH - 1, px + col + offset)), max(0, min(HEIGHT - 1, py + row))), PALETTE[pixel])
+                sx, sy = px + col + offset, py + row
+                if 0 <= sx < WIDTH and 0 <= sy < HEIGHT:
+                    surface.set_at((sx, sy), PALETTE[pixel])
+    # Follow very high jumps without smearing off-screen sprite pixels.
+    if player.y < 20:
+        x = max(5, min(WIDTH - 6, round(player.x)))
+        pygame.draw.polygon(surface, (237, 160, 185), [(x, 3), (x - 4, 9), (x + 4, 9)])
     surface.blit(small.render("GOAL", False, (112, 112, 142)), (26, 154))
-    if not GAP:
-        surface.blit(small.render("BLUE = ?", False, (107, 134, 171)), (208, 154))
+    surface.blit(small.render("BLUE = ?", False, (107, 134, 171)), (208, 154))
 
 
 async def main():
@@ -207,7 +197,7 @@ async def main():
     small = pygame.font.Font(None, 10)
     clock = pygame.time.Clock()
     player = Girl()
-    state, elapsed, attempt = "idle", 0.0, 0
+    state, elapsed, attempt, has_input = "idle", 0.0, 0, False
     lesson_bridge.ready()
     while True:
         dt = min(clock.tick(60) / 1000, 0.04)
@@ -220,8 +210,9 @@ async def main():
                 if LEVEL_NUMBER == 1:
                     globals()["on_blue"] = lesson_bridge.compile_solution(command["body"])
                 else:
-                    globals()["configure"] = lesson_bridge.compile_settings(command["body"])
+                    globals()["Girl"] = lesson_bridge.compile_girl(command["body"], SPAWN_X, FLOOR)
                 player, state, elapsed = Girl(), "playing", 0.0
+                has_input = False
                 attempt += 1
                 lesson_bridge.emit("started", attempt=attempt)
             except Exception as error:
@@ -229,7 +220,11 @@ async def main():
                 lesson_bridge.emit("error", message=str(error))
         if state == "playing":
             try:
-                result = update(player, dt, pygame.key.get_pressed())
+                keys = pygame.key.get_pressed()
+                has_input = has_input or any(keys[key] for key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d, pygame.K_SPACE, pygame.K_UP, pygame.K_w))
+                result = update(player, dt, keys)
+                if result == "won" and not has_input:
+                    result = None
                 elapsed += dt
                 if result:
                     state = result

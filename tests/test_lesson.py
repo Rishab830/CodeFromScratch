@@ -79,50 +79,92 @@ class LessonTests(unittest.TestCase):
 class BlueLeapTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        source = (ROOT / "public" / "levels" / "blue-leap.py").read_text(encoding="utf-8")
-        cls.source = source
-        tree = ast.parse(source)
+        cls.source = (ROOT / "public" / "levels" / "blue-leap.py").read_text(encoding="utf-8")
+        tree = ast.parse(cls.source)
         tree.body.pop()
         cls.game = {}
         exec(compile(tree, "blue-leap.py", "exec"), cls.game)
+        cls.body = cls.source.split(lesson_bridge.EDIT_START)[1].split(lesson_bridge.EDIT_END)[0]
 
-    def simulate(self, value, keys=(), seconds=12):
-        self.game["configure"] = lesson_bridge.compile_settings(f"    return {value}\n")
+    def simulate(self, velocity, moving=True, early_jump=False):
+        source = self.body.replace("self.vy = -178", f"self.vy = {velocity}")
+        self.game["Girl"] = lesson_bridge.compile_girl(source, self.game["SPAWN_X"], self.game["FLOOR"])
         girl = self.game["Girl"]()
-        controls = defaultdict(bool, {key: True for key in keys})
-        for _ in range(int(seconds * 60)):
+        minimum_y, jumped = girl.y, False
+        for _ in range(700):
+            controls = defaultdict(bool, {pygame.K_LEFT: moving})
+            if early_jump and not jumped and girl.x <= 279:
+                controls[pygame.K_SPACE] = True
+                jumped = True
             result = self.game["update"](girl, 1 / 60, controls)
+            minimum_y = min(minimum_y, girl.y)
             if result:
-                return girl, result
-        return girl, None
+                return girl, result, minimum_y
+        return girl, None, minimum_y
 
-    def test_blue_action_is_outside_the_only_editable_region(self):
-        body = self.source.split(lesson_bridge.EDIT_START)[1].split(lesson_bridge.EDIT_END)[0]
-        self.assertEqual(body, "    return -110\n")
+    def test_whole_class_is_editable_and_configure_is_gone(self):
+        self.assertTrue(self.body.startswith("class Girl:"))
+        tree = ast.parse(self.body)
+        self.assertEqual(len(tree.body), 1)
+        self.assertIsInstance(tree.body[0], ast.ClassDef)
+        self.assertIn("def __init__", self.body)
+        self.assertIn("def stop", self.body)
+        self.assertNotIn("configure", self.source)
         self.assertIn("def on_blue(player):\n    player.jump()", self.source)
-        self.assertEqual(self.source.count(lesson_bridge.EDIT_START), 1)
+        self.assertNotIn("def on_blue", self.body)
 
-    def test_starter_jumps_but_falls_into_gap(self):
-        girl, result = self.simulate(-110, [pygame.K_LEFT])
+    def test_map_is_identical_to_level_one(self):
+        for name in ("WIDTH", "HEIGHT", "FLOOR", "BLUE", "SPIKES", "GOAL", "SPAWN_X"):
+            self.assertEqual(self.game[name], game[name], name)
+        self.assertNotIn("GAP", self.game)
+
+    def test_starter_hits_original_overhead_spikes(self):
+        _, result, _ = self.simulate(-178)
         self.assertEqual(result, "dead")
-        self.assertGreater(girl.y, self.game["FLOOR"])
-        self.assertGreater(girl.x, self.game["GAP"][0])
 
-    def test_multiple_adjustments_allow_manual_completion(self):
-        for value in [-300, -320]:
-            with self.subTest(value=value):
-                _, result = self.simulate(value, [pygame.K_LEFT])
+    def test_small_jumps_can_pass_under_spikes(self):
+        for velocity in (-40, -80):
+            with self.subTest(velocity=velocity):
+                _, result, minimum_y = self.simulate(velocity)
                 self.assertEqual(result, "won")
+                self.assertLess(minimum_y, self.game["FLOOR"])
+                self.assertGreater(minimum_y - 20, 100)
 
-    def test_adjusting_and_compiling_cannot_win_without_play(self):
-        girl, result = self.simulate(-300)
+    def test_high_jumps_can_clear_over_spikes(self):
+        for velocity in (-420, -450):
+            with self.subTest(velocity=velocity):
+                _, result, minimum_y = self.simulate(velocity, early_jump=True)
+                self.assertEqual(result, "won")
+                self.assertLess(minimum_y, 76)
+
+    def test_other_class_methods_and_constructor_are_editable(self):
+        body = self.body.replace("float(SPAWN_X)", "float(SPAWN_X - 1)").replace("self.vx = -55", "self.vx = -70").replace("self.vx = 55", "self.vx = 75")
+        girl = lesson_bridge.compile_girl(body, 289, 141)()
+        self.assertEqual(girl.x, 288)
+        girl.move_left()
+        self.assertEqual(girl.vx, -70)
+        girl.move_right()
+        self.assertEqual(girl.vx, 75)
+        girl.stop()
+        self.assertEqual(girl.vx, 0)
+
+    def test_compile_still_requires_manual_movement(self):
+        girl, result, _ = self.simulate(-40, moving=False)
         self.assertIsNone(result)
         self.assertEqual(girl.x, self.game["SPAWN_X"])
 
-    def test_settings_cannot_disable_or_replace_locked_jump(self):
-        for body in ["    pass\n", "    player.jump()\n", "    return 0\n", "    return -300\n\ndef on_blue(player): pass\n", "    return -1e999\n"]:
-            with self.subTest(body=body), self.assertRaises(ValueError):
-                lesson_bridge.compile_settings(body)
+    def test_invalid_class_and_world_mutations_are_rejected(self):
+        for source in ["pass\n", self.body + "\ndef on_blue(player): pass\n", self.body.replace("self.vy = -178", "while True: pass"), self.body.replace("self.vy = -178", "self.vy = __import__('os')")]:
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                lesson_bridge.compile_girl(source, 289, 141)
+
+    def test_recursive_method_is_bounded_and_restores_tracing(self):
+        source = self.body.replace("self.vy = -178", "self.jump()")
+        girl = lesson_bridge.compile_girl(source, 289, 141)()
+        previous_trace = sys.gettrace()
+        with self.assertRaises((ValueError, RecursionError)):
+            girl.jump()
+        self.assertIs(sys.gettrace(), previous_trace)
 
 
 if __name__ == "__main__":

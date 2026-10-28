@@ -9,12 +9,12 @@ export const LEVELS = [
     log: 'Watch the spikes above blue!',
   },
   {
-    number: 2, id: 'blue-leap', title: 'The Blue Leap', world: 'Cloud Crossing',
-    source: '/levels/blue-leap.py', runtime: '/runner-2/', storage: 'cfs:blue-leap:v1',
+    number: 2, id: 'blue-leap', title: 'The Blue Leap', world: 'Pastel Meadow',
+    source: '/levels/blue-leap.py', runtime: '/runner-2/', storage: 'cfs:blue-leap:v2',
     missionTitle: 'This time, blue WILL make Maya jump.',
-    mission: 'Get her to the flag. Explore the game, read the code, and find your own way across.',
+    mission: 'Get her to the flag. Explore the game, read the code, and find your own way past the spikes.',
     intro: 'This time, blue WILL make Maya jump. Reach the flag.',
-    death: 'Maya didn’t make it to solid ground.',
+    death: 'Those spikes are a little too pointy.',
     log: 'This time, blue WILL make Maya jump.',
   },
 ] as const;

@@ -7,11 +7,15 @@ import { EditorState } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import type {Theme} from './ThemeSwitch';
 
-export const START = '    # EDIT START\n';
-export const END = '    # EDIT END';
+export const START = '# EDIT START\n';
+export const END = '# EDIT END';
 export function editableRange(source: string) {
-  const start = source.indexOf(START) + START.length;
-  return { start, end: source.indexOf(END, start) };
+  const marker = /^[\t ]*# EDIT START\r?\n/m.exec(source);
+  if (!marker) throw new Error('The lesson is missing its editable section.');
+  const start = marker.index + marker[0].length;
+  const closing = /^[\t ]*# EDIT END\b/m.exec(source.slice(start));
+  if (!closing) throw new Error('The lesson is missing its closing marker.');
+  return { start, end: start + closing.index };
 }
 export function solutionBody(source: string) {
   const { start, end } = editableRange(source);

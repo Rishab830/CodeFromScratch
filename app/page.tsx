@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Braces, Check, CheckCircle2, ChevronRight, Code2, Flag, Gamepad2, HelpCircle, Lightbulb, LockKeyhole, Maximize2, Play, RotateCcw, Sparkles, Terminal, TriangleAlert, X, Zap } from 'lucide-react';
-import { solutionBody, START, END } from '../components/CodeEditor';
+import { solutionBody, editableRange, END } from '../components/CodeEditor';
 import { LEVELS, type Level } from '../lib/levels';
 import ThemeSwitch, {type Theme} from '../components/ThemeSwitch';
 
@@ -77,9 +77,8 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
       applied.current = solutionBody(text); setCompiledBody(applied.current);
       try {
         const saved = localStorage.getItem(LEVEL.storage + ':body');
-        if (saved && saved.endsWith('\n') && saved.length <= 2000 && !saved.includes(END)) {
-          const start = text.indexOf(START) + START.length;
-          const end = text.indexOf(END, start);
+        if (saved && saved.endsWith('\n') && saved.length <= 8000 && !saved.includes(END)) {
+          const {start,end} = editableRange(text);
           setSource(text.slice(0, start) + saved + text.slice(end));
         }
       } catch { /* The game also works when browser storage is disabled. */ }

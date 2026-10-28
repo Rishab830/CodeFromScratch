@@ -14,9 +14,12 @@ for number, slug, runner in [(1, "jumping-girl", "runner"), (2, "blue-leap", "ru
     if number == 2:
         folder.mkdir(parents=True, exist_ok=True)
         lesson_source = source.replace("LEVEL_NUMBER = 1", "LEVEL_NUMBER = 2", 1)
-        # Lock the blue action; only the configure() body becomes editable.
+        # Lock the blue action and make the entire Girl class editable.
         lesson_source = lesson_source.replace("    # EDIT START\n    player.jump()\n    # EDIT END", "    player.jump()")
-        lesson_source = lesson_source.replace("def configure():\n    return -178", "def configure():\n    # EDIT START\n    return -110\n    # EDIT END")
+        start = lesson_source.index("class Girl:")
+        end = lesson_source.index("\ndef on_blue(player):", start)
+        girl_class = lesson_source[start:end].rstrip() + "\n"
+        lesson_source = lesson_source[:start] + "# EDIT START\n" + girl_class + "# EDIT END\n\n" + lesson_source[end:]
         (folder / "main.py").write_text(lesson_source, encoding="utf-8", newline="\n")
         shutil.copy2(ROOT / "game" / "lesson_bridge.py", folder / "lesson_bridge.py")
     subprocess.run([sys.executable, "-m", "pygbag", "--build", "--ume_block", "0", "--template", str(ROOT / "game" / "runner.tmpl"), str(folder)], check=True, cwd=ROOT)
