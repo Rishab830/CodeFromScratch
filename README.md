@@ -28,6 +28,8 @@ npm run test:browser
 
 ## Play, edit, compile
 
+The **Site** control in the header switches between the default dark palette and the white-and-orange light palette. The **Code** control in the editor header changes only the editor and its surrounding controls. Both default to dark, save their preferences independently on this device, and preserve edits and undo history when switched.
+
 - Click **Play level**, then use Left / Right or A / D to move and Space / Up / W to jump. Touch controls are below the game.
 - Landing on blue calls `on_blue(player)`. The starter's `player.jump()` launches Maya into overhead spikes.
 - A spike collision ends the attempt and shows **Game over** with **Restart level**.
@@ -60,5 +62,7 @@ npm run test:lesson
 npm run typecheck
 npm run build
 ```
+
+With a local server running, `npm run test:themes` checks the independent defaults, all theme combinations, saved preferences, editor history, level navigation, and mobile layout.
 
 The production static site is exported to `out/`. To run the actual WASM end-to-end checks, serve the app, then set `TEST_URL` to that URL and run `npm run test:browser`. The checks use installed Google Chrome through Playwright and verify manual play, spike death/restart, Python compilation/errors, protected editing, multiple valid solutions, physical flag completion, touch controls, and mobile layout.

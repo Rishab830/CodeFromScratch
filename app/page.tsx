@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Braces, Check, CheckCircle2, ChevronRight, Code2, Flag, Gamepad2, HelpCircle, Lightbulb, LockKeyhole, Maximize2, Play, RotateCcw, Sparkles, Terminal, TriangleAlert, X, Zap } from 'lucide-react';
 import { solutionBody, START, END } from '../components/CodeEditor';
 import { LEVELS, type Level } from '../lib/levels';
+import ThemeSwitch, {type Theme} from '../components/ThemeSwitch';
 
 const CodeEditor = dynamic(() => import('../components/CodeEditor'), { ssr: false });
 type Status = 'loading' | 'ready' | 'compiling' | 'playing' | 'dead' | 'error' | 'won';
@@ -18,16 +19,32 @@ const HINTS = [
 export default function Home() {
   const [number, setNumber] = useState(1);
   const [cleared, setCleared] = useState<number[]>([]);
+  const [websiteTheme,setWebsiteTheme] = useState<Theme>('dark');
+  const [editorTheme,setEditorTheme] = useState<Theme>('dark');
   useEffect(() => {
     try { setCleared(LEVELS.filter((level) => localStorage.getItem(level.storage + ':complete') === 'yes').map((level) => level.number)); } catch {}
+    try {
+      const site = localStorage.getItem('cfs:theme:site') === 'light' ? 'light' : 'dark';
+      setWebsiteTheme(site);
+      setEditorTheme(localStorage.getItem('cfs:theme:editor') === 'light' ? 'light' : 'dark');
+      document.documentElement.dataset.theme = site;
+    } catch {}
   }, []);
+  function changeWebsiteTheme(theme:Theme) {
+    setWebsiteTheme(theme); document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('cfs:theme:site',theme); } catch {}
+  }
+  function changeEditorTheme(theme:Theme) {
+    setEditorTheme(theme);
+    try { localStorage.setItem('cfs:theme:editor',theme); } catch {}
+  }
   const level = LEVELS.find((entry) => entry.number === number) ?? LEVELS[0];
-  return <Lesson key={level.id} level={level} cleared={cleared}
+  return <Lesson key={level.id} level={level} cleared={cleared} websiteTheme={websiteTheme} editorTheme={editorTheme} onWebsiteTheme={changeWebsiteTheme} onEditorTheme={changeEditorTheme}
     onNavigate={(target) => { if (target === 1 || cleared.includes(1)) { setNumber(target); window.scrollTo({top:0,behavior:'smooth'}); } }}
     onComplete={() => setCleared((current) => current.includes(number) ? current : [...current,number])}/>;
 }
 
-function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; cleared: number[]; onNavigate: (number: number) => void; onComplete: () => void}) {
+function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, editorTheme, onWebsiteTheme, onEditorTheme}: {level: Level; cleared: number[]; onNavigate: (number: number) => void; onComplete: () => void; websiteTheme:Theme; editorTheme:Theme; onWebsiteTheme:(theme:Theme)=>void; onEditorTheme:(theme:Theme)=>void}) {
   const [source, setSource] = useState('');
   const [original, setOriginal] = useState('');
   const [compiledBody, setCompiledBody] = useState('');
@@ -163,7 +180,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
     <header className="site-header">
       <a className="brand" href="/" aria-label="Code From Scratch home"><span className="brand-icon"><Braces size={23}/></span><span>code<span className="brand-middle">from</span>scratch<span className="brand-period">.</span></span></a>
       <nav aria-label="Main navigation"><a className="active" href="#levels">Adventures</a><button onClick={() => setModal('help')}>How to play <HelpCircle size={14}/></button></nav>
-      <div className="profile"><span className="xp"><Sparkles size={15}/> {cleared.length * 100} XP</span><span className="avatar">YOU</span></div>
+      <div className="profile"><ThemeSwitch scope="website" value={websiteTheme} onChange={onWebsiteTheme}/><span className="xp"><Sparkles size={15}/> {cleared.length * 100} XP</span><span className="avatar">YOU</span></div>
     </header>
 
     <main>
@@ -193,7 +210,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete}: {level: Level; 
 
         </section>
 
-        <section className="editor-panel" aria-label="Python code editor"><div className="editor-titlebar"><div><Code2 size={17}/><span>main.py</span><span className="python-tag">PYTHON</span></div><span className="file-type">YOUR CODE, YOUR ADVENTURE</span></div><div className="editor-notice"><LockKeyhole size={12}/><span>Read everything. <strong>Edit the green section.</strong></span><button aria-label="Jump to editable section" title="Jump to editable section" onClick={() => setRevealToken((value) => value + 1)}><ArrowDown size={14}/></button></div><div className="editor-body">{source ? <CodeEditor key={LEVEL.id} source={source} onChange={edit} revealToken={revealToken}/> : <div className="editor-loading">Opening your Python file…</div>}</div><div className="editor-footer"><div className={'compile-state ' + (dirty ? 'dirty' : '')}><span/>{dirty ? 'Uncompiled changes' : 'All changes compiled'}<span className="saved-note">Saved on this device</span></div><div className="editor-actions"><button className="reset-button" disabled={!original || status === 'compiling'} onClick={resetCode}><RotateCcw size={14}/> Reset code</button><button className="compile-button" disabled={busy || !source} onClick={() => start(solutionBody(source))}><Zap size={15}/>{status === 'compiling' ? 'Compiling…' : 'Compile'}<span aria-hidden="true">↵</span></button></div><p className="compile-explainer">Compile applies your code and restarts the game. Then it’s your turn to play.</p></div><div className="console-card"><div className="console-heading"><span><Terminal size={13}/> Adventure log</span><span className={'status-pill '+status}>{status === 'loading' ? 'LOADING' : status === 'compiling' ? 'COMPILING' : status === 'playing' ? 'PLAYING' : status === 'won' ? 'CLEARED' : status === 'dead' ? 'GAME OVER' : status === 'error' ? 'CODE ERROR' : 'READY'}</span></div><div className={'console-message '+status} aria-live="polite">{status === 'won' ? <CheckCircle2 size={15}/> : status === 'dead' || status === 'error' ? <TriangleAlert size={15}/> : <ChevronRight size={15}/>}<p>{message}</p></div></div></section>
+        <section className="editor-panel" data-code-theme={editorTheme} aria-label="Python code editor"><div className="editor-titlebar"><div><Code2 size={17}/><span>main.py</span><span className="python-tag">PYTHON</span></div><ThemeSwitch scope="code editor" value={editorTheme} onChange={onEditorTheme}/></div><div className="editor-notice"><LockKeyhole size={12}/><span>Read everything. <strong>Edit the green section.</strong></span><button aria-label="Jump to editable section" title="Jump to editable section" onClick={() => setRevealToken((value) => value + 1)}><ArrowDown size={14}/></button></div><div className="editor-body">{source ? <CodeEditor key={LEVEL.id} source={source} onChange={edit} revealToken={revealToken} theme={editorTheme}/> : <div className="editor-loading">Opening your Python file…</div>}</div><div className="editor-footer"><div className={'compile-state ' + (dirty ? 'dirty' : '')}><span/>{dirty ? 'Uncompiled changes' : 'All changes compiled'}<span className="saved-note">Saved on this device</span></div><div className="editor-actions"><button className="reset-button" disabled={!original || status === 'compiling'} onClick={resetCode}><RotateCcw size={14}/> Reset code</button><button className="compile-button" disabled={busy || !source} onClick={() => start(solutionBody(source))}><Zap size={15}/>{status === 'compiling' ? 'Compiling…' : 'Compile'}<span aria-hidden="true">↵</span></button></div><p className="compile-explainer">Compile applies your code and restarts the game. Then it’s your turn to play.</p></div><div className="console-card"><div className="console-heading"><span><Terminal size={13}/> Adventure log</span><span className={'status-pill '+status}>{status === 'loading' ? 'LOADING' : status === 'compiling' ? 'COMPILING' : status === 'playing' ? 'PLAYING' : status === 'won' ? 'CLEARED' : status === 'dead' ? 'GAME OVER' : status === 'error' ? 'CODE ERROR' : 'READY'}</span></div><div className={'console-message '+status} aria-live="polite">{status === 'won' ? <CheckCircle2 size={15}/> : status === 'dead' || status === 'error' ? <TriangleAlert size={15}/> : <ChevronRight size={15}/>}<p>{message}</p></div></div></section>
       </div>
 
       <section className="journey" id="levels" aria-label="Your adventures"><div className="journey-title"><span className="journey-icon"><Flag size={17}/></span><div><strong>Your adventure map</strong><span>One small discovery at a time.</span></div></div>{LEVELS.map((entry,index) => <div className="map-entry" key={entry.id}>{index > 0 && <div className="journey-line"/>}<button className={'journey-stop ' + (entry.number === LEVEL.number ? 'active ' : '') + (entry.number === 2 ? 'next ' : '') + (cleared.includes(entry.number) ? 'done ' : '') + (entry.number === 2 && cleared.includes(1) ? 'unlocked' : '')} disabled={entry.number === 2 && !cleared.includes(1)} onClick={() => onNavigate(entry.number)}><span>{cleared.includes(entry.number) ? <Check size={16}/> : entry.number === 2 && !cleared.includes(1) ? <LockKeyhole size={13}/> : String(entry.number).padStart(2,'0')}</span><div><strong>{entry.title}</strong><small>{cleared.includes(entry.number) ? 'Flag reached - complete' : entry.number === 2 && !cleared.includes(1) ? 'Reach the flag to unlock' : entry.world + (entry.number === LEVEL.number ? ' - you are here' : ' - ready to play')}</small></div></button></div>)}<div className="map-dots" aria-hidden="true"><i/><i/><i/></div></section>

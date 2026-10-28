@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "build:game": "python scripts/build_game.py",
     "test:lesson": "python -m unittest discover -s tests",
-    "test:browser": "node scripts/check-browser.cjs"
+    "test:browser": "node scripts/check-browser.cjs",
+    "test:themes": "node scripts/check-themes.cjs"
   },
   "dependencies": {
     "next": "^16.0.0",
