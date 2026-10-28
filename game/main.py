@@ -14,6 +14,10 @@ SPIKE_PLATFORM = pygame.Rect(188, 76, 80, 7)
 GAP = pygame.Rect(132, FLOOR, 12, HEIGHT - FLOOR)
 GOAL = pygame.Rect(30, FLOOR - 30, 16, 32)
 SPAWN_X = 289
+COINS = {"below": pygame.Rect(226, 126, 8, 10)}
+if LEVEL_NUMBER == 2:
+    COINS["above"] = pygame.Rect(226, 59, 8, 10)
+COLLECTED_COINS = set()
 
 
 class Girl:
@@ -49,6 +53,13 @@ def touching_blue(player):
 
 def player_bounds(player):
     return pygame.Rect(round(player.x) - 4, round(player.y) - 20, 8, 20)
+
+
+def collect_coins(player):
+    for name, coin in COINS.items():
+        if name not in COLLECTED_COINS and player_bounds(player).colliderect(coin):
+            COLLECTED_COINS.add(name)
+            lesson_bridge.save_coins(LEVEL_NUMBER, COLLECTED_COINS)
 
 
 def triangle_hits_rect(triangle, rect):
@@ -117,6 +128,8 @@ def update(player, dt, keys):
         else:
             player.grounded = False
         result = outcome(player)
+        if result != "dead":
+            collect_coins(player)
         if result:
             return result
     return None
@@ -132,6 +145,19 @@ GIRL_SPRITE = [
 ]
 PALETTE = {"h": (88, 66, 99), "s": (255, 207, 173), "e": (65, 56, 85),
            "d": (237, 160, 185), "p": (255, 223, 144), "b": (101, 85, 121)}
+COIN_SPRITE = [
+    "..oooo..", ".offffo.", "offffffo", "offhhffo", "offhhffo",
+    "offhhffo", "offhhffo", "offffffo", ".offffo.", "..oooo..",
+]
+
+
+def draw_coin(surface, coin, collected):
+    colors = {"o": (174, 146, 98) if collected else (188, 132, 59),
+              "f": (255, 207, 100), "h": (255, 242, 179)}
+    for y, row in enumerate(COIN_SPRITE):
+        for x, pixel in enumerate(row):
+            if pixel in colors and (not collected or pixel == "o"):
+                surface.set_at((coin.x + x, coin.y + y), colors[pixel])
 
 
 def pixel_cloud(surface, x, y):
@@ -188,6 +214,8 @@ def draw_scene(surface, player, seconds, small):
     for fx in [65, 106, 153, 174, 276]:
         pygame.draw.rect(surface, (142, 178, 153), (fx, FLOOR - 5, 1, 5))
         pygame.draw.rect(surface, (255, 238, 185), (fx - 1, FLOOR - 7, 3, 3))
+    for name, coin in COINS.items():
+        draw_coin(surface, coin, name in COLLECTED_COINS)
     px, py = round(player.x) - 5, round(player.y) - 20
     stride = 1 if abs(player.vx) and player.grounded and int(seconds * 9) % 2 else 0
     for row, line in enumerate(GIRL_SPRITE):
@@ -203,6 +231,7 @@ def draw_scene(surface, player, seconds, small):
         pygame.draw.polygon(surface, (237, 160, 185), [(x, 3), (x - 4, 9), (x + 4, 9)])
     surface.blit(small.render("GOAL", False, (112, 112, 142)), (26, 154))
     surface.blit(small.render("BLUE = ?", False, (107, 134, 171)), (208, 154))
+    surface.blit(small.render(f"COINS {len(COLLECTED_COINS)}/{len(COINS)}", False, (112, 92, 135)), (8, 8))
 
 
 async def main():
@@ -213,6 +242,7 @@ async def main():
     small = pygame.font.Font(None, 10)
     clock = pygame.time.Clock()
     player = Girl()
+    COLLECTED_COINS.update(name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in COINS)
     state, elapsed, attempt, has_input = "idle", 0.0, 0, False
     lesson_bridge.ready()
     while True:

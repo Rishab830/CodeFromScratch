@@ -42,6 +42,14 @@ var config = {
 };
 let pendingCommand = '';
 let touchKeys = new Set();
+window.lessonReadCoins = (level) => {
+  try { return localStorage.getItem(`cfs:coins:level-${level}:v1`) || '[]'; }
+  catch { return '[]'; }
+};
+window.lessonSaveCoins = (level, collected) => {
+  try { localStorage.setItem(`cfs:coins:level-${level}:v1`, collected); }
+  catch { /* Keep the current run playable when browser storage is unavailable. */ }
+};
 window.lessonTakeCommand = () => { const command = pendingCommand; pendingCommand = ''; return command; };
 window.lessonEvent = (raw) => {
   const event = JSON.parse(raw);

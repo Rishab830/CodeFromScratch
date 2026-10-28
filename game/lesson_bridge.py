@@ -152,6 +152,24 @@ def ready():
     emit("ready")
 
 
+def load_coins(level):
+    window = browser()
+    if window is not None:
+        try:
+            saved = json.loads(window.lessonReadCoins(level))
+            if isinstance(saved, list):
+                return [name for name in saved if isinstance(name, str)]
+        except Exception:
+            pass
+    return []
+
+
+def save_coins(level, collected):
+    window = browser()
+    if window is not None:
+        window.lessonSaveCoins(level, json.dumps(sorted(collected)))
+
+
 def poll():
     window = browser()
     if window is not None:

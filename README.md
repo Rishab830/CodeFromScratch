@@ -39,6 +39,7 @@ The **Site** control in the header switches between the default dark palette and
 - Level 2 keeps the original map, blue platform, spikes, and flag. Its blue action calls `player.jump()` and remains locked. The complete `Girl` class is editable, including the constructor and movement methods; there is no extra configuration function. Students can clear the level with small jumps below the spikes or a manually timed high jump over them. The mission does not reveal these solutions, and Level 2 has no solution hints.
 - Each level keeps its own edits and completion. Revisit either unlocked lesson from the map.
 - In Level 2, the top of the overhead spike platform is walkable: Maya can land on it, stop, walk along it, or jump off it. Its underside spikes remain lethal, and standing above blue does not trigger the floor tile.
+- Level 1 has a coin below the spikes; Level 2 has coins above and below them. Touch a coin to collect it and leave a hollow outline. Coin progress is saved separately for each level in this browser and survives deaths, restarts, compilation, and return visits. Reaching the flag still clears the level with any coin count.
 - Edits and completed levels persist locally in this browser. The new manual-play level uses a separate progress key from the old automatic demo.
 
 ## Project structure

@@ -52,6 +52,28 @@ let browser, page;
   const frame = page.frames().find(frame => /\/runner\/?$/.test(new URL(frame.url()).pathname));
   const editor = page.locator('.cm-content');
   const getSource = () => editor.evaluate(node => node.cmTile.root.view.state.doc.toString());
+  const savedCoins = level => page.evaluate(number => JSON.parse(localStorage.getItem(`cfs:coins:level-${number}:v1`) || '[]'),level);
+  async function checkCoin(name, collected, activeFrame = frame) {
+    const pixels = await activeFrame.evaluate(name => {
+      const canvas = document.querySelector('#canvas'), scale = canvas.width / 320;
+      const {data} = canvas.getContext('2d').getImageData(226*scale,(name === 'above' ? 59 : 126)*scale,8*scale,10*scale);
+      let fill = 0, outline = 0;
+      for (let i=0;i<data.length;i+=4) {
+        if(data[i]===255 && data[i+1]===207 && data[i+2]===100) fill++;
+        if(data[i]===174 && data[i+1]===146 && data[i+2]===98) outline++;
+      }
+      return {fill,outline};
+    },name);
+    if (collected) {
+      assert.equal(pixels.fill,0,`${name} coin still has a filled center`);
+      assert(pixels.outline>0,`${name} coin outline is missing`);
+    } else {
+      assert(pixels.fill>0,`${name} coin is missing`);
+      assert.equal(pixels.outline,0);
+    }
+  }
+  await checkCoin('below',false);
+  assert.deepEqual(await savedCoins(1),[]);
   async function setBody(body) {
     await editor.evaluate((node,body) => {
       const view = node.cmTile.root.view, text = view.state.doc.toString();
@@ -128,10 +150,14 @@ let browser, page;
   await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor({timeout:5000});
   await page.screenshot({path:path.join(qa,'level-1-gap-fall.png'),fullPage:true});
+  assert.deepEqual(await savedCoins(1),['below']);
+  await checkCoin('below',true);
   assert(await page.locator('.journey-stop.next').isDisabled());
   await page.getByRole('button',{name:'Restart level',exact:true}).click();
   await playing();
+  await checkCoin('below',true);
   console.log('PASS: fixed Level 1 code still falls into the gap without a manual jump; Restart works');
+  console.log('PASS: Level 1 coin is collected by touch, becomes an outline, and survives death and Restart');
   await page.keyboard.down('ArrowLeft');
   await jumpAt(160);
   await page.waitForTimeout(2500);
@@ -181,6 +207,9 @@ let browser, page;
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
   // The runner iframe changed when navigating; read the live one for Level 2.
   const secondFrame=page.frames().find(entry=>/\/runner-2\/?$/.test(new URL(entry.url()).pathname));
+  await checkCoin('below',false,secondFrame);
+  await checkCoin('above',false,secondFrame);
+  assert.deepEqual(await savedCoins(2),[]);
   const classSource=secondSource.split('# EDIT START\n')[1].split('# EDIT END')[0];
   assert.match(classSource,/def __init__/);
   assert.match(classSource,/def stop/);
@@ -197,6 +226,9 @@ let browser, page;
   assert.equal(await page.getByRole('dialog',{name:'Level complete'}).count(),0);
   await page.keyboard.down('ArrowLeft');await page.waitForTimeout(3700);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor({timeout:5000});
+  assert.deepEqual(await savedCoins(2),['below']);
+  await checkCoin('below',true,secondFrame);
+  await checkCoin('above',false,secondFrame);
   await page.getByRole('button',{name:'Restart level',exact:true}).click();
   await playing();
   console.log('PASS: Level 2 also falls into the gap if the player does not jump');
@@ -226,6 +258,8 @@ let browser, page;
   const onTop = await position(secondFrame);
   assert(onTop.y / 2.5 > 60 && onTop.y / 2.5 < 72, 'Maya did not land on the spike platform');
   await page.waitForTimeout(500);
+  assert.deepEqual(await savedCoins(2),['above','below']);
+  await checkCoin('above',true,secondFrame);
   assert(Math.abs((await position(secondFrame)).y-onTop.y)<3, 'Standing above blue should not cause another jump');
   await page.keyboard.down('ArrowRight');await page.waitForTimeout(200);await page.keyboard.up('ArrowRight');
   const walkedRight = await position(secondFrame);
@@ -245,10 +279,24 @@ let browser, page;
   await page.waitForTimeout(2600);await page.keyboard.up('ArrowLeft');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
   console.log('PASS: Maya lands on the spike platform, stays still, walks both ways, jumps, and can finish the level');
+  console.log('PASS: Level 2 coins above and below the spikes are saved independently and leave outlines');
   await page.locator('.journey-stop').first().click();
   await page.getByRole('heading',{name:'The Jumping Girl',exact:false}).waitFor();
   await page.waitForFunction(()=>document.querySelector('.cm-content')?.cmTile?.root?.view?.state.doc.toString().includes('LEVEL_NUMBER = 1'));
   assert.match(await getSource(),/def on_blue\(player\):\n    # EDIT START/);
+  await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
+  const revisitedFirst=page.frames().find(entry=>/\/runner\/?$/.test(new URL(entry.url()).pathname));
+  await checkCoin('below',true,revisitedFirst);
   console.log('PASS: map navigation restores Level 1 with its own editable section');
+  await page.reload();
+  await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
+  await checkCoin('below',true,page.frames().find(entry=>/\/runner\/?$/.test(new URL(entry.url()).pathname)));
+  await page.locator('.journey-stop.next').click();
+  await page.getByRole('heading',{name:'The Blue Leap',exact:false}).waitFor();
+  await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
+  const revisitedSecond=page.frames().find(entry=>/\/runner-2\/?$/.test(new URL(entry.url()).pathname));
+  await checkCoin('below',true,revisitedSecond);
+  await checkCoin('above',true,revisitedSecond);
+  console.log('PASS: coin outlines restore in both levels after map navigation and a full page reload');
   await browser.close();
 })().catch(async error => {console.error(error);if(page)await page.screenshot({path:path.join(qa,'failure.png'),fullPage:true}).catch(()=>{});if(browser)await browser.close();process.exit(1);});

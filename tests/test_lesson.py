@@ -1,10 +1,13 @@
 """Regression checks for the actual Pygame physics, hazards, and win trigger."""
 import ast
 from collections import defaultdict
+import json
 import os
 from pathlib import Path
 import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 os.environ["SDL_AUDIODRIVER"] = "dummy"
@@ -283,6 +286,99 @@ class BlueLeapTests(unittest.TestCase):
         with self.assertRaises((ValueError, RecursionError)):
             girl.jump()
         self.assertIs(sys.gettrace(), previous_trace)
+
+
+class CoinTests(unittest.TestCase):
+    def setUp(self):
+        self.worlds = {}
+        for number, slug in ((1, "jumping-girl"), (2, "blue-leap")):
+            tree = ast.parse((ROOT / "public" / "levels" / f"{slug}.py").read_text(encoding="utf-8"))
+            tree.body.pop()
+            world = {}
+            exec(compile(tree, slug, "exec"), world)
+            self.worlds[number] = world
+
+    def test_coins_are_above_and_below_the_spikes(self):
+        self.assertEqual(set(self.worlds[1]["COINS"]), {"below"})
+        self.assertEqual(set(self.worlds[2]["COINS"]), {"above", "below"})
+        for world in self.worlds.values():
+            coin = world["COINS"]["below"]
+            self.assertGreater(coin.top, max(spike.bottom for spike in world["SPIKES"]))
+            self.assertLess(coin.bottom, world["FLOOR"])
+            self.assertTrue(world["BLUE"].left <= coin.centerx <= world["BLUE"].right)
+        self.assertLess(self.worlds[2]["COINS"]["above"].bottom, self.worlds[2]["SPIKE_PLATFORM"].top)
+
+    def test_only_touched_coins_are_collected_and_levels_are_independent(self):
+        for world in self.worlds.values():
+            girl = world["Girl"]()
+            world["collect_coins"](girl)
+            self.assertFalse(world["COLLECTED_COINS"])
+        first, second = self.worlds[1], self.worlds[2]
+        girl = first["Girl"]()
+        girl.x = first["COINS"]["below"].centerx
+        first["collect_coins"](girl)
+        self.assertEqual(first["COLLECTED_COINS"], {"below"})
+        self.assertFalse(second["COLLECTED_COINS"])
+        girl = second["Girl"]()
+        girl.x, girl.y = second["COINS"]["above"].centerx, second["SPIKE_PLATFORM"].top
+        second["collect_coins"](girl)
+        self.assertEqual(second["COLLECTED_COINS"], {"above"})
+        girl.y = second["FLOOR"]
+        second["collect_coins"](girl)
+        self.assertEqual(second["COLLECTED_COINS"], {"above", "below"})
+
+    def test_touching_an_outline_does_not_collect_it_twice(self):
+        world = self.worlds[1]
+        girl = world["Girl"]()
+        girl.x = world["COINS"]["below"].centerx
+        with patch.object(lesson_bridge, "save_coins") as save:
+            world["collect_coins"](girl)
+            world["collect_coins"](girl)
+        save.assert_called_once_with(1, {"below"})
+
+    def test_collected_coin_remains_after_falling_and_restarting(self):
+        world = self.worlds[1]
+        world["on_blue"] = lesson_bridge.compile_solution("    pass\n")
+        girl = world["Girl"]()
+        controls = defaultdict(bool, {pygame.K_LEFT: True})
+        for _ in range(400):
+            result = world["update"](girl, 1 / 60, controls)
+            if result:
+                break
+        self.assertEqual(result, "dead")
+        self.assertEqual(world["COLLECTED_COINS"], {"below"})
+        girl = world["Girl"]()
+        self.assertEqual(world["COLLECTED_COINS"], {"below"})
+
+    def test_collected_sprite_has_an_empty_center_and_visible_outline(self):
+        world = self.worlds[1]
+        coin = world["COINS"]["below"]
+        surface = pygame.Surface((world["WIDTH"], world["HEIGHT"]))
+        background = (10, 20, 30)
+        surface.fill(background)
+        world["draw_coin"](surface, coin, False)
+        self.assertEqual(tuple(surface.get_at((coin.x + 3, coin.y + 3)))[:3], (255, 242, 179))
+        surface.fill(background)
+        world["draw_coin"](surface, coin, True)
+        self.assertEqual(tuple(surface.get_at((coin.x + 3, coin.y + 3)))[:3], background)
+        self.assertEqual(tuple(surface.get_at((coin.x + 2, coin.y)))[:3], (174, 146, 98))
+
+    def test_bridge_restores_saved_coins_and_saves_them_by_level(self):
+        window = SimpleNamespace(lessonReadCoins=Mock(return_value='["below", "above", 42]'), lessonSaveCoins=Mock())
+        with patch.object(lesson_bridge, "browser", return_value=window):
+            self.assertEqual(lesson_bridge.load_coins(2), ["below", "above"])
+            lesson_bridge.save_coins(2, {"below", "above"})
+        window.lessonReadCoins.assert_called_once_with(2)
+        level, saved = window.lessonSaveCoins.call_args.args
+        self.assertEqual(level, 2)
+        self.assertEqual(json.loads(saved), ["above", "below"])
+
+    def test_missing_or_corrupt_coin_storage_does_not_break_loading(self):
+        for raw in ("", "{broken", "null", '{"below": true}', "42"):
+            with self.subTest(raw=raw), patch.object(lesson_bridge, "browser", return_value=SimpleNamespace(lessonReadCoins=lambda _: raw)):
+                self.assertEqual(lesson_bridge.load_coins(1), [])
+        with patch.object(lesson_bridge, "browser", return_value=SimpleNamespace(lessonReadCoins=Mock(side_effect=RuntimeError))):
+            self.assertEqual(lesson_bridge.load_coins(1), [])
 
 
 if __name__ == "__main__":
