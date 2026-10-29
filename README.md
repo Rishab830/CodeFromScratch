@@ -76,13 +76,15 @@ The production static site is exported to `out/`. To run the actual WASM end-to-
 
 | Level | Puzzle | Play controls |
 | --- | --- | --- |
-| 3 - The Confused Traffic Signal | Fix the red/yellow cycle so vehicles can move through green. | Left / Right drive; the car waits at the stop line. |
+| 3 - The Confused Traffic Signal | Fix an if/elif/else chain that cycles red/yellow so vehicles can move through green. | Left / Right drive; the car waits at the stop line. |
 | 4 - The Lost Robot | Replace a circular instruction sequence with a route to the dock. | Press or hold Space to execute the next grid step. |
 | 5 - The Endless Coin Collector | Stop the machine at exactly five; the exit stays locked while it runs or stops at another count. | Move to the collector, press Space, then walk to the exit. |
 | 6 - The Wrong Door | Fix password-to-door logic; wrong doors lead to a dead end. | Enter a password below the game, use Space at the terminal, walk to the selected door. |
 | 7 - The Final Escape | Combine a loop, a condition, and an ordered power/unlock/open sequence. | Activate the console with Space, observe its states, then walk out. |
 
 Each has a protected world, one green editable function body, complete visible Python source, Compile/Restart, saved edits and coins, and a coin summary on completion. Level 5's machine inventory resets each attempt; its five coin badges remain saved. Completing an adventure requires real player input and reaching its destination, never compiling or waiting alone. Any function producing a working route is accepted.
+
+The traffic lesson's editable code uses only conditions and assignments to `next_color`; its return statement stays locked outside the editable region. Its revised edit-storage version starts students with the condition-based lesson without clearing existing completions or collected coins.
 
 With the static site served locally, `npm run test:adventures` plays every starter and a valid compiled solution through the actual WASM runtime, checks sequential locks, wrong passwords, robot detours, bounded loops, coin results, mobile layout, and the final seven-level celebration. `npm run test:browser` continues to cover the first two adventures.
 

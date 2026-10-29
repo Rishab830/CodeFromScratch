@@ -11,9 +11,14 @@ COLLECTED_COINS = set()
 
 def next_light(current):
     # EDIT START
-    transitions = {"red": "yellow", "yellow": "red", "green": "red"}
-    return transitions[current]
+    if current == "red":
+        next_color = "yellow"
+    elif current == "yellow":
+        next_color = "red"
+    else:
+        next_color = "red"
     # EDIT END
+    return next_color
 
 
 COIN_SPRITE = ['..oooo..', '.offffo.', 'offffffo', 'offhhffo', 'offhhffo', 'offhhffo', 'offhhffo', 'offffffo', '.offffo.', '..oooo..']
@@ -123,7 +128,7 @@ async def main():
         command = lesson_bridge.poll()
         if command:
             try:
-                puzzle = lesson_bridge.compile_puzzle(command['body'], PUZZLE_NAME, PUZZLE_ARGUMENTS)
+                puzzle = lesson_bridge.compile_puzzle(command['body'], PUZZLE_NAME, PUZZLE_ARGUMENTS, result_name='next_color')
                 candidate = World(puzzle)
                 world = candidate
                 state, has_input, previous_message = ('playing', False, '')

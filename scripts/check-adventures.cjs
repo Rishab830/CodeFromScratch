@@ -7,7 +7,7 @@ fs.mkdirSync(qa,{recursive:true});
 let browser,page;
 const route=['right','right','up','up','right','right','down','right','right','down','right','right'];
 const fixes={
-  3:'    return {"red": "green", "green": "yellow", "yellow": "red"}[current]\n',
+  3:'    if current == "red":\n        next_color = "green"\n    elif current == "green":\n        next_color = "yellow"\n    else:\n        next_color = "red"\n',
   4:`    return ${JSON.stringify(['right','down','left','up',...route])}\n`,
   5:'    return count < 5\n',
   6:'    if password == "STAR":\n        return 2\n    return None\n',
@@ -19,6 +19,7 @@ const fixes={
   await page.addInitScript(()=>{
     localStorage.setItem('cfs:jumping-girl:v2:complete','yes');
     localStorage.setItem('cfs:blue-leap:v2:complete','yes');
+    localStorage.setItem('cfs:traffic:v1:body','    return "red"\n');
   });
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(/\/runner(?:-[2-7])?\/?$/,async r=>{
@@ -59,6 +60,10 @@ const fixes={
   await page.waitForFunction(()=>document.querySelectorAll('.journey-stop').length===7 && !document.querySelectorAll('.journey-stop')[2].disabled);
   for(let n=4;n<=7;n++) assert(await stop(n).isDisabled());
   await stop(3).click();await ready(3);
+  const trafficSource=await page.locator('.cm-content').evaluate(node=>node.cmTile.root.view.state.doc.toString());
+  assert.match(trafficSource,/if current == "red":/);
+  assert.doesNotMatch(trafficSource,/transitions\[current\]/);
+  assert.match(trafficSource,/# EDIT END\n    return next_color/);
   await page.getByRole('button',{name:'Play level',exact:true}).click();await playing();
   await hold('ArrowRight',4200);
   assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);

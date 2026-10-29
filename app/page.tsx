@@ -46,6 +46,7 @@ export default function Home() {
 }
 
 function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, editorTheme, onWebsiteTheme, onEditorTheme}: {level: Level; cleared: number[]; onNavigate: (number: number) => void; onComplete: () => void; websiteTheme:Theme; editorTheme:Theme; onWebsiteTheme:(theme:Theme)=>void; onEditorTheme:(theme:Theme)=>void}) {
+  const bodyStorage = LEVEL.storage + ':body' + (LEVEL.codeVersion ? ':' + LEVEL.codeVersion : '');
   const [source, setSource] = useState('');
   const [original, setOriginal] = useState('');
   const [compiledBody, setCompiledBody] = useState('');
@@ -80,7 +81,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
       setOriginal(text); setSource(text);
       applied.current = solutionBody(text); setCompiledBody(applied.current);
       try {
-        const saved = localStorage.getItem(LEVEL.storage + ':body');
+        const saved = localStorage.getItem(bodyStorage);
         if (saved && saved.endsWith('\n') && saved.length <= 8000 && !saved.includes(END)) {
           const {start,end} = editableRange(text);
           setSource(text.slice(0, start) + saved + text.slice(end));
@@ -152,7 +153,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
   }
   function edit(value: string) {
     setSource(value);
-    try { localStorage.setItem(LEVEL.storage + ':body', solutionBody(value)); } catch {}
+    try { localStorage.setItem(bodyStorage, solutionBody(value)); } catch {}
   }
   function resetCode() {
     edit(original); setHint(-1); setRevealToken((value) => value + 1);

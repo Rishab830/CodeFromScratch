@@ -4,6 +4,7 @@ export type Level = {
   mission: string; intro: string; death: string; log: string;
   goal?: string; reference?: string; actions?: readonly (readonly [string,string])[];
   controls?: readonly (readonly [string,string])[];
+  codeVersion?: number;
 };
 export const LEVELS: readonly Level[] = [
   {
@@ -26,13 +27,13 @@ export const LEVELS: readonly Level[] = [
   },
   {
     number: 3, id: 'confused-traffic-signal', title: 'The Confused Traffic Signal', world: 'Apricot Avenue', coins: ['first','second'],
-    source: '/levels/confused-traffic-signal.py', runtime: '/runner-3/', storage: 'cfs:traffic:v1',
+    source: '/levels/confused-traffic-signal.py', runtime: '/runner-3/', storage: 'cfs:traffic:v1', codeVersion: 2,
     missionTitle: 'Red. Yellow. Red. Wait a minute…',
     mission: 'The signal keeps switching between red and yellow. Fix its sequence, then drive your car through the crossing to the flag.',
     intro: 'Watch the signal. Drive through the crossing when it turns green.',
     goal: 'Drive through the crossing', death: 'The crossing needs a working signal.', log: 'Use Left / Right to drive. The car waits at red and yellow.',
-    reference: 'The signal calls next_light(current) every beat. Return the next colour. The car is yours to drive.',
-    actions: [['current','The current light: red, yellow, or green.'],['return','Choose the next colour.'],['Left / Right','Drive the car.']],
+    reference: 'Use if, elif, and else to decide what happens for each light. Set next_color in the matching branch. The game handles the rest; the car is yours to drive.',
+    actions: [['current','The current light: red, yellow, or green.'],['next_color','The colour chosen by your conditions.'],['Left / Right','Drive the car.']],
     controls: [['ArrowLeft','Drive left'],['ArrowRight','Drive right']],
   },
   {

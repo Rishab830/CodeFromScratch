@@ -142,13 +142,16 @@ def browser():
     return None
 
 
-def compile_puzzle(body, name, arguments):
+def compile_puzzle(body, name, arguments, result_name=None):
     """Compile a small puzzle function; bound loops before they reach the game."""
     if not isinstance(body, str) or len(body) > 8000:
         raise ValueError("Keep your solution under 8,000 characters.")
     filename = "<your-puzzle>"
+    if result_name is not None and (not isinstance(result_name, str) or not result_name.isidentifier() or result_name.startswith("__")):
+        raise ValueError("Use a plain variable name for the puzzle result.")
+    footer = f"\n    return {result_name}\n" if result_name is not None else ""
     try:
-        tree = ast.parse(f"def {name}({arguments}):\n" + body)
+        tree = ast.parse(f"def {name}({arguments}):\n" + body + footer)
     except SyntaxError as error:
         raise ValueError(f"Python syntax error on editable line {max(1, (error.lineno or 2) - 1)}: {error.msg}") from error
     if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):

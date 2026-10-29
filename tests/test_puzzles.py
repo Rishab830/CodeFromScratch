@@ -18,7 +18,7 @@ PUZZLES = {number: slug for number, slug in LEVELS.items() if number >= 3}
 
 ROUTE = ["right", "right", "up", "up", "right", "right", "down", "right", "right", "down", "right", "right"]
 FIXES = {
-    3: '    return {"red": "green", "green": "yellow", "yellow": "red"}[current]\n',
+    3: '    if current == "red":\n        next_color = "green"\n    elif current == "green":\n        next_color = "yellow"\n    else:\n        next_color = "red"\n',
     4: f'    return {ROUTE!r}\n',
     5: '    return count < 5\n',
     6: '    if password == "STAR":\n        return 2\n    return None\n',
@@ -44,7 +44,7 @@ class PuzzleTests(unittest.TestCase):
         namespace["COLLECTED_COINS"].clear()
         if fixed:
             name, arguments = namespace["PUZZLE_NAME"], namespace["PUZZLE_ARGUMENTS"]
-            return namespace["World"](lesson_bridge.compile_puzzle(FIXES[number], name, arguments))
+            return namespace["World"](lesson_bridge.compile_puzzle(FIXES[number], name, arguments, result_name="next_color" if number == 3 else None))
         return namespace["World"]()
 
     def run_for(self, world, seconds, **controls):
@@ -76,6 +76,16 @@ class PuzzleTests(unittest.TestCase):
         self.assertIsNone(self.run_for(world, 10, right=True))
         self.assertEqual(world.x, 119)
         self.assertNotEqual(world.light, "green")
+
+    def test_traffic_teaches_conditions_with_result_plumbing_locked(self):
+        source = (ROOT / "game" / "levels" / "confused-traffic-signal.py").read_text(encoding="utf-8")
+        body = source.split("# EDIT START\n")[1].split("    # EDIT END")[0]
+        tree = ast.parse("def next_light(current):\n" + body)
+        self.assertTrue(any(isinstance(node, ast.If) for node in ast.walk(tree)))
+        self.assertFalse(any(isinstance(node, (ast.Dict, ast.Subscript, ast.Return)) for node in ast.walk(tree)))
+        self.assertIn("# EDIT END\n    return next_color", source)
+        fixed = lesson_bridge.compile_puzzle(FIXES[3], "next_light", "current", result_name="next_color")
+        self.assertEqual([fixed(color) for color in ("red", "green", "yellow")], ["green", "yellow", "red"])
 
     def test_correct_signal_and_alternative_sequence_both_allow_manual_finish(self):
         world = self.world(3, True)
