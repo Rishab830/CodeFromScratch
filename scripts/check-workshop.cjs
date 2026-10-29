@@ -166,7 +166,7 @@ const fixes={
     await stop(id).click();await ready(id);await fixed(id);await hold('Space',duration);await won();
     assert.equal(await page.getByRole('button',{name:'Choose another bonus',exact:true}).count(),1);
   }
-  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:doors:v1:complete')),null);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),null);
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await screenshot('workshop-bonuses-mobile');

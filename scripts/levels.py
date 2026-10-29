@@ -5,7 +5,7 @@ LEVELS = {
     3: "confused-traffic-signal",
     4: "lost-robot",
     5: "endless-coin-collector",
-    6: "wrong-door",
+    6: "gift-catcher",
     7: "final-escape",
     8: "parcel-sorter",
     9: "bridge-builder",

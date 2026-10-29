@@ -14,15 +14,11 @@ import lesson_bridge
 import pygame
 from levels import LEVELS
 
-PUZZLES = {number: slug for number, slug in LEVELS.items() if number in (3, 5, 6)}
+PUZZLES = {number: slug for number, slug in LEVELS.items() if number in (3, 5)}
 
-ROUTE = ["right", "right", "up", "up", "right", "right", "down", "right", "right", "down", "right", "right"]
 FIXES = {
     3: '    if current == "red":\n        next_color = "green"\n    elif current == "green":\n        next_color = "yellow"\n    else:\n        next_color = "red"\n',
-    4: f'    return {ROUTE!r}\n',
     5: '    return count < 5\n',
-    6: '    if password == "STAR":\n        return 2\n    return None\n',
-    7: '    steps = []\n    for cell in range(3):\n        steps.append("power")\n    if len(steps) == 3:\n        steps.append("unlock")\n        steps.append("open")\n    return steps\n',
 }
 
 
@@ -114,20 +110,6 @@ class PuzzleTests(unittest.TestCase):
         self.assertEqual(world.count, 5)
         self.assertFalse(world.processing)
         self.assertTrue(world.exit_open)
-        self.assertEqual(self.run_for(world, 5, right=True), "won")
-
-    def test_door_starter_opens_wrong_door_and_correct_password_cannot_win(self):
-        world = self.world(6)
-        world.update(0.01, action=True, password="STAR")
-        self.assertEqual(world.opened, 0)
-        self.assertEqual(self.run_for(world, 4, right=True), "dead")
-
-    def test_fixed_door_rejects_bad_password_then_opens_correct_exit(self):
-        world = self.world(6, True)
-        world.update(0.01, action=True, password="WRONG")
-        self.assertIsNone(world.opened)
-        world.update(0.3, action=True, password="STAR")
-        self.assertEqual(world.opened, 2)
         self.assertEqual(self.run_for(world, 5, right=True), "won")
 
 

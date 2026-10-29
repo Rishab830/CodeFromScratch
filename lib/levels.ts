@@ -356,44 +356,53 @@ export const LEVELS: readonly Level[] = [
   },
   {
     "number": 7,
-    "id": "wrong-door",
-    "hints": [
-      "Read the terminal's password note and compare it with the symbols above the doors. Which door opens when you submit that password?",
-      "The inner if checks the password, but its return value chooses the door. Door indexes start at 0 on the left, so the third door has index 2.",
-      "Keep the outer check for a non-empty password. Inside the password == \"STAR\" branch, return 2 instead of 0; return None for other passwords. Compile, enter STAR, click inside the game, use Space beside the terminal, and walk to the rightmost door."
-    ],
-    "title": "The Wrong Door",
-    "world": "Rosewood Hall",
+    "runtimeId": 6,
+    "id": "gift-catcher",
+    "title": "The Gift Catcher",
+    "world": "Peach Picnic Park",
+    "concept": "nested-if",
+    "exercise": "debug",
+    "group": "bonus",
+    "kind": "program",
     "coins": [
-      "first",
-      "second"
+      "gift-1",
+      "gift-2"
     ],
-    "source": "/levels/wrong-door.py",
+    "source": "/levels/gift-catcher.py",
     "runtime": "/runner-6/",
-    "storage": "cfs:doors:v1",
-    "missionTitle": "The password fits. The door doesn\u2019t.",
-    "mission": "Three doors, one way out. Read the terminal note and enter the password below the game. The program opens the wrong door. Fix its logic, use the terminal, and walk through the correct exit.",
-    "intro": "Enter the password below, then press Space beside the terminal. Watch which door opens.",
-    "goal": "Open the correct door",
-    "death": "That door leads to a dead end.",
-    "log": "Enter a password, press Space near the terminal, then walk to the door.",
-    "reference": "choose_door(password) returns a door index, or None to deny entry. Doors are numbered from left to right starting at 0. The symbols and password note are in the room.",
+    "storage": "cfs:bonus:gift-catcher:v1",
+    "missionTitle": "Open the surprise. Then decide.",
+    "mission": "Move the basket under falling gifts and collect five eggs. Every box is sealed: you must open it before checking what is inside. A revealed bomb gives your code one action to drop it safely. Eggs and coins should be collected. The starter mixes up those two actions.",
+    "intro": "Left / Right moves the basket. Catch a wrapped gift, then tap Space to run your handler once.",
+    "goal": "Collect five eggs. Drop every bomb.",
+    "death": "Keep eggs safe, catch the falling gifts, and drop bombs immediately after opening them.",
+    "log": "Arrows or A / D moves the basket. Space runs the nested-if handler once. Open first, then drop a bomb or collect a safe gift.",
+    "reference": "The outer if checks gift_in_basket(). Only open a box when that is true. Inside that branch, open_gift() reveals the contents, then a nested if can use gift_is_bomb(). A bomb must be dropped as the very next action; reading a sensor does not use that action. The else branch collects either an egg or a coin. For and while loops are not enabled here.",
+    "hints": [
+      "Watch the two checks at the top of the game. The inner question stays locked while the box is sealed. Which actions should follow a bomb reveal and a safe reveal?",
+      "Keep open_gift() inside if gift_in_basket(). Put the bomb check after opening, inside that same outer branch. A bomb must be dropped; the else branch can collect both eggs and coins.",
+      "Inside if gift_in_basket(): call open_gift(). Then write if gift_is_bomb(): with drop() inside it, and else: with collect() inside it. Compile, catch gifts with Left / Right, and tap Space for each one."
+    ],
     "actions": [
       [
-        "password",
-        "The text you enter below the game."
+        "gift_in_basket()",
+        "True when the basket contains a gift."
       ],
       [
-        "0 / 1 / 2",
-        "The left, middle, and right doors."
+        "open_gift()",
+        "Unwrap the gift so its contents can be inspected."
       ],
       [
-        "None",
-        "Do not open a door."
+        "gift_is_bomb()",
+        "Check for a bomb, only after opening the gift."
       ],
       [
-        "Space",
-        "Submit at the terminal."
+        "drop()",
+        "Toss the gift away. Use immediately after revealing a bomb."
+      ],
+      [
+        "collect()",
+        "Keep the egg or add the coin to your saved collection."
       ]
     ],
     "controls": [
@@ -407,16 +416,10 @@ export const LEVELS: readonly Level[] = [
       ],
       [
         " ",
-        "Use terminal"
+        "Handle gift"
       ]
     ],
-    "runtimeId": 6,
-    "concept": "nested-if",
-    "exercise": "debug",
-    "group": "bonus",
-    "kind": "arcade",
-    "spaceLabel": "Interact",
-    "codeVersion": 2
+    "spaceLabel": "Handle gift"
   },
   {
     "number": 8,

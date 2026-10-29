@@ -25,7 +25,7 @@ All seven unlock together after the six core lessons. Any bonus can be chosen wi
 
 | Bonus | Game | Focus |
 | --- | --- | --- |
-| 1 | The Wrong Door | Debug nested password checks. |
+| 1 | The Gift Catcher | Catch sealed gifts and debug nested decisions: open, then drop a bomb or collect an egg or coin. |
 | 2 | The Rocket Launch | Build nested conditions using power and fuel sensors. |
 | 3 | The Greenhouse Grid | Debug nested loops over rows and columns. |
 | 4 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
@@ -34,6 +34,8 @@ All seven unlock together after the six core lessons. Any bonus can be chosen wi
 | 7 | The Endless Coin Collector | Stop the machine at five, then reach the exit. |
 
 The original two platform maps retain overhead spikes, a 21-pixel floor gap (half the default running-jump distance), and the same blue tile. Blue Leap retains its walkable spike top and locked blue jump action. Small jumps under the spikes and high jumps over them are both valid. Coins leave outlines, persist per game, and appear filled or outlined on completion. Any coin count can clear these arcade levels.
+
+Gift Catcher uses only nested `if` statements in its editable handler; `for` and `while` are disabled. Move the basket with Left / Right or A / D, then tap Space once per caught gift. The outer check guards opening a box. Its contents cannot be inspected until the opening animation finishes. The inner check then drops a bomb or collects an egg or coin. A bomb allows one further action, which must be `drop()`; sensor reads do not spend that action. A wrong next action or ending the handler without dropping it plays an explosion before game over. Collect five eggs to win. Coin gifts contribute to saved level coins, including their filled/outline result icons.
 
 ## Run and deploy
 
@@ -101,7 +103,7 @@ npm run test:sources
 npm run test:themes
 ```
 
-`test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:browser` covers both platformers; `test:bonuses` covers the retained door and collector games. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
+`test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:browser` covers both platformers; `test:bonuses` covers Gift Catcher and the retained collector game. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
 
 To reproduce Vercel's slashless runner URLs during platformer checks:
 

@@ -2,6 +2,7 @@ const {chromium}=require('@playwright/test');
 const assert=require('node:assert/strict');
 const path=require('node:path');
 const {core}=require('./level-fixtures.cjs');
+const {GIFT_SOLUTION,playGifts}=require('./gift-catcher-fixture.cjs');
 let browser,page;
 (async()=>{
   browser=await chromium.launch({channel:'chrome',headless:true});
@@ -28,25 +29,22 @@ let browser,page;
     },body);
     await page.getByRole('button',{name:'Compile',exact:true}).click();await playing();
   }
-  await choose('wrong-door');await start();
-  await page.getByRole('textbox',{name:'Terminal password'}).fill('STAR');
-  await page.locator('iframe').click();
-  await hold('ArrowRight',300);await hold('Space',150);await hold('ArrowRight',1000);
-  await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor({timeout:5000});
-  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:doors:v1:complete')),null);
-  await compile('    if password != "":\n        if password == "STAR":\n            return 2\n        else:\n            return None\n    return None\n');
-  await page.getByRole('textbox',{name:'Terminal password'}).fill('MOON');
-  await page.locator('iframe').click();
-  await hold('ArrowRight',300);await hold('Space',150);await hold('ArrowRight',3400);
+  await choose('gift-catcher');await start();
+  assert.equal(await page.getByRole('textbox',{name:'Terminal password'}).count(),0);
+  await hold('Space',70);assert.match(await page.locator('.console-message').innerText(),/No gift in the basket/);
+  await playGifts(page,'dead');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),null);
+  await compile('    if gift_in_basket():\n        if gift_is_bomb():\n            drop()\n        else:\n            collect()\n');
+  await playGifts(page,'error');
+  assert.match(await page.locator('.console-message').innerText(),/Open the gift before checking/);
+  // The inner sensor cannot inspect a sealed gift. Opening must precede it.
+  // The complete solution runs once per Space press and contains no loops.
+  await compile(GIFT_SOLUTION);await page.waitForTimeout(400);
   assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
-  await page.getByRole('button',{name:'Restart',exact:true}).click();await playing();
-  await page.getByRole('textbox',{name:'Terminal password'}).fill('STAR');
-  await page.locator('iframe').click();
-  await hold('ArrowRight',300);await hold('Space',150);await hold('ArrowRight',3400);
-  await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:5000});
+  await playGifts(page);
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Choose another bonus',exact:true}).count(),1);
-  console.log('PASS: Wrong Door preserves terminal input, rejects wrong passwords and doors, and wins by walking through the correct door');
+  console.log('PASS: Gift Catcher requires manual catching and nested-if handling, hides contents until opening, drops bombs and collects eggs plus saved coins');
 
   await choose('endless-coin-collector');await start();
   await hold('ArrowRight',650);await hold('Space',180);await page.waitForTimeout(2400);await hold('ArrowRight',3500);
