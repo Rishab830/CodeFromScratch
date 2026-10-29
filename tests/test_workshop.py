@@ -14,7 +14,7 @@ import pygame
 
 SOLUTIONS = {
  'parcel-sorter': '    if parcel_colour() == "red":\n        send_left()\n    elif parcel_colour() == "blue":\n        send_middle()\n    else:\n        send_right()\n',
- 'bridge-builder': '    for i in range(3):\n        place_plank()\n    cross_bridge()\n',
+ 'bridge-builder': '    for i in range(3):\n        place_plank()\n',
  'lost-robot': '    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
  'charging-station': '    while not battery_full():\n        charge()\n    open_exit()\n',
  'foggy-tunnel': '    while not exit_detected():\n        move_forward()\n    open_exit()\n',
@@ -52,7 +52,13 @@ class WorkshopTests(unittest.TestCase):
         for slug,body in SOLUTIONS.items():
             with self.subTest(slug=slug):
                 world=self.make(slug,body)
-                self.assertEqual(self.finish(world),'won')
+                result=self.finish(world)
+                if slug=='bridge-builder':
+                    self.assertIsNone(result)
+                    for _ in range(80):
+                        result=world.update(0.05,right=True)
+                        if result: break
+                self.assertEqual(result,'won')
                 ns,_=self.games[slug]
                 ns['draw_scene'](pygame.Surface((320,180)),world,pygame.font.Font(None,10),pygame.font.Font(None,16))
 
@@ -72,10 +78,51 @@ class WorkshopTests(unittest.TestCase):
                 self.assertEqual(world.actions,0)
 
     def test_debugging_starters_fail_for_the_intended_reason(self):
-        for slug in ('bridge-builder','charging-station','greenhouse-grid'):
+        for slug in ('charging-station','greenhouse-grid'):
             with self.subTest(slug=slug):
                 world=self.make(slug)
                 self.assertEqual(self.finish(world),'dead')
+
+    def test_bridge_movement_is_independent_of_building_and_stops_on_key_release(self):
+        world=self.make('bridge-builder',SOLUTIONS['bridge-builder'])
+        self.assertIsNone(world.update(0.2,left=True))
+        self.assertLess(world.x,66)
+        left_x=world.x
+        self.assertIsNone(world.update(0.2,action=True,right=True))
+        self.assertGreater(world.x,left_x)
+        self.assertEqual(world.planks,1)
+        stopped_x=world.x
+        self.assertIsNone(world.update(0.5))
+        self.assertEqual(world.x,stopped_x)
+
+    def test_complete_bridge_never_walks_or_wins_without_movement_input(self):
+        world=self.make('bridge-builder',SOLUTIONS['bridge-builder'])
+        self.assertIsNone(self.finish(world))
+        self.assertEqual(world.planks,3)
+        self.assertEqual(world.x,66)
+        self.assertEqual(world.y,141)
+        self.assertEqual(self.games['bridge-builder'][0]['COLLECTED_COINS'],set())
+        # Space held past the end must not restart the loop and place extra planks.
+        self.assertTrue(world.program_done)
+        for _ in range(20): self.assertIsNone(world.update(0.05,right=True))
+        right_x=world.x
+        for _ in range(10): self.assertIsNone(world.update(0.05,left=True))
+        self.assertLess(world.x,right_x)
+        stopped_x=world.x
+        self.assertIsNone(world.update(1.0))
+        self.assertEqual(world.x,stopped_x)
+
+    def test_bridge_starter_leaves_a_real_gap_that_the_player_falls_through(self):
+        world=self.make('bridge-builder')
+        self.assertIsNone(self.finish(world))
+        self.assertEqual(world.planks,2)
+        result=None
+        for _ in range(100):
+            result=world.update(0.05,right=True)
+            if result: break
+        self.assertEqual(result,'dead')
+        self.assertGreater(world.y,180)
+        self.assertNotIn('first',self.games['bridge-builder'][0]['COLLECTED_COINS'])
 
     def test_parcels_require_a_correct_decision_for_every_colour(self):
         world=self.make('parcel-sorter',SOLUTIONS['parcel-sorter'].replace('send_middle()','send_left()'),colours=['red','blue','yellow','yellow','red','blue'])

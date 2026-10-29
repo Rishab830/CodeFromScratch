@@ -126,8 +126,8 @@ export const LEVELS: readonly Level[] = [
     "id": "bridge-builder",
     "hints": [
       "Step through the starter and count the planks it places. Compare that number with the empty bridge spaces.",
-      "range(n) repeats the indented action n times. Crossing belongs after the loop, once all the spaces are filled.",
-      "Change the loop to for i in range(3): and keep place_plank() indented inside it. Keep cross_bridge() outside the loop. Compile, then press Space to build and cross."
+      "range(n) repeats the indented action n times. Space advances the building loop; Left and Right move Maya independently. Missing planks leave holes she can fall through.",
+      "Change the loop to for i in range(3): and keep place_plank() indented inside it. Compile, use Space to place all three planks, then walk across to the flag with Right."
     ],
     "title": "The Bridge Builder",
     "world": "Apricot River",
@@ -142,13 +142,14 @@ export const LEVELS: readonly Level[] = [
     "source": "/levels/bridge-builder.py",
     "runtime": "/runner-9/",
     "storage": "cfs:workshop:bridge:v1",
+    "codeVersion": 2,
     "missionTitle": "A loop that stops one plank too soon.",
-    "mission": "The river has three bridge spaces. Step the starter program, watch how often its action repeats, and fix the for loop before crossing.",
-    "intro": "Step the starter loop. Complete the bridge and cross to the flag.",
+    "mission": "The river has three bridge spaces. Space steps through your building loop; Left and Right move Maya at any time. Fix the loop, build all three planks, and walk across to the flag. Missing planks leave gaps in the bridge.",
+    "intro": "Space builds the bridge. Left / Right moves Maya. Walk across to the flag yourself.",
     "goal": "Bridge Builder",
-    "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
-    "reference": "Use a for loop. Put place_plank() inside the loop; cross after it ends. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
+    "death": "Watch for missing planks in the bridge.",
+    "log": "Space places planks from your loop. Left / Right controls Maya at all times. Walk to the flag to finish.",
+    "reference": "Use a for loop with place_plank() inside it. Space runs the next building action; Left / Right moves Maya independently. Building never moves her automatically. The function header and game code are locked. Compile your loop, build the bridge, then walk across it.",
     "actions": [
       [
         "range(n)",
@@ -159,17 +160,25 @@ export const LEVELS: readonly Level[] = [
         "Fill the next bridge space."
       ],
       [
-        "cross_bridge()",
-        "Walk across a completed bridge."
+        "Left / Right",
+        "Move Maya yourself, before or after building."
       ]
     ],
     "controls": [
       [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
         " ",
-        "Next action"
+        "Place plank"
       ]
     ],
-    "spaceLabel": "Step"
+    "spaceLabel": "Build"
   },
   {
     "number": 4,

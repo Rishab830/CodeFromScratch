@@ -8,7 +8,7 @@ let browser,page;
 const fixes={
  'confused-traffic-signal':'    if current == "red":\n        next_color = "green"\n    elif current == "green":\n        next_color = "yellow"\n    else:\n        next_color = "red"\n',
  'parcel-sorter':'    if parcel_colour() == "red":\n        send_left()\n    elif parcel_colour() == "blue":\n        send_middle()\n    else:\n        send_right()\n',
- 'bridge-builder':'    for i in range(3):\n        place_plank()\n    cross_bridge()\n',
+ 'bridge-builder':'    for i in range(3):\n        place_plank()\n',
  'lost-robot':'    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
  'charging-station':'    while not battery_full():\n        charge()\n    open_exit()\n',
  'foggy-tunnel':'    while not exit_detected():\n        move_forward()\n    open_exit()\n',
@@ -67,9 +67,32 @@ const fixes={
   await fixed('parcel-sorter');await hold('Space',11000);await won();
   console.log('PASS: core 2 starts blank, exposes supplied functions, and requires routing all colours correctly');
 
-  await next('bridge-builder');await start();await hold('Space',1000);await dead();
-  await fixed('bridge-builder');await hold('Space',4100);await won();
-  console.log('PASS: core 3 teaches counted repetition through a real bridge-building bug');
+  await next('bridge-builder');await start();
+  await hold('ArrowLeft',250);await hold('ArrowRight',250);
+  await hold('Space',1000);
+  assert.equal(await page.getByRole('dialog',{name:'Game over',exact:true}).count(),0);
+  await hold('ArrowRight',2300);await dead();
+  await fixed('bridge-builder');await hold('Space',1800);
+  assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
+  const bridgeFrame=page.frames().find(f=>/\/runner-9\/?$/.test(new URL(f.url()).pathname));
+  async function bridgePosition(){return bridgeFrame.evaluate(()=>{
+    const c=document.querySelector('#canvas'),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+    let x=0,n=0;for(let i=0;i<d.length;i+=4)if(d[i]===237&&d[i+1]===160&&d[i+2]===185){x+=(i/4)%c.width;n++}return x/n;
+  })}
+  const bridgeStart=await bridgePosition();
+  await page.waitForTimeout(500);assert.equal(await bridgePosition(),bridgeStart);
+  await hold('ArrowRight',1000);const movedRight=await bridgePosition();assert(movedRight>bridgeStart+60);
+  await hold('ArrowLeft',350);assert(await bridgePosition()<movedRight-20);
+  const stopped=await bridgePosition();await page.waitForTimeout(300);assert.equal(await bridgePosition(),stopped);
+  const bridgeRight=page.getByRole('button',{name:'Move right',exact:true});
+  await bridgeRight.scrollIntoViewIfNeeded();const bridgeButton=await bridgeRight.boundingBox();
+  await page.mouse.move(bridgeButton.x+bridgeButton.width/2,bridgeButton.y+bridgeButton.height/2);
+  await page.mouse.down();await page.waitForTimeout(500);await page.mouse.up();
+  assert(await bridgePosition()>stopped+30);
+  await page.locator('iframe').click();
+  await hold('ArrowRight',2600);await won();
+  assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
+  console.log('PASS: core 3 builds with Space, permits left/right movement at all times, falls through missing planks, and requires a manual crossing');
 
   await next('lost-robot');await start();await hold('Space',400);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-robot-blank');

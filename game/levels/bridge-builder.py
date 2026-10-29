@@ -18,7 +18,6 @@ def build_bridge():
     # EDIT START
     for plank in range(2):
         place_plank()
-    cross_bridge()
     # EDIT END
 
 
@@ -60,41 +59,51 @@ class World:
         self.program = self.generator = None
         self.elapsed = self.cooldown = 0.0
         self.actions = self.planks = 0
-        self.x = 66.0
-        self.crossing = False
-        self.message = 'Count the missing bridge spaces. Press Space to step your loop.'
-    def commands(self): return {'place_plank': self.place_plank, 'cross_bridge': self.cross_bridge}
+        self.x, self.y, self.vy = 66.0, 141.0, 0.0
+        self.moving = self.program_done = False
+        self.message = 'Space builds. Left / Right moves. Watch for missing planks!'
+    def commands(self): return {'place_plank': self.place_plank}
     def sensors(self): return {}
     def place_plank(self): return 'plank'
-    def cross_bridge(self): return 'cross'
     def perform(self, command):
         if command == 'plank':
             self.planks += 1
             if self.planks > 3:
                 self.message = 'Too many planks. The bridge has three spaces.'
                 return 'dead'
-            self.message = f'Bridge: {self.planks} / 3 planks. Keep stepping.'
-        elif command == 'cross':
-            if self.planks != 3:
-                self.message = 'The bridge is incomplete. Check how many times the loop repeats.'
-                return 'dead'
-            self.crossing = True
-            self.message = 'Bridge complete. Walking to the flag!'
+            self.message = 'Bridge complete! Use Left / Right to walk to the flag.' if self.planks == 3 else f'Bridge: {self.planks} / 3 planks. Space builds the next plank.'
         return None
-    def update(self, dt, action=False):
+    def update(self, dt, action=False, left=False, right=False):
         self.elapsed += dt
-        if self.crossing:
-            self.x = min(280, self.x + 80*dt)
-            if self.x > 170: remember('first')
-            if self.x > 246: remember('second')
-            return 'won' if self.x >= 280 else None
         self.cooldown = max(0.0, self.cooldown-dt)
-        if action and self.cooldown == 0:
+        if action and self.cooldown == 0 and not self.program_done:
             self.cooldown = 0.24
-            return advance_program(self)
+            result = advance_program(self)
+            if result: return result
+        direction = int(right) - int(left)
+        self.moving = direction != 0
+        # Small physics steps prevent walking across an unbuilt space in one frame.
+        steps = max(1, int(dt * 120) + 1)
+        for _ in range(steps):
+            step = dt / steps
+            self.x = max(12.0, min(309.0, self.x + direction * 65 * step))
+            supported = self.x < 108 or self.x >= 174 or self.x < 108 + self.planks * 22
+            previous_y = self.y
+            self.vy += 460 * step
+            self.y += self.vy * step
+            if supported and previous_y <= 141 and self.y >= 141:
+                self.y, self.vy = 141.0, 0.0
+            if self.y > HEIGHT + 20:
+                self.message = 'You fell through a missing plank. Fix the loop and rebuild.'
+                return 'dead'
+        if self.y == 141:
+            if abs(self.x - 174) < 8: remember('first')
+            if abs(self.x - 250) < 8: remember('second')
+            if self.x >= 280: return 'won'
         return None
     def program_finished(self):
-        self.message = 'Use place_plank() in your loop, then cross_bridge().'
+        self.program_done = True
+        self.message = 'Bridge complete! Walk to the flag with Left / Right.' if self.planks == 3 else 'Your loop ended with missing planks. Check its repetition count.'
         return None
 
 
@@ -114,7 +123,7 @@ def draw_scene(surface, world, small, title):
     for x, name in [(170, 'first'), (246, 'second')]: draw_coin(surface, pygame.Rect(x, 125, 8, 10), name in COLLECTED_COINS)
     pygame.draw.rect(surface, (111, 143, 131), (281, 106, 2, 35))
     pygame.draw.rect(surface, (181, 224, 177), (283, 107, 17, 10))
-    draw_girl(surface, world.x, 141, world.crossing)
+    draw_girl(surface, world.x, world.y, world.moving)
     label(surface, small, world.message[:68], 5, 172)
 
 
@@ -167,8 +176,10 @@ async def main():
             try:
                 keys = pygame.key.get_pressed()
                 action = bool(keys[pygame.K_SPACE])
-                has_input = has_input or action
-                result = world.update(dt, action)
+                left = bool(keys[pygame.K_LEFT] or keys[pygame.K_a])
+                right = bool(keys[pygame.K_RIGHT] or keys[pygame.K_d])
+                has_input = has_input or action or left or right
+                result = world.update(dt, action, left, right)
                 if world.message != previous_message:
                     previous_message = world.message
                     lesson_bridge.emit('notice', message=world.message)
