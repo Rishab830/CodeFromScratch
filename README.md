@@ -16,7 +16,7 @@ A Next.js website for a one-hour Python workshop. Students read real Pygame code
 
 Lessons unlock sequentially. Conditions, for, and while have a debugging lesson followed by an editable body containing `pass`. Gift Catcher adds nested-if debugging after the two initial condition lessons. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly six minutes per core lesson, and the remaining time for discussion or bonuses.
 
-Space Patrol starts with an unconditional `for` loop. Space arms the weapon once, then the student pilots with all four arrows or WASD while their code chooses when to shoot. Ten enemies need three auto-aimed hits each, and the magazine holds exactly thirty bullets. Empty shots waste ammunition. Enemies fire back; after clearing the sector, fly to the exit beacon. Either a live `while` condition or a `for` loop containing an `if` check works. Foggy Tunnel then requires `while` specifically.
+Space Patrol starts with an unconditional `for` loop. Space arms the weapon once, then the student pilots with all four arrows or WASD while their code chooses when to shoot. The ship starts in the center. Ten enemies spawn around the player in three simultaneous groups of four, three, and three; each needs three auto-aimed hits, and the magazine holds exactly thirty bullets. Auto-aim selects the nearest live enemy, and each projectile follows its own target. Empty shots waste ammunition. Enemies fire back; after clearing the sector, fly to the exit beacon. Either a live `while` condition or a `for` loop containing an `if` check works. Foggy Tunnel then requires `while` specifically.
 
 Foggy Tunnel requires `while` and rejects `for`. Left / Right or A / D drives the RC car outside. Entering the tunnel loses signal and automatically starts its onboard function. The wall becomes translucent so students can watch the car, each exit-sensor check, and the rising gate. Maya stays outside holding a remote with an animated antenna. `open_exit()` has one attempt per tunnel run, including unsuccessful early attempts. A second call raises `open exit can only be attempted once`, even after a successful first opening. The allowance resets for the next tunnel or Restart. The same program must handle all three lengths.
 
@@ -98,13 +98,14 @@ Serve the exported `out/` directory on port 3001 (or set `TEST_URL`), then use i
 python -m http.server 3001 --bind 127.0.0.1 --directory out
 # In another terminal:
 npm run test:workshop
+npm run test:patrol
 npm run test:browser
 npm run test:bonuses
 npm run test:sources
 npm run test:themes
 ```
 
-`test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:browser` covers both platformers; `test:bonuses` covers Gift Catcher and the retained collector game. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
+`test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:patrol` checks the centered spawn, surrounding enemy groups, four-direction flight, both weapon solutions, and manual exit in the browser. `test:browser` covers both platformers; `test:bonuses` covers Gift Catcher and the retained collector game. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
 
 To reproduce Vercel's slashless runner URLs during platformer checks:
 

@@ -11,6 +11,7 @@
     "test:lesson": "python -m unittest discover -s tests",
     "test:browser": "node scripts/check-browser.cjs",
     "test:workshop": "node scripts/check-workshop.cjs",
+    "test:patrol": "node scripts/check-space-patrol.cjs",
     "test:bonuses": "node scripts/check-bonuses.cjs",
     "test:adventures": "node scripts/check-adventures.cjs",
     "test:sources": "node scripts/check-level-sources.cjs",

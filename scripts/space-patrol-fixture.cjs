@@ -10,7 +10,9 @@ async function shipPosition(page){
 }
 async function pilotSector(page,expected='clear'){
   await page.keyboard.press('Space');
-  let held='ArrowRight';await page.keyboard.down(held);
+  const waypoints=[[260,56],[260,132],[60,132],[60,56]];
+  let waypoint=0;
+  const held=new Set();
   try{
     const deadline=Date.now()+90000;
     while(Date.now()<deadline){
@@ -21,12 +23,20 @@ async function pilotSector(page,expected='clear'){
         assert.equal(expected,'clear');return;
       }
       const position=await shipPosition(page);
-      const next=position?.x>275?'ArrowLeft':position?.x<45?'ArrowRight':held;
-      if(next!==held){await page.keyboard.up(held);held=next;await page.keyboard.down(held)}
-      await page.waitForTimeout(160);
+      if(position){
+        if(Math.hypot(position.x-waypoints[waypoint][0],position.y-waypoints[waypoint][1])<12)waypoint=(waypoint+1)%waypoints.length;
+        const [x,y]=waypoints[waypoint],next=new Set();
+        if(position.x<x-4)next.add('ArrowRight');
+        if(position.x>x+4)next.add('ArrowLeft');
+        if(position.y<y-4)next.add('ArrowDown');
+        if(position.y>y+4)next.add('ArrowUp');
+        for(const key of held)if(!next.has(key)){await page.keyboard.up(key);held.delete(key)}
+        for(const key of next)if(!held.has(key)){await page.keyboard.down(key);held.add(key)}
+      }
+      await page.waitForTimeout(100);
     }
     throw Error('Space Patrol did not finish: '+await page.locator('.console-message').innerText());
-  } finally {await page.keyboard.up(held)}
+  } finally {for(const key of held)await page.keyboard.up(key)}
 }
 async function flyToBeacon(page){
   let position;

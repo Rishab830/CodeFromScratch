@@ -359,20 +359,20 @@ export const LEVELS: readonly Level[] = [
     "runtime": "/runner-10/",
     "storage": "cfs:workshop:space-patrol:v1",
     "missionTitle": "Thirty bullets. Ten enemies. No wasted shots.",
-    "mission": "Pilot your ship in all four directions and dodge enemy fire. Each of ten enemies needs three hits, and you have only thirty bullets. The starter shoots through empty gaps between waves. Fix when it fires, clear the sector, and fly to the green exit beacon.",
-    "intro": "Arrows or WASD fly. Tap Space once to arm your automatic weapon code.",
+    "mission": "Start in the center and pilot your ship in all four directions. Enemies surround you in groups of four, three, and three, firing from every side. Each needs three hits, and you have only thirty bullets. The starter shoots through empty gaps between waves. Fix when it fires, dodge enemy fire, then fly to the green exit beacon.",
+    "intro": "Start in the center. Arrows or WASD fly; tap Space once to arm. Dodge enemies arriving in groups around you.",
     "goal": "Clear ten enemies and reach the beacon",
     "death": "Watch your ammunition and shields. Keep moving and fire only when a target is visible.",
     "log": "Tap Space once to arm the weapon. Your code decides when to fire; arrows or WASD control the ship. Auto-aim handles targeting.",
-    "reference": "Use while, or a for loop containing an if check. shoot() auto-aims at the current enemy, but consumes a bullet even when no enemy is present. The weapon routine is checked repeatedly after you arm it, and loops can wait for the live sensor without freezing the game. Fly with the arrows or WASD; Space is only needed once.",
+    "reference": "Use while, or a for loop containing an if check. shoot() auto-aims at the nearest live enemy, but consumes a bullet even when no enemy is present. Enemies arrive around you in groups of four, three, and three, with empty gaps between waves. The weapon routine is checked repeatedly after you arm it, and loops can wait for the live sensor without freezing the game. Fly with the arrows or WASD; Space is only needed once.",
     "actions": [
       [
         "enemy_visible()",
-        "True while there is a live enemy to target."
+        "True while at least one live enemy is available to target."
       ],
       [
         "shoot()",
-        "Use one bullet. Auto-aim hits the visible enemy."
+        "Use one bullet. Auto-aim tracks the nearest live enemy."
       ],
       [
         "bullets_left()",

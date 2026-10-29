@@ -48,11 +48,12 @@ class World:
         self.elapsed = self.weapon_timer = 0.0
         self.actions = self.spawned = self.defeated = self.shots = self.wasted = 0
         self.ammo, self.shields = 30, 5
-        self.x, self.y = 160.0, 143.0
+        self.x, self.y = WIDTH / 2, HEIGHT / 2
         self.armed = self.cleared = self.finished = False
-        self.enemy = None
+        self.enemies = []
         self.bullets, self.enemy_bullets, self.sparks = [], [], []
         self.spawn_timer = 0.8
+        self.wave = 0
         self.invulnerable = 0.0
         self.hostile_fire = hostile_fire
         self.message = 'Arrows / WASD fly. Space arms your weapon code once.'
@@ -60,14 +61,14 @@ class World:
     def commands(self): return {'shoot': self.shoot}
     def sensors(self): return {'enemy_visible': self.enemy_visible, 'bullets_left': self.bullets_left}
     def shoot(self): return 'shoot'
-    def enemy_visible(self): return self.enemy is not None
+    def enemy_visible(self): return bool(self.enemies)
     def bullets_left(self): return self.ammo
 
     def perform(self, command):
         if command != 'shoot' or self.ammo <= 0: return None
         self.ammo -= 1
         self.shots += 1
-        target = self.enemy
+        target = min(self.enemies, key=lambda enemy: math.hypot(enemy["x"]-self.x, enemy["y"]-self.y), default=None)
         self.bullets.append({'x': self.x, 'y': self.y-7, 'target': target})
         if target is None:
             self.wasted += 1
@@ -80,27 +81,47 @@ class World:
         # The weapon checks the same routine again on the next weapon tick.
         return None
 
-    def spawn_enemy(self):
-        self.spawned += 1
-        self.enemy = {'x': float(55+(self.spawned*67)%210), 'y': 45.0,
-                      'hp': 3, 'fire': 0.3, 'direction': 1 if self.spawned%2 else -1}
-        self.message = f'Enemy {self.spawned}/10 detected. Three hits needed.'
+    def spawn_wave(self):
+        # Ten enemies arrive in three groups, with real empty gaps between them.
+        self.wave += 1
+        count = min((4, 3, 3)[self.wave-1], 10-self.spawned)
+        phase = random.uniform(math.pi/6, math.pi/3)
+        for index in range(count):
+            preferred = phase + index*math.tau/count
+            candidates = []
+            for offset in range(16):
+                angle = preferred + offset*math.tau/16
+                x = max(22.0, min(298.0, self.x+60*math.cos(angle)))
+                y = max(38.0, min(146.0, self.y+60*math.sin(angle)))
+                clearance = min([math.hypot(x-self.x, y-self.y)] +
+                                [math.hypot(x-enemy['x'], y-enemy['y'])*1.7 for enemy in self.enemies])
+                candidates.append((clearance, x, y, angle))
+                if clearance >= 36:
+                    break
+            _, x, y, angle = max(candidates)
+            self.enemies.append({'x': x, 'y': y, 'hp': 3,
+                                 'fire': 0.45+index*0.18,
+                                 'vx': -math.sin(angle)*10, 'vy': math.cos(angle)*10})
+        self.spawned += count
+        self.message = f'Wave {self.wave}/3: {count} enemies around you. Keep moving!'
 
-    def hit_enemy(self):
-        self.enemy['hp'] -= 1
-        self.sparks.append([self.enemy['x'], self.enemy['y'], 0.18])
-        if self.enemy['hp'] == 0:
+    def hit_enemy(self, enemy):
+        enemy['hp'] -= 1
+        self.sparks.append([enemy['x'], enemy['y'], 0.18])
+        if enemy['hp'] == 0:
             self.defeated += 1
-            self.enemy = None
-            self.spawn_timer = 0.8
+            self.enemies.remove(enemy)
             if self.defeated == 5: remember('wave-five')
             if self.defeated == 10:
                 self.cleared = True
                 self.enemy_bullets.clear()
                 remember('sector-clear')
                 self.message = 'Sector clear! Fly to the green exit beacon at the top.'
-            else:
+            elif not self.enemies:
+                self.spawn_timer = 1.2
                 self.message = 'Wave clear. No enemy detected. Watch your ammunition!'
+            else:
+                self.message = f'{len(self.enemies)} enemies still in this wave. Keep dodging!'
 
     def update(self, dt, action=False, left=False, right=False, up=False, down=False):
         if self.finished: return None
@@ -121,20 +142,24 @@ class World:
             self.message = 'Weapon armed. Your code is running. Keep flying!'
         if not self.armed: return None
 
-        if self.enemy is None:
+        if not self.enemies:
             self.spawn_timer -= dt
-            if self.spawn_timer <= 0 and self.spawned < 10: self.spawn_enemy()
-        else:
-            enemy = self.enemy
-            enemy['x'] += enemy['direction']*18*dt
-            if enemy['x'] < 30 or enemy['x'] > 290: enemy['direction'] *= -1
-            enemy['y'] = 45+5*math.sin(self.elapsed*2)
+            if self.spawn_timer <= 0 and self.spawned < 10: self.spawn_wave()
+        for enemy in self.enemies:
+            enemy['x'] += enemy['vx']*dt
+            enemy['y'] += enemy['vy']*dt
+            if enemy['x'] < 22 or enemy['x'] > 298:
+                enemy['x'] = max(22.0, min(298.0, enemy['x']))
+                enemy['vx'] *= -1
+            if enemy['y'] < 38 or enemy['y'] > 146:
+                enemy['y'] = max(38.0, min(146.0, enemy['y']))
+                enemy['vy'] *= -1
             enemy['fire'] -= dt
             if self.hostile_fire and enemy['fire'] <= 0:
                 length = max(1,math.hypot(self.x-enemy['x'],self.y-enemy['y']))
                 self.enemy_bullets.append([enemy['x'],enemy['y'],
                     (self.x-enemy['x'])/length*48,(self.y-enemy['y'])/length*48])
-                enemy['fire'] = 0.75
+                enemy['fire'] = 1.1
 
         # A shot in flight finishes before the next shot. Auto-aim never spends
         # a fourth bullet on an enemy whose third hit is already on its way.
@@ -145,7 +170,7 @@ class World:
                 distance = math.hypot(dx,dy)
                 if distance <= 360*dt+4:
                     self.bullets.remove(bullet)
-                    self.hit_enemy()
+                    self.hit_enemy(target)
                     continue
                 bullet['x'] += dx/distance*360*dt
                 bullet['y'] += dy/distance*360*dt
@@ -207,13 +232,13 @@ def draw_scene(surface,world,small,title):
         pygame.draw.rect(surface,(183,226,187),(151,33,18,14),1)
         label(surface,small,'EXIT',151,19,(183,226,187))
     elif not world.armed:
-        label(surface,title,'SPACE PATROL',112,62)
-        label(surface,small,'30 BULLETS. 10 ENEMIES. MAKE EVERY SHOT COUNT.',57,80)
-        label(surface,small,'SPACE ARMS THE WEAPON / ARROWS OR WASD FLY',57,92)
-    elif world.enemy is None:
+        label(surface,title,'SPACE PATROL',112,40)
+        label(surface,small,'30 BULLETS. 10 ENEMIES. MAKE EVERY SHOT COUNT.',57,58)
+        label(surface,small,'ENEMIES ARRIVE FROM EVERY SIDE IN GROUPS',57,116)
+        label(surface,small,'SPACE ARMS / ARROWS OR WASD FLY',78,132)
+    elif not world.enemies:
         label(surface,small,'NO ENEMY DETECTED',120,45,(153,145,179))
-    if world.enemy is not None:
-        enemy = world.enemy
+    for enemy in world.enemies:
         draw_sprite(surface,ALIEN_SPRITE,enemy['x']-4,enemy['y']-4,
                     {'r':(239,173,194),'e':(78,62,109)})
         for i in range(3):
