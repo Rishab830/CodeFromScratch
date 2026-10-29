@@ -52,7 +52,7 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 - Every core and bonus level has three optional, progressively revealed hints: an observation, a concept clue, and an approach to try. Hints never change the student's code.
 - **Compile** validates the edit, applies it, and restarts the game. Compilation or waiting alone cannot finish a level.
 - Use the controls below the game. Traffic and arcade games use movement keys; program challenges use Space or the touch button to step through actions.
-- In Bridge Builder, Space only builds planks. Left / Right controls Maya at all times; she must walk across the completed bridge herself. Missing planks leave gaps she can fall through.
+- In Bridge Builder, one Space tap runs the whole building loop, adding its planks in sequence after the key is released. The river spans ten plank lengths; the starter uses `range(5)` and builds only halfway. Left / Right controls Maya before, during, and after building. Missing planks leave gaps she can fall through, and reaching the flag still requires a manual crossing.
 - In Lost Robot, each Space action animates one tile move. Further actions wait until it finishes; a wrong move ends the attempt only when the robot's body reaches a wall.
 - Sensors reflect the live world at each step. Hold Space to advance repeatedly or tap it to step once.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.

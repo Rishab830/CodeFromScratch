@@ -12,11 +12,13 @@ CONCEPT = 'for'
 LOOP_COMMANDS = ('place_plank',)
 COIN_NAMES = ('first', 'second')
 COLLECTED_COINS = set()
+BRIDGE_START, PLANK_WIDTH, REQUIRED_PLANKS = 98, 14, 10
+BRIDGE_END = BRIDGE_START + PLANK_WIDTH * REQUIRED_PLANKS
 
 
 def build_bridge():
     # EDIT START
-    for plank in range(2):
+    for plank in range(5):
         place_plank()
     # EDIT END
 
@@ -61,23 +63,23 @@ class World:
         self.actions = self.planks = 0
         self.x, self.y, self.vy = 66.0, 141.0, 0.0
         self.moving = self.program_done = False
-        self.message = 'Space builds. Left / Right moves. Watch for missing planks!'
+        self.build_started = False
+        self.message = 'Tap Space once to build. Left / Right moves Maya.'
     def commands(self): return {'place_plank': self.place_plank}
     def sensors(self): return {}
     def place_plank(self): return 'plank'
     def perform(self, command):
         if command == 'plank':
             self.planks += 1
-            if self.planks > 3:
-                self.message = 'Too many planks. The bridge has three spaces.'
-                return 'dead'
-            self.message = 'Bridge complete! Use Left / Right to walk to the flag.' if self.planks == 3 else f'Bridge: {self.planks} / 3 planks. Space builds the next plank.'
+            self.message = 'Bridge reaches the bank! Walk to the flag with Left / Right.' if self.planks >= REQUIRED_PLANKS else f'Building: {self.planks} / {REQUIRED_PLANKS} planks. Your loop is running.'
         return None
     def update(self, dt, action=False, left=False, right=False):
         self.elapsed += dt
         self.cooldown = max(0.0, self.cooldown-dt)
-        if action and self.cooldown == 0 and not self.program_done:
-            self.cooldown = 0.24
+        if action:
+            self.build_started = True
+        if self.build_started and self.cooldown == 0 and not self.program_done:
+            self.cooldown = 0.16
             result = advance_program(self)
             if result: return result
         direction = int(right) - int(left)
@@ -87,7 +89,7 @@ class World:
         for _ in range(steps):
             step = dt / steps
             self.x = max(12.0, min(309.0, self.x + direction * 65 * step))
-            supported = self.x < 108 or self.x >= 174 or self.x < 108 + self.planks * 22
+            supported = self.x < BRIDGE_START or self.x >= BRIDGE_END or self.x < BRIDGE_START + self.planks * PLANK_WIDTH
             previous_y = self.y
             self.vy += 460 * step
             self.y += self.vy * step
@@ -97,13 +99,13 @@ class World:
                 self.message = 'You fell through a missing plank. Fix the loop and rebuild.'
                 return 'dead'
         if self.y == 141:
-            if abs(self.x - 174) < 8: remember('first')
+            if abs(self.x - 192) < 8: remember('first')
             if abs(self.x - 250) < 8: remember('second')
             if self.x >= 280: return 'won'
         return None
     def program_finished(self):
         self.program_done = True
-        self.message = 'Bridge complete! Walk to the flag with Left / Right.' if self.planks == 3 else 'Your loop ended with missing planks. Check its repetition count.'
+        self.message = f'{self.planks} planks built. Walk to the flag with Left / Right.' if self.planks >= REQUIRED_PLANKS else f'Your loop built {self.planks} planks. The gap needs {REQUIRED_PLANKS}. Check its count.'
         return None
 
 
@@ -113,14 +115,19 @@ def draw_scene(surface, world, small, title):
     pixel_cloud(surface, 24, 30)
     pixel_cloud(surface, 203, 24)
     pygame.draw.rect(surface, (150, 188, 207), (0, 146, 320, 34))
-    for left, width in [(0, 108), (174, 146)]:
+    for left, width in [(0, BRIDGE_START), (BRIDGE_END, WIDTH-BRIDGE_END)]:
         pygame.draw.rect(surface, (177, 211, 174), (left, 141, width, 7))
         pygame.draw.rect(surface, (232, 193, 180), (left, 148, width, 32))
-    for index in range(3):
-        rect = pygame.Rect(108+index*22, 140, 22, 7)
+    for index in range(max(REQUIRED_PLANKS,world.planks)):
+        x = BRIDGE_START+index*PLANK_WIDTH
+        rect = pygame.Rect(x, 140, PLANK_WIDTH, 7)
         pygame.draw.rect(surface, (224, 185, 147) if world.planks > index else (125, 153, 184), rect, 0 if world.planks > index else 1)
-    label(surface, title, 'THREE SPACES. ONE BRIDGE.', 56, 67)
-    for x, name in [(170, 'first'), (246, 'second')]: draw_coin(surface, pygame.Rect(x, 125, 8, 10), name in COLLECTED_COINS)
+        if world.planks > index:
+            pygame.draw.line(surface,(164,130,112),(x+PLANK_WIDTH-1,141),(x+PLANK_WIDTH-1,146),1)
+            pygame.draw.rect(surface,(147,121,110),(x+3,142,1,1))
+    label(surface, title, 'TEN PLANKS TO THE OTHER SIDE.', 33, 67)
+    label(surface, small, f'PLANKS {world.planks:02} / {REQUIRED_PLANKS}',125,91)
+    for x, name in [(188, 'first'), (246, 'second')]: draw_coin(surface, pygame.Rect(x, 125, 8, 10), name in COLLECTED_COINS)
     pygame.draw.rect(surface, (111, 143, 131), (281, 106, 2, 35))
     pygame.draw.rect(surface, (181, 224, 177), (283, 107, 17, 10))
     draw_girl(surface, world.x, world.y, world.moving)

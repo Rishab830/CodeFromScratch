@@ -125,9 +125,9 @@ export const LEVELS: readonly Level[] = [
     "runtimeId": 9,
     "id": "bridge-builder",
     "hints": [
-      "Step through the starter and count the planks it places. Compare that number with the empty bridge spaces.",
-      "range(n) repeats the indented action n times. Space advances the building loop; Left and Right move Maya independently. Missing planks leave holes she can fall through.",
-      "Change the loop to for i in range(3): and keep place_plank() indented inside it. Compile, use Space to place all three planks, then walk across to the flag with Right."
+      "Tap Space once and watch the whole starter loop run. Count the planks it builds and compare the bridge length with the river gap.",
+      "range(n) repeats place_plank() n times. The starter repeats five times, so it builds only half the required bridge. Maya still moves independently with Left and Right.",
+      "Change the loop to for plank in range(10): and keep place_plank() indented inside it. Compile, tap Space once to build all ten planks, then walk across to the flag with Right."
     ],
     "title": "The Bridge Builder",
     "world": "Apricot River",
@@ -142,14 +142,14 @@ export const LEVELS: readonly Level[] = [
     "source": "/levels/bridge-builder.py",
     "runtime": "/runner-9/",
     "storage": "cfs:workshop:bridge:v1",
-    "codeVersion": 2,
-    "missionTitle": "A loop that stops one plank too soon.",
-    "mission": "The river has three bridge spaces. Space steps through your building loop; Left and Right move Maya at any time. Fix the loop, build all three planks, and walk across to the flag. Missing planks leave gaps in the bridge.",
-    "intro": "Space builds the bridge. Left / Right moves Maya. Walk across to the flag yourself.",
+    "codeVersion": 3,
+    "missionTitle": "Half a bridge won't get you across.",
+    "mission": "The river gap is ten planks long, but the starter loop builds only five. Tap Space once to run the whole building loop. Its repetition count determines the bridge's length. Fix the code, build your bridge, then walk across with Left / Right. Missing planks leave gaps you can fall through.",
+    "intro": "Tap Space once to build the whole bridge. Left / Right moves Maya at any time.",
     "goal": "Bridge Builder",
     "death": "Watch for missing planks in the bridge.",
-    "log": "Space places planks from your loop. Left / Right controls Maya at all times. Walk to the flag to finish.",
-    "reference": "Use a for loop with place_plank() inside it. Space runs the next building action; Left / Right moves Maya independently. Building never moves her automatically. The function header and game code are locked. Compile your loop, build the bridge, then walk across it.",
+    "log": "One Space press runs the entire building loop. Each repetition adds a plank. Use Left / Right to walk to the flag yourself.",
+    "reference": "Use a for loop with place_plank() inside it. One Space press starts the whole loop, and its planks appear in sequence. The gap needs ten planks. Left / Right moves Maya independently, before, during, and after building. Restart or Compile resets the bridge so you can try again.",
     "actions": [
       [
         "range(n)",
@@ -157,7 +157,7 @@ export const LEVELS: readonly Level[] = [
       ],
       [
         "place_plank()",
-        "Fill the next bridge space."
+        "Add one plank to the bridge's length."
       ],
       [
         "Left / Right",
@@ -175,10 +175,10 @@ export const LEVELS: readonly Level[] = [
       ],
       [
         " ",
-        "Place plank"
+        "Build bridge"
       ]
     ],
-    "spaceLabel": "Build"
+    "spaceLabel": "Build bridge"
   },
   {
     "number": 4,

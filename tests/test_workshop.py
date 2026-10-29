@@ -14,7 +14,7 @@ import pygame
 
 SOLUTIONS = {
  'parcel-sorter': '    if parcel_colour() == "red":\n        send_left()\n    elif parcel_colour() == "blue":\n        send_middle()\n    else:\n        send_right()\n',
- 'bridge-builder': '    for i in range(3):\n        place_plank()\n',
+ 'bridge-builder': '    for i in range(10):\n        place_plank()\n',
  'lost-robot': '    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
  'foggy-tunnel': '    while not exit_detected():\n        move_forward()\n    open_exit()\n',
  'rocket-launch': '    if power_on():\n        if fuel_ready():\n            launch()\n        else:\n            refuel()\n    else:\n        wait_for_power()\n',
@@ -97,7 +97,7 @@ class WorkshopTests(unittest.TestCase):
     def test_complete_bridge_never_walks_or_wins_without_movement_input(self):
         world=self.make('bridge-builder',SOLUTIONS['bridge-builder'])
         self.assertIsNone(self.finish(world))
-        self.assertEqual(world.planks,3)
+        self.assertEqual(world.planks,10)
         self.assertEqual(world.x,66)
         self.assertEqual(world.y,141)
         self.assertEqual(self.games['bridge-builder'][0]['COLLECTED_COINS'],set())
@@ -114,7 +114,7 @@ class WorkshopTests(unittest.TestCase):
     def test_bridge_starter_leaves_a_real_gap_that_the_player_falls_through(self):
         world=self.make('bridge-builder')
         self.assertIsNone(self.finish(world))
-        self.assertEqual(world.planks,2)
+        self.assertEqual(world.planks,5)
         result=None
         for _ in range(100):
             result=world.update(0.05,right=True)
@@ -122,6 +122,27 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(result,'dead')
         self.assertGreater(world.y,180)
         self.assertNotIn('first',self.games['bridge-builder'][0]['COLLECTED_COINS'])
+
+    def test_one_space_tap_runs_the_entire_bridge_loop_after_release(self):
+        for count in (5,10,12):
+            with self.subTest(count=count):
+                world=self.make('bridge-builder',f'    for plank in range({count}):\n        place_plank()\n')
+                for _ in range(10): self.assertIsNone(world.update(0.05))
+                self.assertEqual(world.planks,0)
+                self.assertIsNone(world.update(0.01,action=True))
+                self.assertEqual(world.planks,1)
+                for _ in range(100): self.assertIsNone(world.update(0.05,action=False))
+                self.assertEqual(world.planks,count)
+                self.assertTrue(world.program_done)
+                self.assertEqual(world.x,66)
+                for _ in range(10): self.assertIsNone(world.update(0.25,action=True))
+                self.assertEqual(world.planks,count)
+
+    def test_bridge_gap_has_ten_equal_plank_lengths(self):
+        ns,_=self.games['bridge-builder']
+        self.assertEqual(ns['REQUIRED_PLANKS'],10)
+        self.assertEqual(ns['BRIDGE_END']-ns['BRIDGE_START'],10*ns['PLANK_WIDTH'])
+        self.assertIn('range(5)',self.games['bridge-builder'][1])
 
     def test_parcels_require_a_correct_decision_for_every_colour(self):
         world=self.make('parcel-sorter',SOLUTIONS['parcel-sorter'].replace('send_middle()','send_left()'),colours=['red','blue','yellow','yellow','red','blue'])

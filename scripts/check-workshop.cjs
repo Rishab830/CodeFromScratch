@@ -9,7 +9,7 @@ let browser,page;
 const fixes={
  'confused-traffic-signal':'    if current == "red":\n        next_color = "green"\n    elif current == "green":\n        next_color = "yellow"\n    else:\n        next_color = "red"\n',
  'parcel-sorter':'    if parcel_colour() == "red":\n        send_left()\n    elif parcel_colour() == "blue":\n        send_middle()\n    else:\n        send_right()\n',
- 'bridge-builder':'    for i in range(3):\n        place_plank()\n',
+ 'bridge-builder':'    for i in range(10):\n        place_plank()\n',
  'lost-robot':'    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
  'space-patrol':'    while enemy_visible():\n        shoot()\n',
  'foggy-tunnel':'    while not exit_detected():\n        move_forward()\n    open_exit()\n',
@@ -70,10 +70,10 @@ const fixes={
 
   await next('bridge-builder');await start();
   await hold('ArrowLeft',250);await hold('ArrowRight',250);
-  await hold('Space',1000);
+  await hold('Space',70);await page.waitForTimeout(1100);
   assert.equal(await page.getByRole('dialog',{name:'Game over',exact:true}).count(),0);
   await hold('ArrowRight',2300);await dead();
-  await fixed('bridge-builder');await hold('Space',1800);
+  await fixed('bridge-builder');await hold('Space',70);await page.waitForTimeout(2000);
   assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   const bridgeFrame=page.frames().find(f=>/\/runner-9\/?$/.test(new URL(f.url()).pathname));
   async function bridgePosition(){return bridgeFrame.evaluate(()=>{
@@ -93,7 +93,7 @@ const fixes={
   await page.locator('iframe').click();
   await hold('ArrowRight',2600);await won();
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
-  console.log('PASS: core 3 builds with Space, permits left/right movement at all times, falls through missing planks, and requires a manual crossing');
+  console.log('PASS: core 3 runs the whole loop from one Space tap; five planks leave a gap, ten reach the bank, and crossing stays manual');
 
   await next('lost-robot');await start();await hold('Space',400);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-robot-blank');
