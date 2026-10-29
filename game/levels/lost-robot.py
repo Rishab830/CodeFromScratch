@@ -4,7 +4,7 @@ import random
 import pygame
 import lesson_bridge
 
-LEVEL_NUMBER = 4
+LEVEL_NUMBER = 5
 COIN_STORAGE_ID = 4
 WIDTH, HEIGHT = 320, 180
 PROGRAM_NAME = 'guide_robot'

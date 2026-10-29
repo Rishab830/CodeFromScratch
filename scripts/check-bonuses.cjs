@@ -8,7 +8,7 @@ let browser,page;
   browser=await chromium.launch({channel:'chrome',headless:true});
   page=await browser.newPage({viewport:{width:1440,height:1100}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(keys=>keys.forEach(key=>localStorage.setItem(key+':complete','yes')),core.map(l=>l.storage));
+  await page.addInitScript(keys=>{try{keys.forEach(key=>localStorage.setItem(key+':complete','yes'))}catch{}},core.filter(l=>l.id!=='gift-catcher').map(l=>l.storage));
   await page.route(/\/runner(?:-\d+)?\/?$/,async route=>{
     const u=new URL(route.request().url());
     if(u.pathname.endsWith('/'))await route.fulfill({status:308,headers:{location:u.pathname.slice(0,-1)}});
@@ -43,7 +43,7 @@ let browser,page;
   assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await playGifts(page);
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
-  assert.equal(await page.getByRole('button',{name:'Choose another bonus',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Next lesson',exact:true}).count(),1);
   console.log('PASS: Gift Catcher requires manual catching and nested-if handling, hides contents until opening, drops bombs and collects eggs plus saved coins');
 
   await choose('endless-coin-collector');await start();

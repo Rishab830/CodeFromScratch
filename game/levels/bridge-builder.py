@@ -4,7 +4,7 @@ import random
 import pygame
 import lesson_bridge
 
-LEVEL_NUMBER = 3
+LEVEL_NUMBER = 4
 COIN_STORAGE_ID = 9
 WIDTH, HEIGHT = 320, 180
 PROGRAM_NAME = 'build_bridge'

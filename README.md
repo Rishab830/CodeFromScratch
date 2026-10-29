@@ -8,12 +8,13 @@ A Next.js website for a one-hour Python workshop. Students read real Pygame code
 | --- | --- | --- | --- |
 | 1 | The Confused Traffic Signal | `if` / `elif` / `else` | Debug the signal sequence, without dictionaries. |
 | 2 | The Parcel Sorter | Conditions in a new setting | Blank function, supplied colour sensors and sorting actions. |
-| 3 | The Bridge Builder | `for` and `range` | Debug how many planks are placed. |
-| 4 | The Lost Robot | Counted movement | Blank function, supplied movement actions; no instruction lists. |
-| 5 | Space Patrol | `while`, or `for` with `if` | Pilot a ship and fix a weapon that wastes its limited ammunition. |
-| 6 | The Foggy Tunnel | Repeat until a live condition changes | Drive an RC car into three tunnels; its blank onboard function must take over when signal is lost. |
+| 3 | The Gift Catcher | Nested `if` | Catch falling gifts; open each box, then drop a bomb or collect a safe gift. |
+| 4 | The Bridge Builder | `for` and `range` | Debug how many planks are placed. |
+| 5 | The Lost Robot | Counted movement | Blank function, supplied movement actions; no instruction lists. |
+| 6 | Space Patrol | `while`, or `for` with `if` | Pilot a ship and fix a weapon that wastes its limited ammunition. |
+| 7 | The Foggy Tunnel | Repeat until a live condition changes | Drive an RC car into three tunnels; its blank onboard function must take over when signal is lost. |
 
-Lessons unlock sequentially. Each concept starts with debugging and ends with an editable body containing `pass`. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly seven minutes per core lesson, and the remaining time for discussion or bonuses.
+Lessons unlock sequentially. Conditions, for, and while have a debugging lesson followed by an editable body containing `pass`. Gift Catcher adds nested-if debugging after the two initial condition lessons. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly six minutes per core lesson, and the remaining time for discussion or bonuses.
 
 Space Patrol starts with an unconditional `for` loop. Space arms the weapon once, then the student pilots with all four arrows or WASD while their code chooses when to shoot. Ten enemies need three auto-aimed hits each, and the magazine holds exactly thirty bullets. Empty shots waste ammunition. Enemies fire back; after clearing the sector, fly to the exit beacon. Either a live `while` condition or a `for` loop containing an `if` check works. Foggy Tunnel then requires `while` specifically.
 
@@ -21,17 +22,16 @@ Foggy Tunnel requires `while` and rejects `for`. Left / Right or A / D drives th
 
 ## Optional bonuses
 
-All seven unlock together after the six core lessons. Any bonus can be chosen without completing another bonus first.
+All six unlock together after the seven core lessons. Any bonus can be chosen without completing another bonus first.
 
 | Bonus | Game | Focus |
 | --- | --- | --- |
-| 1 | The Gift Catcher | Catch sealed gifts and debug nested decisions: open, then drop a bomb or collect an egg or coin. |
-| 2 | The Rocket Launch | Build nested conditions using power and fuel sensors. |
-| 3 | The Greenhouse Grid | Debug nested loops over rows and columns. |
-| 4 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
-| 5 | The Jumping Girl | Fix the blue-tile action, then play to the flag. |
-| 6 | The Blue Leap | Edit the entire `Girl` class and find a valid route. |
-| 7 | The Endless Coin Collector | Stop the machine at five, then reach the exit. |
+| 1 | The Rocket Launch | Build nested conditions using power and fuel sensors. |
+| 2 | The Greenhouse Grid | Debug nested loops over rows and columns. |
+| 3 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
+| 4 | The Jumping Girl | Fix the blue-tile action, then play to the flag. |
+| 5 | The Blue Leap | Edit the entire `Girl` class and find a valid route. |
+| 6 | The Endless Coin Collector | Stop the machine at five, then reach the exit. |
 
 The original two platform maps retain overhead spikes, a 21-pixel floor gap (half the default running-jump distance), and the same blue tile. Blue Leap retains its walkable spike top and locked blue jump action. Small jumps under the spikes and high jumps over them are both valid. Coins leave outlines, persist per game, and appear filled or outlined on completion. Any coin count can clear these arcade levels.
 
@@ -59,7 +59,7 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 - Space advances Parcel Sorter, Lost Robot, Rocket Launch, Greenhouse Grid, and Final Escape one action at a time; holding it repeats. In Gift Catcher, tap it once per caught box to run the whole handler. In Space Patrol, tap it once to arm the automatic weapon. Foggy Tunnel starts its code automatically on entering a tunnel and has no Space action. In Endless Coin Collector, Space starts the nearby machine.
 - Sensors reflect the live world when the program checks them; the timing depends on the game.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
-- Each game awards 100 XP. The six core lessons earn 600 XP and open the optional section. Bonuses are not required for the workshop celebration.
+- Each game awards 100 XP. The seven core lessons earn 700 XP and open the optional section. Bonuses are not required for the workshop celebration.
 - Edits, completions, coins, and theme preferences persist in this browser. Progress is client-side, not authoritative grading.
 - Site and code themes have independent controls, both defaulting to dark. The site light palette is white and orange.
 

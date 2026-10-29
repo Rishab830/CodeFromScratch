@@ -130,6 +130,83 @@ export const LEVELS: readonly Level[] = [
   },
   {
     "number": 3,
+    "runtimeId": 6,
+    "id": "gift-catcher",
+    "title": "The Gift Catcher",
+    "world": "Peach Picnic Park",
+    "concept": "nested-if",
+    "exercise": "debug",
+    "group": "workshop",
+    "kind": "program",
+    "coins": [
+      "gift-1",
+      "gift-2"
+    ],
+    "source": "/levels/gift-catcher.py",
+    "runtime": "/runner-6/",
+    "storage": "cfs:bonus:gift-catcher:v1",
+    "missionTitle": "Open the surprise. Then decide.",
+    "mission": "Move the basket under falling gifts and collect five eggs. Every box is sealed: you must open it before checking what is inside. A revealed bomb gives your code one action to drop it safely. Eggs and coins should be collected. The starter mixes up those two actions.",
+    "intro": "Left / Right moves the basket. Catch a wrapped gift, then tap Space to run your handler once.",
+    "goal": "Collect five eggs. Drop every bomb.",
+    "death": "Keep eggs safe, catch the falling gifts, and drop bombs immediately after opening them.",
+    "log": "Arrows or A / D moves the basket. Space runs the nested-if handler once. Open first, then drop a bomb or collect a safe gift.",
+    "reference": "The outer if checks gift_in_basket(). Only open a box when that is true. Inside that branch, open_gift() reveals the contents, then a nested if can use gift_is_bomb(). A bomb must be dropped as the very next action; reading a sensor does not use that action. The else branch collects either an egg or a coin. For and while loops are not enabled here.",
+    "hints": [
+      "Watch the two checks at the top of the game. The inner question stays locked while the box is sealed. Which actions should follow a bomb reveal and a safe reveal?",
+      "Keep open_gift() inside if gift_in_basket(). Put the bomb check after opening, inside that same outer branch. A bomb must be dropped; the else branch can collect both eggs and coins.",
+      "Inside if gift_in_basket(): call open_gift(). Then write if gift_is_bomb(): with drop() inside it, and else: with collect() inside it. Compile, catch gifts with Left / Right, and tap Space for each one."
+    ],
+    "actions": [
+      [
+        "gift_in_basket()",
+        "True when the basket contains a gift."
+      ],
+      [
+        "open_gift()",
+        "Unwrap the gift so its contents can be inspected."
+      ],
+      [
+        "gift_is_bomb()",
+        "Check for a bomb, only after opening the gift."
+      ],
+      [
+        "drop()",
+        "Toss the gift away. Use immediately after revealing a bomb."
+      ],
+      [
+        "collect()",
+        "Keep the egg or add the coin to your saved collection."
+      ]
+    ],
+    "controls": [
+      [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
+        " ",
+        "Handle gift"
+      ]
+    ],
+    "playInstruction": "Move under a falling box. Once caught, tap Space to run the whole handler.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Move basket"
+      ],
+      [
+        "SPACE",
+        "Handle gift"
+      ]
+    ]
+  },
+  {
+    "number": 4,
     "runtimeId": 9,
     "id": "bridge-builder",
     "hints": [
@@ -195,7 +272,7 @@ export const LEVELS: readonly Level[] = [
     ]
   },
   {
-    "number": 4,
+    "number": 5,
     "runtimeId": 4,
     "id": "lost-robot",
     "hints": [
@@ -260,7 +337,7 @@ export const LEVELS: readonly Level[] = [
     ]
   },
   {
-    "number": 5,
+    "number": 6,
     "runtimeId": 10,
     "id": "space-patrol",
     "hints": [
@@ -341,7 +418,7 @@ export const LEVELS: readonly Level[] = [
     ]
   },
   {
-    "number": 6,
+    "number": 7,
     "runtimeId": 11,
     "id": "foggy-tunnel",
     "hints": [
@@ -399,83 +476,6 @@ export const LEVELS: readonly Level[] = [
       [
         "\u2190 \u2192 / A D",
         "Drive outside"
-      ]
-    ]
-  },
-  {
-    "number": 7,
-    "runtimeId": 6,
-    "id": "gift-catcher",
-    "title": "The Gift Catcher",
-    "world": "Peach Picnic Park",
-    "concept": "nested-if",
-    "exercise": "debug",
-    "group": "bonus",
-    "kind": "program",
-    "coins": [
-      "gift-1",
-      "gift-2"
-    ],
-    "source": "/levels/gift-catcher.py",
-    "runtime": "/runner-6/",
-    "storage": "cfs:bonus:gift-catcher:v1",
-    "missionTitle": "Open the surprise. Then decide.",
-    "mission": "Move the basket under falling gifts and collect five eggs. Every box is sealed: you must open it before checking what is inside. A revealed bomb gives your code one action to drop it safely. Eggs and coins should be collected. The starter mixes up those two actions.",
-    "intro": "Left / Right moves the basket. Catch a wrapped gift, then tap Space to run your handler once.",
-    "goal": "Collect five eggs. Drop every bomb.",
-    "death": "Keep eggs safe, catch the falling gifts, and drop bombs immediately after opening them.",
-    "log": "Arrows or A / D moves the basket. Space runs the nested-if handler once. Open first, then drop a bomb or collect a safe gift.",
-    "reference": "The outer if checks gift_in_basket(). Only open a box when that is true. Inside that branch, open_gift() reveals the contents, then a nested if can use gift_is_bomb(). A bomb must be dropped as the very next action; reading a sensor does not use that action. The else branch collects either an egg or a coin. For and while loops are not enabled here.",
-    "hints": [
-      "Watch the two checks at the top of the game. The inner question stays locked while the box is sealed. Which actions should follow a bomb reveal and a safe reveal?",
-      "Keep open_gift() inside if gift_in_basket(). Put the bomb check after opening, inside that same outer branch. A bomb must be dropped; the else branch can collect both eggs and coins.",
-      "Inside if gift_in_basket(): call open_gift(). Then write if gift_is_bomb(): with drop() inside it, and else: with collect() inside it. Compile, catch gifts with Left / Right, and tap Space for each one."
-    ],
-    "actions": [
-      [
-        "gift_in_basket()",
-        "True when the basket contains a gift."
-      ],
-      [
-        "open_gift()",
-        "Unwrap the gift so its contents can be inspected."
-      ],
-      [
-        "gift_is_bomb()",
-        "Check for a bomb, only after opening the gift."
-      ],
-      [
-        "drop()",
-        "Toss the gift away. Use immediately after revealing a bomb."
-      ],
-      [
-        "collect()",
-        "Keep the egg or add the coin to your saved collection."
-      ]
-    ],
-    "controls": [
-      [
-        "ArrowLeft",
-        "Move left"
-      ],
-      [
-        "ArrowRight",
-        "Move right"
-      ],
-      [
-        " ",
-        "Handle gift"
-      ]
-    ],
-    "playInstruction": "Move under a falling box. Once caught, tap Space to run the whole handler.",
-    "keyboardGuide": [
-      [
-        "\u2190 \u2192 / A D",
-        "Move basket"
-      ],
-      [
-        "SPACE",
-        "Handle gift"
       ]
     ]
   },

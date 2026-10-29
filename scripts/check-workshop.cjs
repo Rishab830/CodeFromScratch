@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 const fs=require('node:fs');
 const {core,bonus}=require('./level-fixtures.cjs');
+const {GIFT_SOLUTION,playGifts}=require('./gift-catcher-fixture.cjs');
 const {shipPosition,pilotSector,flyToBeacon}=require('./space-patrol-fixture.cjs');
 const qa=path.join(__dirname,'..','artifacts','qa');fs.mkdirSync(qa,{recursive:true});
 let browser,page;
@@ -18,7 +19,7 @@ const fixes={
  'final-escape':'    for row in range(2):\n        for column in range(3):\n            power_cell(row, column)\n    if all_powered():\n        unlock_exit()\n        open_exit()\n',
 };
 (async()=>{
-  assert.deepEqual(Array.from(core,l=>l.id),['confused-traffic-signal','parcel-sorter','bridge-builder','lost-robot','space-patrol','foggy-tunnel']);
+  assert.deepEqual(Array.from(core,l=>l.id),['confused-traffic-signal','parcel-sorter','gift-catcher','bridge-builder','lost-robot','space-patrol','foggy-tunnel']);
   browser=await chromium.launch({channel:'chrome',headless:true});
   page=await browser.newPage({viewport:{width:1440,height:1100}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -68,6 +69,13 @@ const fixes={
   await fixed('parcel-sorter');await hold('Space',11000);await won();
   console.log('PASS: core 2 starts blank, exposes supplied functions, and requires routing all colours correctly');
 
+  await next('gift-catcher');await start();
+  assert(await stop('bridge-builder').isDisabled());
+  await compile(GIFT_SOLUTION);await playing();await playGifts(page);await won();
+  assert.equal(await page.getByRole('button',{name:'Next lesson',exact:true}).count(),1);
+  assert(!(await stop('bridge-builder').isDisabled()));
+  console.log('PASS: core 3 catches falling gifts with nested if and unlocks Bridge Builder as lesson 4');
+
   await next('bridge-builder');await start();
   await hold('ArrowLeft',250);await hold('ArrowRight',250);
   await hold('Space',70);await page.waitForTimeout(1100);
@@ -93,7 +101,7 @@ const fixes={
   await page.locator('iframe').click();
   await hold('ArrowRight',2600);await won();
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
-  console.log('PASS: core 3 runs the whole loop from one Space tap; five planks leave a gap, ten reach the bank, and crossing stays manual');
+  console.log('PASS: core 4 runs the whole loop from one Space tap; five planks leave a gap, ten reach the bank, and crossing stays manual');
 
   await next('lost-robot');await start();await hold('Space',400);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-robot-blank');
@@ -114,7 +122,7 @@ const fixes={
   assert(Math.abs(robotStart-robotArrived-24)<1,'A released Space tap should finish exactly one tile move');
   await page.waitForTimeout(300);assert.equal(await robotPosition(),robotArrived);
   await hold('Space',4500);await won();
-  console.log('PASS: core 4 animates the robot route, stops at walls on wrong moves, and reaches the dock with valid for loops');
+  console.log('PASS: core 5 animates the robot route, stops at walls on wrong moves, and reaches the dock with valid for loops');
 
   await next('space-patrol');await start();
   const shipStart=await shipPosition(page);
@@ -131,7 +139,7 @@ const fixes={
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
   await compile('    for bullet in range(30):\n        if enemy_visible():\n            shoot()\n');await playing();
   await pilotSector(page);await flyToBeacon(page);await won();
-  console.log('PASS: core 5 has four-way flight, a finite auto-aimed magazine, enemy fire, and accepts while or for/if; manual flight to the beacon finishes it');
+  console.log('PASS: core 6 has four-way flight, a finite auto-aimed magazine, enemy fire, and accepts while or for/if; manual flight to the beacon finishes it');
 
   await next('foggy-tunnel');await start();await hold('Space',350);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-foggy-blank');
@@ -153,20 +161,20 @@ const fixes={
   await page.keyboard.down('ArrowRight');
   await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:60000});
   await page.keyboard.up('ArrowRight');await won();
-  assert.match(await page.locator('.xp').innerText(),/600/);
+  assert.match(await page.locator('.xp').innerText(),new RegExp(String(core.length*100)));
   assert.equal(await page.getByRole('group',{name:'Coins collected: 3 of 3',exact:true}).count(),1);
   for(const l of bonus)assert(!(await stop(l.id).isDisabled()));
   assert.equal(await page.evaluate(keys=>keys.some(k=>localStorage.getItem(k+':complete')==='yes'),bonus.map(l=>l.storage)),false);
   await screenshot('workshop-complete');
   await page.getByRole('button',{name:'Workshop complete',exact:true}).click();await page.getByRole('heading',{name:'Workshop complete!',exact:true}).waitFor();
   await page.getByRole('button',{name:'Close',exact:true}).click();
-  console.log('PASS: core 6 switches from remote driving to autonomous while code, animates sensor checks and gates, and resets its single opening allowance across three tunnels');
+  console.log('PASS: core 7 switches from remote driving to autonomous while code, animates sensor checks and gates, and resets its single opening allowance across three tunnels');
 
   for(const [id,duration] of [['rocket-launch',1100],['greenhouse-grid',3000],['final-escape',2600]]){
     await stop(id).click();await ready(id);await fixed(id);await hold('Space',duration);await won();
     assert.equal(await page.getByRole('button',{name:'Choose another bonus',exact:true}).count(),1);
   }
-  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),null);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),'yes');
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await screenshot('workshop-bonuses-mobile');

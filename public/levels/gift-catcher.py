@@ -5,7 +5,7 @@ import random
 import pygame
 import lesson_bridge
 
-LEVEL_NUMBER = 7
+LEVEL_NUMBER = 3
 COIN_STORAGE_ID = 6
 WIDTH, HEIGHT = 320, 180
 PROGRAM_NAME = 'handle_gift'
