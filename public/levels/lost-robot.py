@@ -42,6 +42,9 @@ def label(surface, font, text, x, y, color=(91, 79, 119)):
 
 ROBOT_PATH = {(8, 5), (7, 5), (6, 5), (5, 5), (5, 4), (5, 3), (4, 3), (3, 3), (2, 3)}
 DIRECTIONS = {'left':(-1,0), 'right':(1,0), 'up':(0,-1), 'down':(0,1)}
+WALLS = tuple(pygame.Rect(28+col*24, 8+row*22, 23, 21)
+              for row in range(1,7) for col in range(11) if (col,row) not in ROBOT_PATH)
+MOVE_SPEED = 48
 def robot_point(cell): return 28+cell[0]*24+12, 8+cell[1]*22+11
 
 class World:
@@ -50,6 +53,10 @@ class World:
         self.elapsed = self.cooldown = 0.0
         self.actions = 0
         self.cell = (8, 5)
+        self.x, self.y = robot_point(self.cell)
+        self.moving = self.crashed = False
+        self.direction = (0, 0)
+        self.target_cell = self.cell
         self.message = 'Count the tiles. Write your loops, then press Space to step.'
     def commands(self):
         return {'move_left':self.move_left,'move_right':self.move_right,'move_up':self.move_up,'move_down':self.move_down}
@@ -59,15 +66,45 @@ class World:
     def move_up(self): return 'up'
     def move_down(self): return 'down'
     def perform(self, command):
-        dx,dy = DIRECTIONS[command]
-        next_cell = self.cell[0]+dx, self.cell[1]+dy
-        if next_cell not in ROBOT_PATH:
+        self.direction = DIRECTIONS[command]
+        dx,dy = self.direction
+        self.target_cell = self.cell[0]+dx, self.cell[1]+dy
+        self.moving = True
+        self.message = f'Moving {command}...'
+        return None
+
+    def animate_move(self, dt):
+        target_x,target_y = robot_point(self.target_cell)
+        remaining = abs(target_x-self.x) + abs(target_y-self.y)
+        distance = min(MOVE_SPEED*dt, remaining)
+        dx,dy = self.direction
+        left,right,top,bottom = self.x-7, self.x+7, self.y-9, self.y+7
+        hit_wall = False
+        # Sweep the robot's body to the nearest wall, even on a slow frame.
+        # Never reject a destination in advance or let the sprite enter a wall.
+        for wall in WALLS:
+            if dx and top < wall.bottom and bottom > wall.top:
+                gap = wall.left-right if dx > 0 else left-wall.right
+            elif dy and left < wall.right and right > wall.left:
+                gap = wall.top-bottom if dy > 0 else top-wall.bottom
+            else:
+                continue
+            if 0 <= gap <= distance:
+                distance,hit_wall = gap,True
+        self.x += dx*distance
+        self.y += dy*distance
+        if hit_wall:
+            self.moving = False
+            self.crashed = True
             self.message = 'That step hit a crate. Check the direction and repetition count.'
             return 'dead'
-        self.cell = next_cell
-        if self.cell == (6,5): remember('loop')
-        if self.cell == (5,3): remember('route')
-        self.message = 'Dock reached. Press Space to finish your program.' if self.cell == (2,3) else f'Step {self.actions}. Keep following the path.'
+        if distance == remaining:
+            self.x,self.y = target_x,target_y
+            self.cell = self.target_cell
+            self.moving = False
+            if self.cell == (6,5): remember('loop')
+            if self.cell == (5,3): remember('route')
+            self.message = 'Dock reached. Press Space to finish your program.' if self.cell == (2,3) else f'Step {self.actions}. Keep following the path.'
         return None
     def program_finished(self):
         if self.cell == (2,3): return 'won'
@@ -77,6 +114,10 @@ class World:
     def update(self, dt, action=False):
         self.elapsed += dt
         self.cooldown = max(0.0, self.cooldown - dt)
+        if self.crashed:
+            return None
+        if self.moving:
+            return self.animate_move(dt)
         if action and self.cooldown == 0:
             self.cooldown = 0.24
             return advance_program(self)
@@ -99,7 +140,7 @@ def draw_scene(surface, world, small, title):
     for cell,name in [((6,5),'loop'),((5,3),'route')]:
         x,y=robot_point(cell)
         draw_coin(surface,pygame.Rect(x-4,y-5,8,10),name in COLLECTED_COINS)
-    x,y=robot_point(world.cell)
+    x,y=round(world.x),round(world.y)
     pygame.draw.rect(surface,(113,129,163),(x-6,y-8,12,15))
     pygame.draw.rect(surface,(183,217,230),(x-7,y-9,14,9))
     for dx in (-4,2): pygame.draw.rect(surface,(76,90,124),(x+dx,y-6,2,2))

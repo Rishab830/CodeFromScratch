@@ -51,6 +51,7 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 - **Compile** validates the edit, applies it, and restarts the game. Compilation or waiting alone cannot finish a level.
 - Use the controls below the game. Traffic and arcade games use movement keys; program challenges use Space or the touch button to step through actions.
 - In Bridge Builder, Space only builds planks. Left / Right controls Maya at all times; she must walk across the completed bridge herself. Missing planks leave gaps she can fall through.
+- In Lost Robot, each Space action animates one tile move. Further actions wait until it finishes; a wrong move ends the attempt only when the robot's body reaches a wall.
 - Sensors reflect the live world at each step. Hold Space to advance repeatedly or tap it to step once.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
 - Each game awards 100 XP. The six core lessons earn 600 XP and open the optional section. Bonuses are not required for the workshop celebration.

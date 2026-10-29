@@ -212,6 +212,73 @@ class WorkshopTests(unittest.TestCase):
         for body in ('    move_left()\n','    while True:\n        move_left()\n','    for i in range(1):\n        pass\n    move_left()\n'):
             with self.subTest(body=body),self.assertRaises(ValueError): self.make('lost-robot',body)
 
+    def test_robot_moves_between_tiles_and_finishes_a_tapped_action(self):
+        world=self.make('lost-robot',SOLUTIONS['lost-robot'])
+        start_x,start_y=world.x,world.y
+        self.assertIsNone(world.update(0.01,True))
+        self.assertTrue(world.moving)
+        self.assertEqual((world.x,world.y),(start_x,start_y))
+        self.assertIsNone(world.update(0.125,True))
+        self.assertEqual(world.cell,(8,5))
+        self.assertLess(world.x,start_x)
+        self.assertGreater(world.x,start_x-24)
+        self.assertEqual(world.y,start_y)
+        self.assertEqual(world.actions,1)  # Holding Space must not skip a moving step.
+        self.assertIsNone(world.update(0.375,False))
+        self.assertEqual(world.cell,(7,5))
+        self.assertEqual((world.x,world.y),(start_x-24,start_y))
+        self.assertFalse(world.moving)
+        self.assertIsNone(world.update(5,False))
+        self.assertEqual(world.cell,(7,5))
+        self.assertEqual(world.actions,1)
+
+    def test_robot_bad_steps_animate_to_the_wall_before_game_over(self):
+        cases=[('right',(8,5)),('up',(8,5)),('down',(8,5)),('left',(2,3))]
+        ns,_=self.games['lost-robot']
+        for direction,cell in cases:
+            with self.subTest(direction=direction):
+                world=self.make('lost-robot',f'    for i in range(1):\n        move_{direction}()\n')
+                world.cell=cell
+                world.x,world.y=ns['robot_point'](cell)
+                start_x,start_y=world.x,world.y
+                self.assertIsNone(world.update(0,True))
+                self.assertIsNone(world.update(0.01,False))
+                self.assertNotEqual((world.x,world.y),(start_x,start_y))
+                self.assertFalse(world.crashed)
+                # Even a very slow frame stops at first contact, without tunnelling.
+                self.assertEqual(world.update(2,True),'dead')
+                self.assertTrue(world.crashed)
+                self.assertFalse(world.moving)
+                self.assertEqual(world.cell,cell)
+                self.assertEqual(world.actions,1)
+                self.assertLess(abs(world.x-start_x)+abs(world.y-start_y),12)
+                robot=pygame.Rect(round(world.x)-7,round(world.y)-9,14,16)
+                self.assertTrue(any(
+                    robot.right==wall.left and robot.top<wall.bottom and robot.bottom>wall.top or
+                    robot.left==wall.right and robot.top<wall.bottom and robot.bottom>wall.top or
+                    robot.bottom==wall.top and robot.left<wall.right and robot.right>wall.left or
+                    robot.top==wall.bottom and robot.left<wall.right and robot.right>wall.left
+                    for wall in ns['WALLS']))
+                self.assertFalse(any(robot.colliderect(wall) for wall in ns['WALLS']))
+                ns['draw_scene'](pygame.Surface((320,180)),world,pygame.font.Font(None,10),pygame.font.Font(None,16))
+
+    def test_robot_coins_and_completion_wait_for_tile_arrival(self):
+        world=self.make('lost-robot','    for i in range(2):\n        move_left()\n')
+        for dt,action in ((0.01,True),(0.5,False),(0.01,True),(0.25,False)):
+            self.assertIsNone(world.update(dt,action))
+        self.assertNotIn('loop',self.games['lost-robot'][0]['COLLECTED_COINS'])
+        self.assertIsNone(world.update(0.25,False))
+        self.assertIn('loop',self.games['lost-robot'][0]['COLLECTED_COINS'])
+        ns,_=self.games['lost-robot']
+        world=self.make('lost-robot','    for i in range(1):\n        move_left()\n')
+        world.cell=(3,3);world.x,world.y=ns['robot_point'](world.cell)
+        self.assertIsNone(world.update(0.01,True))
+        self.assertIsNone(world.update(0.25,True))
+        self.assertEqual(world.cell,(3,3))
+        self.assertIsNone(world.update(0.25,True))
+        self.assertEqual(world.cell,(2,3))
+        self.assertEqual(world.update(0.01,True),'won')
+
     def test_while_challenge_rejects_fixed_for_loops_and_unrolled_moves(self):
         for body in ('    for i in range(6):\n        move_forward()\n    open_exit()\n','    move_forward()\n    open_exit()\n','    while False:\n        pass\n    move_forward()\n'):
             with self.subTest(body=body),self.assertRaises(ValueError): self.make('foggy-tunnel',body)

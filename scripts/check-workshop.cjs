@@ -96,9 +96,24 @@ const fixes={
 
   await next('lost-robot');await start();await hold('Space',400);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-robot-blank');
+  const robotFrame=page.frames().find(f=>/\/runner-4\/?$/.test(new URL(f.url()).pathname));
+  async function robotPosition(){return robotFrame.evaluate(()=>{
+    const c=document.querySelector('#canvas'),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+    let x=0,n=0;for(let i=0;i<d.length;i+=4)if(d[i]===183&&d[i+1]===217&&d[i+2]===230){x+=(i/4)%c.width;n++}return x/n/(c.width/320);
+  })}
   await compile('    move_left()\n');await page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='CODE ERROR');
-  await fixed('lost-robot');await hold('Space',2800);await won();
-  console.log('PASS: core 4 is a blank for-loop route, with no instruction lists');
+  await compile('    for i in range(4):\n        move_left()\n');await playing();
+  await hold('Space',2300);await dead();
+  assert(Math.abs(await robotPosition()-154)<2,'Wrong move must stop at the wall edge, not at either tile centre');
+  await screenshot('workshop-robot-wall-contact');
+  await fixed('lost-robot');const robotStart=await robotPosition();
+  await hold('Space',120);const robotBetween=await robotPosition();
+  assert(robotBetween<robotStart-1&&robotBetween>robotStart-20,'Robot should visibly move between tile centres');
+  await page.waitForTimeout(600);const robotArrived=await robotPosition();
+  assert(Math.abs(robotStart-robotArrived-24)<1,'A released Space tap should finish exactly one tile move');
+  await page.waitForTimeout(300);assert.equal(await robotPosition(),robotArrived);
+  await hold('Space',4500);await won();
+  console.log('PASS: core 4 animates the robot route, stops at walls on wrong moves, and reaches the dock with valid for loops');
 
   await next('charging-station');await start();await hold('Space',350);await dead();
   await fixed('charging-station');await hold('Space',1500);await won();
