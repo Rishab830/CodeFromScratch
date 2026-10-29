@@ -11,13 +11,13 @@ A Next.js website for a one-hour Python workshop. Students read real Pygame code
 | 3 | The Bridge Builder | `for` and `range` | Debug how many planks are placed. |
 | 4 | The Lost Robot | Counted movement | Blank function, supplied movement actions; no instruction lists. |
 | 5 | Space Patrol | `while`, or `for` with `if` | Pilot a ship and fix a weapon that wastes its limited ammunition. |
-| 6 | The Foggy Tunnel | Repeat until a live condition changes | Blank function, three hidden, different tunnel lengths. |
+| 6 | The Foggy Tunnel | Repeat until a live condition changes | Drive an RC car into three tunnels; its blank onboard function must take over when signal is lost. |
 
 Lessons unlock sequentially. Each concept starts with debugging and ends with an editable body containing `pass`. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly seven minutes per core lesson, and the remaining time for discussion or bonuses.
 
 Space Patrol starts with an unconditional `for` loop. Space arms the weapon once, then the student pilots with all four arrows or WASD while their code chooses when to shoot. Ten enemies need three auto-aimed hits each, and the magazine holds exactly thirty bullets. Empty shots waste ammunition. Enemies fire back; after clearing the sector, fly to the exit beacon. Either a live `while` condition or a `for` loop containing an `if` check works. Foggy Tunnel then requires `while` specifically.
 
-Foggy Tunnel requires `while` and rejects `for`. Students discover each exit as they advance; overshooting or opening early ends the attempt. The same program must handle all three hidden lengths. An unknown stopping point and an explicit lesson constraint teach `while` without relying on a fixed coin count.
+Foggy Tunnel requires `while` and rejects `for`. Left / Right or A / D drives the RC car outside. Entering the tunnel loses signal and automatically starts its onboard function. The wall becomes translucent so students can watch the car, each exit-sensor check, and the rising gate. Maya stays outside holding a remote with an animated antenna. `open_exit()` has one attempt per tunnel run, including unsuccessful early attempts. A second call raises `open exit can only be attempted once`, even after a successful first opening. The allowance resets for the next tunnel or Restart. The same program must handle all three lengths.
 
 ## Optional bonuses
 
@@ -70,7 +70,9 @@ The bridge validates restricted Python syntax. Core program lessons permit the r
 
 The older arcade compilers remain available for their lessons, including editing the entire `Girl` class in Blue Leap. This is a bounded educational runner, not a general-purpose Python sandbox.
 
-Space Patrol's weapon program resumes on a game clock after the player arms it. Its loop iterations yield to the game, including iterations where an `if` skips firing, so sensors can change during gaps between waves. Other lessons retain their manual stepping and existing execution budgets.
+Space Patrol's weapon program resumes on a game clock after the player arms it. Its loop iterations yield to the game, including iterations where an `if` skips firing, so sensors can change during gaps between waves. Each lesson retains its own execution budget.
+
+Foggy Tunnel also uses a game clock after the RC car enters. Its animated sensor calls suspend the student program until the scan animation finishes, then return the live result. After a successful opening, the program must finish before the car exits, so an extra opening call cannot escape validation.
 
 After editing Python or the runner template, regenerate assets:
 

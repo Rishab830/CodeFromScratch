@@ -303,16 +303,16 @@ export const LEVELS: readonly Level[] = [
     "runtimeId": 11,
     "id": "foggy-tunnel",
     "hints": [
-      "The tunnel lengths change, so counting a fixed number of moves will not work every time. Which sensor tells you when to stop moving?",
-      "Use a while loop to move while the exit has not been detected. Check the sensor again after every move, and open the door only once the loop has ended.",
-      "Write while not exit_detected(): with move_forward() indented inside it. Put open_exit() after the loop, at the same indentation as while. Compile and press Space through all three tunnels."
+      "The remote works outside, but loses signal when the RC car enters. Watch its exit-check animation. Which sensor tells the onboard program when to stop driving?",
+      "Use a while loop to move while the exit has not been detected. Put open_exit() after the loop so it is attempted only once. Each new tunnel resets that allowance.",
+      "Write while not exit_detected(): with move_forward() indented inside it. Put open_exit() after the loop, at the same indentation as while. Compile, then drive right into each tunnel. The car runs your program automatically after losing signal."
     ],
     "title": "The Foggy Tunnel",
     "world": "Mistwood Passage",
     "concept": "while",
     "exercise": "build",
     "group": "workshop",
-    "kind": "program",
+    "kind": "arcade",
     "coins": [
       "tunnel-1",
       "tunnel-2",
@@ -321,34 +321,38 @@ export const LEVELS: readonly Level[] = [
     "source": "/levels/foggy-tunnel.py",
     "runtime": "/runner-11/",
     "storage": "cfs:workshop:foggy:v1",
-    "missionTitle": "No step count. Trust your sensor.",
-    "mission": "Three tunnels have different hidden lengths. Write one program that works in all three. Move until the exit sensor detects a door, then open it. Walking past an exit ends the attempt.",
-    "intro": "Write a while loop using the exit sensor. Play the same program through three tunnels.",
-    "goal": "Foggy Tunnel",
-    "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
-    "reference": "Use while. For loops and fixed repetition counts are not enabled here. Put move_forward() inside the while loop. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
+    "missionTitle": "No signal. The car needs your code.",
+    "mission": "Maya's RC car loses its remote signal inside the tunnel. Drive it with Left / Right outside, then let your onboard while loop take over. Watch the car through the see-through tunnel as it checks for the exit. Open the gate only once per crossing. The same code must clear all three tunnels.",
+    "intro": "Left / Right controls the RC car outside. Enter the tunnel to run your onboard program.",
+    "goal": "Guide the RC car through three tunnels",
+    "death": "Check the exit sensor and your single open-exit attempt before trying again.",
+    "log": "Drive right to enter. NO SIGNAL means the remote is disconnected and your code is in control. Watch each exit check and the gate-opening animation.",
+    "reference": "Use while, with move_forward() inside the loop. For loops are not enabled. exit_detected() plays a sensor-check animation and reports whether the gate is within reach. open_exit() may be attempted only once per tunnel run, even if the first attempt is too early. The allowance resets for the next tunnel or Restart. Inside, the code runs automatically; outside, use Left / Right or A / D.",
     "actions": [
       [
         "exit_detected()",
-        "Reports whether you have reached this tunnel's exit."
+        "Animate a sensor check. True when the gate is within reach."
       ],
       [
         "move_forward()",
-        "Move one step through the fog."
+        "Drive the RC car one step inside the tunnel."
       ],
       [
         "open_exit()",
-        "Open the door when the exit is detected."
+        "Try opening the gate. Only one attempt per tunnel run."
       ]
     ],
     "controls": [
       [
-        " ",
-        "Next action"
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
       ]
     ],
-    "spaceLabel": "Step"
+    "spaceLabel": ""
   },
   {
     "number": 7,

@@ -220,7 +220,7 @@ def read_input():
     return str(window.lessonReadInput()) if window is not None else ""
 
 
-def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
+def compile_lesson(body, name, commands, sensors, concept, loop_commands=(), animated_sensors=()):
     """Turn workshop actions into steps that advance only when the player plays."""
     if not isinstance(body, str) or len(body) > 8000:
         raise ValueError("Keep your solution under 8,000 characters.")
@@ -275,6 +275,12 @@ def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
                 raise ValueError(f"Put {node.func.id}() inside your {concept} loop.")
 
     class StepCommands(ast.NodeTransformer):
+        def visit_Call(self, node):
+            self.generic_visit(node)
+            if isinstance(node.func, ast.Name) and node.func.id in animated_sensors:
+                return ast.copy_location(ast.YieldFrom(node), node)
+            return node
+
         def visit_For(self, node):
             self.generic_visit(node)
             if concept == "combat":
@@ -286,7 +292,7 @@ def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
         def visit_Expr(self, node):
             if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in commands:
                 return ast.copy_location(ast.Expr(ast.Yield(node.value)), node)
-            return node
+            return self.generic_visit(node)
     tree = StepCommands().visit(tree)
     # Even a blank 'pass' starter is a valid preview program, with zero actions.
     function.body.append(ast.If(ast.Constant(False), [ast.Expr(ast.Yield(ast.Constant(None)))], []))
@@ -299,6 +305,13 @@ def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
         return values
 
     namespace = {"__builtins__": {"range": bounded_range}, **api}
+    def animate_sensor(sensor_name, sensor):
+        def read():
+            yield ('sensor', sensor_name)
+            return sensor()
+        return read
+    for sensor_name in animated_sensors:
+        namespace[sensor_name] = animate_sensor(sensor_name, sensors[sensor_name])
     exec(compile(tree, filename, "exec"), namespace)
 
     def play():

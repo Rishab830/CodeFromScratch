@@ -135,11 +135,24 @@ const fixes={
 
   await next('foggy-tunnel');await start();await hold('Space',350);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-foggy-blank');
+  await hold('ArrowLeft',100);await hold('ArrowRight',100);
   await compile('    for i in range(6):\n        move_forward()\n    open_exit()\n');
   await page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='CODE ERROR');assert.match(await page.locator('.console-message').innerText(),/while/);
-  await compile('    while True:\n        pass\n');await playing();await hold('Space',150);
+  await compile('    while True:\n        pass\n');await playing();await hold('ArrowRight',850);
   await page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='CODE ERROR');assert.match(await page.locator('.console-message').innerText(),/not making progress/);
-  await fixed('foggy-tunnel');await hold('Space',8200);await won();
+  await compile('    while not exit_detected():\n        open_exit()\n');await playing();await hold('ArrowRight',850);
+  await page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='CODE ERROR');assert.equal(await page.locator('.console-message').innerText(),'open exit can only be attempted once');
+  await compile(fixes['foggy-tunnel']+'    open_exit()\n');await playing();await hold('ArrowRight',850);
+  await page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='CODE ERROR',null,{timeout:20000});
+  assert.equal(await page.locator('.console-message').innerText(),'open exit can only be attempted once');
+  await screenshot('workshop-foggy-one-open-error');
+  await fixed('foggy-tunnel');await hold('ArrowRight',850);
+  await page.waitForFunction(()=>/Checking for an exit/.test(document.querySelector('.console-message').textContent));
+  await screenshot('workshop-foggy-scan');
+  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(600);await page.keyboard.up('ArrowLeft');
+  await page.keyboard.down('ArrowRight');
+  await page.getByRole('dialog',{name:'Level complete',exact:true}).waitFor({timeout:60000});
+  await page.keyboard.up('ArrowRight');await won();
   assert.match(await page.locator('.xp').innerText(),/600/);
   assert.equal(await page.getByRole('group',{name:'Coins collected: 3 of 3',exact:true}).count(),1);
   for(const l of bonus)assert(!(await stop(l.id).isDisabled()));
@@ -147,7 +160,7 @@ const fixes={
   await screenshot('workshop-complete');
   await page.getByRole('button',{name:'Workshop complete',exact:true}).click();await page.getByRole('heading',{name:'Workshop complete!',exact:true}).waitFor();
   await page.getByRole('button',{name:'Close',exact:true}).click();
-  console.log('PASS: core 6 requires while, handles three hidden lengths, and completes the workshop without any bonus');
+  console.log('PASS: core 6 switches from remote driving to autonomous while code, animates sensor checks and gates, and resets its single opening allowance across three tunnels');
 
   for(const [id,duration] of [['rocket-launch',1100],['greenhouse-grid',3000],['final-escape',2600]]){
     await stop(id).click();await ready(id);await fixed(id);await hold('Space',duration);await won();

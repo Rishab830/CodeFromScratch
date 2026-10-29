@@ -38,12 +38,12 @@ class WorkshopTests(unittest.TestCase):
         ns,starter=self.games[slug]
         ns['COLLECTED_COINS'].clear()
         world=ns['World'](**kwargs)
-        world.program=lesson_bridge.compile_lesson(starter if body is None else body, ns['PROGRAM_NAME'], world.commands(), world.sensors(), ns['CONCEPT'], ns['LOOP_COMMANDS'])
+        world.program=lesson_bridge.compile_lesson(starter if body is None else body, ns['PROGRAM_NAME'], world.commands(), world.sensors(), ns['CONCEPT'], ns['LOOP_COMMANDS'], ns.get('ANIMATED_SENSORS',()))
         return world
 
-    def finish(self, world, action=True):
+    def finish(self, world, action=True, drive=False):
         for _ in range(200):
-            result=world.update(0.25,action)
+            result=world.update(0.25,action,right=True) if drive else world.update(0.25,action)
             if result: return result
         return None
 
@@ -51,7 +51,7 @@ class WorkshopTests(unittest.TestCase):
         for slug,body in SOLUTIONS.items():
             with self.subTest(slug=slug):
                 world=self.make(slug,body)
-                result=self.finish(world)
+                result=self.finish(world,drive=slug=='foggy-tunnel')
                 if slug=='bridge-builder':
                     self.assertIsNone(result)
                     for _ in range(80):
@@ -284,20 +284,22 @@ class WorkshopTests(unittest.TestCase):
 
     def test_foggy_program_adapts_to_three_different_hidden_distances(self):
         world=self.make('foggy-tunnel',SOLUTIONS['foggy-tunnel'],lengths=[4,8,6])
-        self.assertEqual(self.finish(world),'won')
+        self.assertEqual(self.finish(world,drive=True),'won')
         self.assertEqual(world.round,3)
         self.assertEqual(world.actions,4+8+6+3)
         self.assertEqual(self.games['foggy-tunnel'][0]['COLLECTED_COINS'],{'tunnel-1','tunnel-2','tunnel-3'})
 
     def test_foggy_overshoot_or_premature_open_loses(self):
-        for body in ('    while True:\n        move_forward()\n','    while not exit_detected():\n        open_exit()\n'):
-            with self.subTest(body=body):
-                self.assertEqual(self.finish(self.make('foggy-tunnel',body,lengths=[4,8,6])),'dead')
+        world=self.make('foggy-tunnel','    while True:\n        move_forward()\n',lengths=[4,8,6])
+        self.assertEqual(self.finish(world,drive=True),'dead')
+        world=self.make('foggy-tunnel','    while not exit_detected():\n        open_exit()\n',lengths=[4,8,6])
+        with self.assertRaisesRegex(ValueError,'open exit can only be attempted once'):
+            self.finish(world,drive=True)
 
     def test_endless_non_progress_loop_is_bounded_and_trace_restored(self):
         previous=sys.gettrace()
         world=self.make('foggy-tunnel','    while True:\n        pass\n')
-        with self.assertRaisesRegex(ValueError,'not making progress'): world.update(0.25,True)
+        with self.assertRaisesRegex(ValueError,'not making progress'): self.finish(world,drive=True)
         self.assertIs(sys.gettrace(),previous)
 
     def test_nested_bonus_rules_are_explicit(self):
