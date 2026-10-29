@@ -82,6 +82,85 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(self.finish(world),'dead')
         self.assertEqual(world.sorted,1)
 
+    def test_side_parcels_ride_the_belt_then_deposit_before_the_next_arrives(self):
+        for colour,direction in (('red',-1),('yellow',1)):
+            with self.subTest(colour=colour):
+                world=self.make('parcel-sorter',SOLUTIONS['parcel-sorter'],colours=[colour,'blue','red','yellow','red','blue'])
+                self.assertIsNone(world.update(0.01,True))
+                self.assertEqual(world.phase,'travel')
+                self.assertIsNone(world.update(0.325,True))
+                self.assertGreater((world.parcel_x-155)*direction,0)
+                self.assertGreater(world.belt_offset*direction,0)
+                self.assertEqual(world.actions,1)  # Holding Space cannot replace the moving box.
+                self.assertEqual(world.sorted,0)
+                self.assertEqual(world.parcel_colour(),colour)
+                world.update(0.325,False)
+                self.assertEqual(world.phase,'deposit')
+                belt=world.belt_offset
+                world.update(0.25,True)
+                self.assertGreater(world.parcel_y,71)
+                self.assertEqual(world.belt_offset,belt)
+                self.assertEqual(world.sorted,0)
+                ns,_=self.games['parcel-sorter']
+                ns['draw_scene'](pygame.Surface((320,180)),world,pygame.font.Font(None,10),pygame.font.Font(None,16))
+                self.assertIsNone(world.update(0.31,True))
+                self.assertEqual(world.sorted,1)
+                self.assertEqual(world.phase,'arrive')
+                self.assertEqual(world.parcel_colour(),'blue')
+                self.assertEqual(world.parcel_x,155)
+                world.update(0.2,True)
+                self.assertGreater(world.parcel_y,40)
+                self.assertLess(world.parcel_y,71)
+                self.assertEqual(world.actions,1)
+                world.update(0.2,False)
+                self.assertEqual(world.phase,'ready')
+                self.assertEqual(world.parcel_y,71)
+
+    def test_middle_delivery_and_next_parcel_do_not_move_the_belt(self):
+        world=self.make('parcel-sorter',SOLUTIONS['parcel-sorter'],colours=['blue','red','yellow','blue','red','yellow'])
+        world.update(0.01,True)
+        self.assertEqual(world.phase,'deposit')
+        for _ in range(24):
+            self.assertIsNone(world.update(0.05,False))
+            self.assertEqual(world.parcel_x,155)
+            self.assertEqual(world.belt_offset,0)
+        self.assertEqual(world.phase,'ready')
+        self.assertEqual(world.sorted,1)
+        self.assertEqual(world.parcel_colour(),'red')
+
+    def test_wrong_delivery_loses_only_after_the_box_is_inside_the_chosen_bay(self):
+        world=self.make('parcel-sorter','    if parcel_colour() != "":\n        send_right()\n',colours=['red']*6)
+        self.assertIsNone(world.update(0.01,True))
+        self.assertIsNone(world.update(0.65,True))
+        self.assertEqual(world.parcel_x,247)  # Animate the student's choice, even when wrong.
+        self.assertEqual(world.phase,'deposit')
+        self.assertIsNone(world.update(0.3,True))
+        self.assertTrue(world.parcel_visible)
+        self.assertEqual(world.sorted,0)
+        self.assertEqual(world.update(0.25,True),'dead')
+        self.assertFalse(world.parcel_visible)
+        self.assertEqual(world.phase,'failed')
+        self.assertEqual(world.actions,1)
+        self.assertEqual(world.deposited['right'],1)
+        self.assertEqual(world.sorted,0)
+        self.assertEqual(world.parcel_colour(),'red')
+
+    def test_last_parcel_must_finish_its_deposit_before_winning(self):
+        world=self.make('parcel-sorter',SOLUTIONS['parcel-sorter'],colours=['blue']*6)
+        for _ in range(5):
+            world.update(0.01,True)
+            self.assertIsNone(world.update(0.55,False))
+            self.assertIsNone(world.update(0.4,False))
+        self.assertEqual(world.sorted,5)
+        self.assertIsNone(world.update(0.01,True))
+        self.assertIsNone(world.update(0.3,False))
+        self.assertEqual(world.sorted,5)
+        self.assertNotIn('second',self.games['parcel-sorter'][0]['COLLECTED_COINS'])
+        self.assertEqual(world.update(0.25,False),'won')
+        self.assertEqual(world.sorted,6)
+        self.assertFalse(world.parcel_visible)
+        self.assertEqual(world.phase,'complete')
+
     def test_for_challenge_does_not_accept_an_unrolled_or_while_solution(self):
         for body in ('    move_left()\n','    while True:\n        move_left()\n','    for i in range(1):\n        pass\n    move_left()\n'):
             with self.subTest(body=body),self.assertRaises(ValueError): self.make('lost-robot',body)

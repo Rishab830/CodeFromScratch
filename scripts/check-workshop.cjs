@@ -63,8 +63,8 @@ const fixes={
 
   await next('parcel-sorter');await start();await hold('Space',500);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-parcel-blank');
-  await compile('    if parcel_colour() != "":\n        send_left()\n');await playing();await hold('Space',1000);await dead();
-  await fixed('parcel-sorter');await hold('Space',2000);await won();
+  await compile('    if parcel_colour() != "":\n        send_left()\n');await playing();await hold('Space',4500);await dead();
+  await fixed('parcel-sorter');await hold('Space',11000);await won();
   console.log('PASS: core 2 starts blank, exposes supplied functions, and requires routing all colours correctly');
 
   await next('bridge-builder');await start();await hold('Space',1000);await dead();
