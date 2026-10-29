@@ -144,6 +144,12 @@ const fixes={
   await next('foggy-tunnel');await start();await hold('Space',350);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-foggy-blank');
   await hold('ArrowLeft',100);await hold('ArrowRight',100);
+  await hold('ArrowRight',850);
+  await page.waitForFunction(()=>/Car idle/.test(document.querySelector('.console-message').textContent));
+  const idleStarted=Date.now();
+  await page.waitForTimeout(2500);
+  assert.equal(await page.getByRole('dialog',{name:'Game over',exact:true}).count(),0);
+  await dead();assert(Date.now()-idleStarted>=4500,'A stalled car needs its five-second grace period');
   await compile('    for i in range(6):\n        move_forward()\n    open_exit()\n');
   await page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='CODE ERROR');assert.match(await page.locator('.console-message').innerText(),/while/);
   await compile('    while True:\n        pass\n');await playing();await hold('ArrowRight',850);

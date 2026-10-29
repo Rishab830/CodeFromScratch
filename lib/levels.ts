@@ -446,7 +446,7 @@ export const LEVELS: readonly Level[] = [
     "goal": "Guide the RC car through three tunnels",
     "death": "Check the exit sensor and your single open-exit attempt before trying again.",
     "log": "Drive right to enter. NO SIGNAL means the remote is disconnected and your code is in control. Watch each exit check and the gate-opening animation.",
-    "reference": "Use while, with move_forward() inside the loop. For loops are not enabled. exit_detected() plays a sensor-check animation and reports whether the gate is within reach. open_exit() may be attempted only once per tunnel run, even if the first attempt is too early. The allowance resets for the next tunnel or Restart. Inside, the code runs automatically; outside, use Left / Right or A / D.",
+    "reference": "Use while, with move_forward() inside the loop. For loops are not enabled. exit_detected() plays a sensor-check animation and reports whether the gate is within reach. open_exit() may be attempted only once per tunnel run, even if the first attempt is too early. The allowance resets for the next tunnel or Restart. Inside, the code runs automatically; outside, use Left / Right or A / D. If the program stops before escaping, the car waits for five idle seconds before game over.",
     "actions": [
       [
         "exit_detected()",

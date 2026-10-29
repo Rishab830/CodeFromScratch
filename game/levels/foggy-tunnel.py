@@ -16,6 +16,7 @@ COIN_NAMES = ('tunnel-1', 'tunnel-2', 'tunnel-3')
 COLLECTED_COINS = set()
 ENTRY_X, STEP_SIZE, DRIVE_SPEED = 104, 18, 48
 SCAN_SECONDS, OPEN_SECONDS = 0.4, 0.7
+IDLE_SECONDS = 5.0
 
 
 def escape():
@@ -102,15 +103,21 @@ class World:
             self.exit_target = max(self.car_x,self.door_x+27)
             self.message = 'Exit open! The car is driving out to restore its signal.'
             return None
-        self.phase = 'failed'
-        self.message = 'The exit is still locked. Check your while loop and when you open it.'
-        return 'dead'
+        self.phase, self.phase_time = 'waiting', 0.0
+        self.message = 'NO SIGNAL. Car idle. Waiting for onboard actions...'
+        return None
 
     def update(self,dt,action=False,left=False,right=False):
         self.elapsed += dt
         self.moving = False
         self.phase_time += dt
         if self.phase in ('failed','complete','error'): return None
+        if self.phase == 'waiting':
+            if self.phase_time >= IDLE_SECONDS:
+                self.phase = 'failed'
+                self.message = 'No onboard action for five seconds. Check your while loop.'
+                return 'dead'
+            return None
         if self.phase == 'outside':
             direction = int(right)-int(left)
             self.car_x = max(56.0,min(ENTRY_X,self.car_x+direction*65*dt))
@@ -243,6 +250,7 @@ def draw_scene(surface,world,small,title):
     label(surface,small,f'OPEN EXIT: {min(world.open_attempts,1)}/1',188,29,(218,205,231))
     if world.phase == 'scan': label(surface,small,'CHECKING EXIT...',101,37,(222,213,175))
     elif world.phase == 'open': label(surface,small,'OPENING EXIT...' if world.open_here else 'NO EXIT HERE',101,37,(222,213,175))
+    elif world.phase == 'waiting': label(surface,small,'WAITING FOR CODE...',101,37,(222,213,175))
     if world.error:
         label(surface,small,world.error[:48].upper(),95,63,(244,174,191))
     pygame.draw.rect(surface,(48,42,69),(0,166,320,14))

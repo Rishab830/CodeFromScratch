@@ -53,6 +53,44 @@ class RCTunnelTests(unittest.TestCase):
         self.until(w,lambda:w.position==1)
         self.assertEqual(w.car_x,x+18)
 
+    def test_blank_code_waits_five_idle_seconds_before_game_over(self):
+        w=self.make('    pass\n');self.enter(w)
+        self.until(w,lambda:w.phase=='waiting')
+        self.assertFalse(w.has_signal());x=w.car_x
+        self.assertIsNone(w.update(4.9,left=True,right=True))
+        self.assertEqual(w.phase,'waiting');self.assertEqual(w.car_x,x)
+        self.assertIsNone(w.update(0.09))
+        self.assertEqual(w.update(0.02),'dead')
+        self.assertEqual(w.phase,'failed')
+        self.assertIsNone(w.update(10))
+
+    def test_idle_delay_starts_after_the_last_onboard_action(self):
+        w=self.make('    while not exit_detected():\n        move_forward()\n');self.enter(w)
+        self.until(w,lambda:w.phase=='waiting')
+        self.assertEqual(w.position,w.length)
+        self.assertLess(w.phase_time,0.02)
+        self.assertIsNone(w.update(4.9))
+        self.assertEqual(w.update(0.11),'dead')
+
+    def test_idle_delay_resets_on_restart_or_a_new_tunnel(self):
+        w=self.make('    pass\n');self.enter(w)
+        self.until(w,lambda:w.phase=='waiting');w.update(4)
+        w.reset_tunnel();self.assertEqual(w.phase,'outside')
+        self.assertIsNone(w.update(20));self.enter(w)
+        self.until(w,lambda:w.phase=='waiting')
+        self.assertIsNone(w.update(4.9))
+        self.assertEqual(w.update(0.11),'dead')
+        restarted=self.make('    pass\n');self.enter(restarted)
+        self.until(restarted,lambda:restarted.phase=='waiting')
+        self.assertIsNone(restarted.update(4.9))
+
+    def test_active_program_can_take_longer_than_the_idle_timeout(self):
+        w=self.make();self.enter(w)
+        start=w.elapsed
+        self.until(w,lambda:w.phase=='between')
+        self.assertGreater(w.elapsed-start,self.ns['IDLE_SECONDS'])
+        self.assertTrue(w.has_signal())
+
     def test_each_sensor_call_and_gate_opening_have_separate_animations(self):
         w=self.make();self.enter(w)
         self.until(w,lambda:w.phase=='open')
