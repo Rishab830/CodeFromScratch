@@ -2,6 +2,7 @@ export type Level = {
   number: number; runtimeId: number; id: string; title: string; world: string; coins: readonly string[];
   group: 'workshop' | 'bonus'; concept: string; exercise: 'debug' | 'build' | 'arcade';
   kind: 'program' | 'reactive' | 'arcade'; spaceLabel: string;
+  hints: readonly [string, string, string];
   source: string; runtime: string; storage: string; missionTitle: string;
   mission: string; intro: string; death: string; log: string;
   goal?: string; reference?: string; actions?: readonly (readonly [string,string])[];
@@ -11,6 +12,11 @@ export const LEVELS: readonly Level[] = [
   {
     "number": 1,
     "id": "confused-traffic-signal",
+    "hints": [
+      "Watch the lights for a full cycle. Which colour never appears, and which branch chooses the colour after red?",
+      "Each branch should describe one step of the cycle: red to green, green to yellow, and yellow back to red. Use == to check current and = to set next_color.",
+      "When current is red, set next_color to green. Use elif for green and set yellow there; let else set red. Compile, then drive right through the crossing."
+    ],
     "title": "The Confused Traffic Signal",
     "world": "Apricot Avenue",
     "coins": [
@@ -63,6 +69,11 @@ export const LEVELS: readonly Level[] = [
     "number": 2,
     "runtimeId": 8,
     "id": "parcel-sorter",
+    "hints": [
+      "Look at the colour of the parcel on the belt and the labels on the three delivery bays. Each parcel needs just one matching action.",
+      "Call parcel_colour() in an if condition. Use elif for a second colour and else for the remaining colour, with one send action indented under each branch.",
+      "Try if parcel_colour() == \"red\": with send_left() inside it. Follow with elif for \"blue\" and send_middle(), then else with send_right(). Compile and press Space to deliver all six."
+    ],
     "title": "The Parcel Sorter",
     "world": "Peach Post Office",
     "concept": "if",
@@ -113,6 +124,11 @@ export const LEVELS: readonly Level[] = [
     "number": 3,
     "runtimeId": 9,
     "id": "bridge-builder",
+    "hints": [
+      "Step through the starter and count the planks it places. Compare that number with the empty bridge spaces.",
+      "range(n) repeats the indented action n times. Crossing belongs after the loop, once all the spaces are filled.",
+      "Change the loop to for i in range(3): and keep place_plank() indented inside it. Keep cross_bridge() outside the loop. Compile, then press Space to build and cross."
+    ],
     "title": "The Bridge Builder",
     "world": "Apricot River",
     "concept": "for",
@@ -159,6 +175,11 @@ export const LEVELS: readonly Level[] = [
     "number": 4,
     "runtimeId": 4,
     "id": "lost-robot",
+    "hints": [
+      "Trace the path from the robot to the green dock. Split it into straight sections and count moves between tiles, rather than counting the starting tile.",
+      "Write a separate for loop for each straight section. Put the matching movement function inside that loop, then start the next loop at the same indentation as the first.",
+      "One route is three moves left, two up, then three left. Use range(3) with move_left(), range(2) with move_up(), then range(3) with move_left(). Compile and step through to the dock; press Space once more to finish."
+    ],
     "title": "The Lost Robot",
     "world": "Lavender Depot",
     "concept": "for",
@@ -213,6 +234,11 @@ export const LEVELS: readonly Level[] = [
     "number": 5,
     "runtimeId": 10,
     "id": "charging-station",
+    "hints": [
+      "The battery starts empty. What does battery_full() report before the first charge, and does the starter loop run when that value is false?",
+      "A while loop repeats only while its condition is true. You want to charge while the battery is not full, then open the exit after the loop ends.",
+      "Use while not battery_full(): with charge() indented inside it. Keep open_exit() outside the loop. Compile and press Space to charge until the sensor changes."
+    ],
     "title": "The Charging Station",
     "world": "Mint Power House",
     "concept": "while",
@@ -259,6 +285,11 @@ export const LEVELS: readonly Level[] = [
     "number": 6,
     "runtimeId": 11,
     "id": "foggy-tunnel",
+    "hints": [
+      "The tunnel lengths change, so counting a fixed number of moves will not work every time. Which sensor tells you when to stop moving?",
+      "Use a while loop to move while the exit has not been detected. Check the sensor again after every move, and open the door only once the loop has ended.",
+      "Write while not exit_detected(): with move_forward() indented inside it. Put open_exit() after the loop, at the same indentation as while. Compile and press Space through all three tunnels."
+    ],
     "title": "The Foggy Tunnel",
     "world": "Mistwood Passage",
     "concept": "while",
@@ -305,6 +336,11 @@ export const LEVELS: readonly Level[] = [
   {
     "number": 7,
     "id": "wrong-door",
+    "hints": [
+      "Read the terminal's password note and compare it with the symbols above the doors. Which door opens when you submit that password?",
+      "The inner if checks the password, but its return value chooses the door. Door indexes start at 0 on the left, so the third door has index 2.",
+      "Keep the outer check for a non-empty password. Inside the password == \"STAR\" branch, return 2 instead of 0; return None for other passwords. Compile, enter STAR, click inside the game, use Space beside the terminal, and walk to the rightmost door."
+    ],
     "title": "The Wrong Door",
     "world": "Rosewood Hall",
     "coins": [
@@ -365,6 +401,11 @@ export const LEVELS: readonly Level[] = [
     "number": 8,
     "runtimeId": 12,
     "id": "rocket-launch",
+    "hints": [
+      "The rocket needs power before fuel, and both before launch. Watch which sensor is still false at each step.",
+      "Use an outer if to check power_on(). Inside its true branch, use another if to check fuel_ready(). Give each false branch the action that makes its own sensor ready.",
+      "If power_on() is true, check fuel_ready() inside it: launch() when true, otherwise refuel(). The outer else should call wait_for_power(). Compile and press Space repeatedly so the same checks run after each state change."
+    ],
     "title": "The Rocket Launch",
     "world": "Starlight Launch Pad",
     "concept": "nested-if",
@@ -419,6 +460,11 @@ export const LEVELS: readonly Level[] = [
     "number": 9,
     "runtimeId": 13,
     "id": "greenhouse-grid",
+    "hints": [
+      "Step through the starter. Is it missing a whole row, or a plant from every row? Count the rows and columns in the greenhouse.",
+      "The outer loop chooses a row and the inner loop visits its columns. range(3) gives the indexes 0, 1, and 2. Both dimensions have three cells.",
+      "Change the outer loop to for row in range(3): and keep the inner for column in range(3):. Leave water_cell(row, column) inside both loops and open_exit() outside them. Compile and step through all nine plants."
+    ],
     "title": "The Greenhouse Grid",
     "world": "Sage Garden",
     "concept": "nested-loops",
@@ -465,6 +511,11 @@ export const LEVELS: readonly Level[] = [
     "number": 10,
     "runtimeId": 7,
     "id": "final-escape",
+    "hints": [
+      "The exit has two separate requirements: power every cell, then release the latch. Opening the door before unlocking it will not work.",
+      "Use nested for loops for two rows and three columns, with power_cell(row, column) inside both. After the loops finish, check all_powered() before trying the latch.",
+      "Use range(2) for row and range(3) for column, calling power_cell(row, column) in the inner loop. After both loops, write if all_powered(): and put unlock_exit() followed by open_exit() inside it. Compile, then press Space through your escape."
+    ],
     "title": "The Final Escape",
     "world": "Moonlit Observatory",
     "concept": "nested-loops",
@@ -519,6 +570,11 @@ export const LEVELS: readonly Level[] = [
   {
     "number": 11,
     "id": "jumping-girl",
+    "hints": [
+      "Watch what happens when Maya lands on blue. Which action sends her toward those spikes?",
+      "The game already handles your arrow keys. You can change the blue action, or remove that automatic action.",
+      "Try player.move_left() instead of player.jump(). Or try pass to leave movement entirely to your controls. Compile, then play!"
+    ],
     "title": "The Jumping Girl",
     "world": "Pastel Meadow",
     "coins": [
@@ -542,6 +598,11 @@ export const LEVELS: readonly Level[] = [
   {
     "number": 12,
     "id": "blue-leap",
+    "hints": [
+      "Blue always calls jump(), and that action is locked. Read the editable Girl class to find what decides how Maya moves when she jumps.",
+      "In jump(), self.vy sets the initial upward speed. A smaller negative magnitude gives a lower jump; a larger one gives a higher jump. Think about a route below or above the spikes.",
+      "One option is changing self.vy = -178 to self.vy = -80 for small jumps beneath the spikes, then jumping the floor gap. Another is -420 for a high manual jump over the spikes. Compile and time your jumps with Left and Space."
+    ],
     "title": "The Blue Leap",
     "world": "Pastel Meadow",
     "coins": [
@@ -566,6 +627,11 @@ export const LEVELS: readonly Level[] = [
   {
     "number": 13,
     "id": "endless-coin-collector",
+    "hints": [
+      "Start the collector and watch what happens when its count reaches five. What does the starter condition return at that point?",
+      "should_collect(count) should be true only while more coins are needed. At five it must become false so the machine stops and unlocks the exit.",
+      "Try return count < 5 instead of return count >= 0. Compile, walk to the collector, press Space to start it, and walk to the exit once it stops at five."
+    ],
     "title": "The Endless Coin Collector",
     "world": "Honey Workshop",
     "coins": [

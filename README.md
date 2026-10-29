@@ -47,6 +47,7 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 ## Edit, compile, play
 
 - The entire current game's Python file is visible; only the green section is editable. Blank challenges supply a locked function definition and an editable body.
+- Every core and bonus level has three optional, progressively revealed hints: an observation, a concept clue, and an approach to try. Hints never change the student's code.
 - **Compile** validates the edit, applies it, and restarts the game. Compilation or waiting alone cannot finish a level.
 - Use the controls below the game. Traffic and arcade games use movement keys; program challenges use Space or the touch button to step through actions.
 - Sensors reflect the live world at each step. Hold Space to advance repeatedly or tap it to step once.

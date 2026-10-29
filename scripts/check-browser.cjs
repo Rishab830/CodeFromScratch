@@ -207,8 +207,9 @@ let browser, page;
   assert.equal(await getSource(),secondSource);
   assert.match(await page.locator('.mission-story').innerText(),/blue WILL make Maya jump/);
   assert.doesNotMatch(await page.locator('.mission-story').innerText(),/distance|velocity|increase|return/i);
-  assert.equal(await page.locator('.hint-section').count(),0);
-  console.log('PASS: Level 2 loads its own source, locks the blue jump, and gives no solution hint');
+  assert.equal(await page.locator('.hint-section').count(),1);
+  assert.equal(await page.locator('.hint-section p').count(),0);
+  console.log('PASS: Level 2 loads its own source, locks the blue jump, and keeps its hints hidden until requested');
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:150000});
   // The runner iframe changed when navigating; read the live one for Level 2.
   const secondFrame=page.frames().find(entry=>/\/runner-2\/?$/.test(new URL(entry.url()).pathname));
