@@ -138,11 +138,17 @@ class WorkshopTests(unittest.TestCase):
                 for _ in range(10): self.assertIsNone(world.update(0.25,action=True))
                 self.assertEqual(world.planks,count)
 
-    def test_bridge_gap_has_ten_equal_plank_lengths(self):
-        ns,_=self.games['bridge-builder']
-        self.assertEqual(ns['REQUIRED_PLANKS'],10)
-        self.assertEqual(ns['BRIDGE_END']-ns['BRIDGE_START'],10*ns['PLANK_WIDTH'])
-        self.assertIn('range(5)',self.games['bridge-builder'][1])
+    def test_nine_planks_leave_a_gap_but_ten_allow_a_manual_crossing(self):
+        for count,expected in ((9,'dead'),(10,'won')):
+            with self.subTest(count=count):
+                world=self.make('bridge-builder',f'    for plank in range({count}):\n        place_plank()\n')
+                world.update(0.01,action=True)
+                self.assertIsNone(self.finish(world,action=False))
+                result=None
+                for _ in range(100):
+                    result=world.update(0.05,right=True)
+                    if result: break
+                self.assertEqual(result,expected)
 
     def test_parcels_require_a_correct_decision_for_every_colour(self):
         world=self.make('parcel-sorter',SOLUTIONS['parcel-sorter'].replace('send_middle()','send_left()'),colours=['red','blue','yellow','yellow','red','blue'])
