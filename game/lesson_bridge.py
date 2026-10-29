@@ -254,14 +254,14 @@ def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
                 type(node.value) in (int, float) and math.isfinite(node.value) and abs(node.value) <= 100 or
                 isinstance(node.value, str) and len(node.value) <= 40):
             raise ValueError("Use small numbers and short colour names.")
-        if isinstance(node, ast.For) and concept not in ("for", "nested-loops"):
+        if isinstance(node, ast.For) and concept not in ("for", "nested-loops", "combat"):
             raise ValueError("This mission practises while. For loops are not enabled here." if concept == "while" else "This mission practises conditions; loops are not enabled here.")
-        if isinstance(node, ast.While) and concept != "while":
+        if isinstance(node, ast.While) and concept not in ("while", "combat"):
             raise ValueError("Use a for loop for this mission." if concept in ("for", "nested-loops") else "This mission practises conditions; loops are not enabled here.")
     required = {"if": ast.If, "for": ast.For, "while": ast.While,
-                "nested-if": ast.If, "nested-loops": ast.For}[concept]
+                "nested-if": ast.If, "nested-loops": ast.For, "combat": (ast.For, ast.While)}[concept]
     if not empty and not any(isinstance(node, required) for node in nodes):
-        raise ValueError(f"Use {'an if statement' if concept in ('if', 'nested-if') else 'a ' + ('for' if concept == 'nested-loops' else concept) + ' loop'} for this mission.")
+        raise ValueError("Use a while loop or a for loop for this mission." if concept == "combat" else f"Use {'an if statement' if concept in ('if', 'nested-if') else 'a ' + ('for' if concept == 'nested-loops' else concept) + ' loop'} for this mission.")
     if not empty and concept in ("nested-if", "nested-loops"):
         if not any(isinstance(node, required) and any(isinstance(inner, required) for statement in node.body for inner in ast.walk(statement)) for node in nodes):
             raise ValueError("Put one if inside another if." if concept == "nested-if" else "Put one for loop inside another for loop.")
@@ -275,6 +275,14 @@ def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
                 raise ValueError(f"Put {node.func.id}() inside your {concept} loop.")
 
     class StepCommands(ast.NodeTransformer):
+        def visit_For(self, node):
+            self.generic_visit(node)
+            if concept == "combat":
+                node.body.append(ast.Expr(ast.Yield(ast.Constant(None))))
+            return node
+
+        visit_While = visit_For
+
         def visit_Expr(self, node):
             if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in commands:
                 return ast.copy_location(ast.Expr(ast.Yield(node.value)), node)
@@ -316,7 +324,7 @@ def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
             finally:
                 sys.settrace(previous)
             actions += 1
-            if actions > 96:
+            if actions > (4096 if concept == "combat" else 96):
                 raise ValueError("Your program has too many actions. Check the loop's stopping condition.")
             yield command
     return play

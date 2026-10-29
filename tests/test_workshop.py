@@ -16,7 +16,6 @@ SOLUTIONS = {
  'parcel-sorter': '    if parcel_colour() == "red":\n        send_left()\n    elif parcel_colour() == "blue":\n        send_middle()\n    else:\n        send_right()\n',
  'bridge-builder': '    for i in range(3):\n        place_plank()\n',
  'lost-robot': '    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
- 'charging-station': '    while not battery_full():\n        charge()\n    open_exit()\n',
  'foggy-tunnel': '    while not exit_detected():\n        move_forward()\n    open_exit()\n',
  'rocket-launch': '    if power_on():\n        if fuel_ready():\n            launch()\n        else:\n            refuel()\n    else:\n        wait_for_power()\n',
  'greenhouse-grid': '    for row in range(3):\n        for column in range(3):\n            water_cell(row, column)\n    open_exit()\n',
@@ -78,7 +77,7 @@ class WorkshopTests(unittest.TestCase):
                 self.assertEqual(world.actions,0)
 
     def test_debugging_starters_fail_for_the_intended_reason(self):
-        for slug in ('charging-station','greenhouse-grid'):
+        for slug in ('greenhouse-grid',):
             with self.subTest(slug=slug):
                 world=self.make(slug)
                 self.assertEqual(self.finish(world),'dead')
@@ -294,12 +293,6 @@ class WorkshopTests(unittest.TestCase):
         for body in ('    while True:\n        move_forward()\n','    while not exit_detected():\n        open_exit()\n'):
             with self.subTest(body=body):
                 self.assertEqual(self.finish(self.make('foggy-tunnel',body,lengths=[4,8,6])),'dead')
-
-    def test_while_sensor_is_checked_again_after_each_player_action(self):
-        world=self.make('charging-station',SOLUTIONS['charging-station'])
-        self.assertIsNone(world.update(0.25,True));self.assertEqual(world.battery,1)
-        self.assertIsNone(world.update(0.25,False));self.assertEqual(world.battery,1)
-        self.assertEqual(self.finish(world),'won');self.assertEqual(world.battery,4)
 
     def test_endless_non_progress_loop_is_bounded_and_trace_restored(self):
         previous=sys.gettrace()

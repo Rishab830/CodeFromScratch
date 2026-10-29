@@ -242,53 +242,61 @@ export const LEVELS: readonly Level[] = [
   {
     "number": 5,
     "runtimeId": 10,
-    "id": "charging-station",
+    "id": "space-patrol",
     "hints": [
-      "The battery starts empty. What does battery_full() report before the first charge, and does the starter loop run when that value is false?",
-      "A while loop repeats only while its condition is true. You want to charge while the battery is not full, then open the exit after the loop ends.",
-      "Use while not battery_full(): with charge() indented inside it. Keep open_exit() outside the loop. Compile and press Space to charge until the sensor changes."
+      "There are exactly enough bullets for ten enemies with three hits each. Watch the TARGET sensor between waves. What happens to shots fired when it says NO?",
+      "Let enemy_visible() decide whether to shoot. You can replace the fixed loop with while enemy_visible(), or put an if enemy_visible() check inside a for loop. The weapon routine runs again as the world changes.",
+      "One option is while enemy_visible(): with shoot() indented inside it. Another is for bullet in range(30): with if enemy_visible(): inside the loop and shoot() inside that if. Compile, tap Space to arm, dodge with the arrows, then fly to the exit beacon."
     ],
-    "title": "The Charging Station",
-    "world": "Mint Power House",
-    "concept": "while",
+    "title": "Space Patrol",
+    "world": "Starlight Sector",
+    "concept": "while / for + if",
     "exercise": "debug",
     "group": "workshop",
-    "kind": "program",
+    "kind": "arcade",
     "coins": [
-      "half",
-      "full"
+      "wave-five",
+      "sector-clear"
     ],
-    "source": "/levels/charging-station.py",
+    "source": "/levels/space-patrol.py",
     "runtime": "/runner-10/",
-    "storage": "cfs:workshop:charge:v1",
-    "missionTitle": "Keep charging until the sensor changes.",
-    "mission": "The battery starts empty, but the starter program tries to open the exit immediately. Fix its while condition. Stop charging when the full sensor becomes true.",
-    "intro": "Step the program, observe the battery sensor, and fix the while condition.",
-    "goal": "Charging Station",
-    "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
-    "reference": "Use while. For loops are not enabled. Put charge() inside your while loop. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
+    "storage": "cfs:workshop:space-patrol:v1",
+    "missionTitle": "Thirty bullets. Ten enemies. No wasted shots.",
+    "mission": "Pilot your ship in all four directions and dodge enemy fire. Each of ten enemies needs three hits, and you have only thirty bullets. The starter shoots through empty gaps between waves. Fix when it fires, clear the sector, and fly to the green exit beacon.",
+    "intro": "Arrows or WASD fly. Tap Space once to arm your automatic weapon code.",
+    "goal": "Clear ten enemies and reach the beacon",
+    "death": "Watch your ammunition and shields. Keep moving and fire only when a target is visible.",
+    "log": "Tap Space once to arm the weapon. Your code decides when to fire; arrows or WASD control the ship. Auto-aim handles targeting.",
+    "reference": "Use while, or a for loop containing an if check. shoot() auto-aims at the current enemy, but consumes a bullet even when no enemy is present. The weapon routine is checked repeatedly after you arm it, and loops can wait for the live sensor without freezing the game. Fly with the arrows or WASD; Space is only needed once.",
     "actions": [
       [
-        "battery_full()",
-        "True when all four battery cells are charged."
+        "enemy_visible()",
+        "True while there is a live enemy to target."
       ],
       [
-        "charge()",
-        "Charge one cell."
+        "shoot()",
+        "Use one bullet. Auto-aim hits the visible enemy."
       ],
       [
-        "open_exit()",
-        "Open the exit after the battery is full."
+        "bullets_left()",
+        "Reports the remaining ammunition."
+      ],
+      [
+        "range(30)",
+        "Repeat a check thirty times; the weapon routine runs again."
       ]
     ],
     "controls": [
+      ["ArrowLeft", "Move left"],
+      ["ArrowRight", "Move right"],
+      ["ArrowUp", "Move up"],
+      ["ArrowDown", "Move down"],
       [
         " ",
-        "Next action"
+        "Arm weapon"
       ]
     ],
-    "spaceLabel": "Step"
+    "spaceLabel": "Arm weapon"
   },
   {
     "number": 6,

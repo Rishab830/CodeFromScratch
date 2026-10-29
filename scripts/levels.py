@@ -9,7 +9,7 @@ LEVELS = {
     7: "final-escape",
     8: "parcel-sorter",
     9: "bridge-builder",
-    10: "charging-station",
+    10: "space-patrol",
     11: "foggy-tunnel",
     12: "rocket-launch",
     13: "greenhouse-grid",

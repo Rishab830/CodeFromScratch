@@ -67,14 +67,14 @@ window.addEventListener('message', (event) => {
   }
   if (event.data.type === 'key') {
     const {key, down} = event.data;
-    if (!['ArrowLeft', 'ArrowRight', ' '].includes(key)) return;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(key)) return;
     if (down) touchKeys.add(key); else touchKeys.delete(key);
     const code = key === ' ' ? 'Space' : key;
-    const keyCode = key === 'ArrowLeft' ? 37 : key === 'ArrowRight' ? 39 : 32;
+    const keyCode = {ArrowLeft:37, ArrowUp:38, ArrowRight:39, ArrowDown:40, ' ':32}[key];
     document.getElementById('canvas').dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', {key, code, keyCode, which: keyCode, bubbles:true}));
   }
 });
-window.addEventListener('keydown', (event) => { if (['ArrowLeft','ArrowRight','ArrowUp',' '].includes(event.key)) event.preventDefault(); });
+window.addEventListener('keydown', (event) => { if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(event.key)) event.preventDefault(); });
 window.__canvas_resized = () => {};
 async function custom_onload() {}
 function custom_prerun() {}

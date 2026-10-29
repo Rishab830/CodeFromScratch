@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 const fs=require('node:fs');
 const {core,bonus}=require('./level-fixtures.cjs');
+const {shipPosition,pilotSector,flyToBeacon}=require('./space-patrol-fixture.cjs');
 const qa=path.join(__dirname,'..','artifacts','qa');fs.mkdirSync(qa,{recursive:true});
 let browser,page;
 const fixes={
@@ -10,14 +11,14 @@ const fixes={
  'parcel-sorter':'    if parcel_colour() == "red":\n        send_left()\n    elif parcel_colour() == "blue":\n        send_middle()\n    else:\n        send_right()\n',
  'bridge-builder':'    for i in range(3):\n        place_plank()\n',
  'lost-robot':'    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
- 'charging-station':'    while not battery_full():\n        charge()\n    open_exit()\n',
+ 'space-patrol':'    while enemy_visible():\n        shoot()\n',
  'foggy-tunnel':'    while not exit_detected():\n        move_forward()\n    open_exit()\n',
  'rocket-launch':'    if power_on():\n        if fuel_ready():\n            launch()\n        else:\n            refuel()\n    else:\n        wait_for_power()\n',
  'greenhouse-grid':'    for row in range(3):\n        for column in range(3):\n            water_cell(row, column)\n    open_exit()\n',
  'final-escape':'    for row in range(2):\n        for column in range(3):\n            power_cell(row, column)\n    if all_powered():\n        unlock_exit()\n        open_exit()\n',
 };
 (async()=>{
-  assert.deepEqual(Array.from(core,l=>l.id),['confused-traffic-signal','parcel-sorter','bridge-builder','lost-robot','charging-station','foggy-tunnel']);
+  assert.deepEqual(Array.from(core,l=>l.id),['confused-traffic-signal','parcel-sorter','bridge-builder','lost-robot','space-patrol','foggy-tunnel']);
   browser=await chromium.launch({channel:'chrome',headless:true});
   page=await browser.newPage({viewport:{width:1440,height:1100}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -115,9 +116,22 @@ const fixes={
   await hold('Space',4500);await won();
   console.log('PASS: core 4 animates the robot route, stops at walls on wrong moves, and reaches the dock with valid for loops');
 
-  await next('charging-station');await start();await hold('Space',350);await dead();
-  await fixed('charging-station');await hold('Space',1500);await won();
-  console.log('PASS: core 5 debugs while using a sensor that updates after each manual action');
+  await next('space-patrol');await start();
+  const shipStart=await shipPosition(page);
+  await hold('ArrowUp',150);assert((await shipPosition(page)).y<shipStart.y-6);
+  await hold('ArrowDown',150);await hold('ArrowLeft',150);assert((await shipPosition(page)).x<shipStart.x-6);
+  await hold('ArrowRight',150);
+  await pilotSector(page,'dead');await dead();
+  assert.match(await page.locator('.console-message').innerText(),/ammunition|bullets|shields/);
+  await fixed('space-patrol');await page.waitForTimeout(1000);
+  assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
+  await pilotSector(page);await screenshot('workshop-space-sector-clear');
+  assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
+  await flyToBeacon(page);await won();
+  assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
+  await compile('    for bullet in range(30):\n        if enemy_visible():\n            shoot()\n');await playing();
+  await pilotSector(page);await flyToBeacon(page);await won();
+  console.log('PASS: core 5 has four-way flight, a finite auto-aimed magazine, enemy fire, and accepts while or for/if; manual flight to the beacon finishes it');
 
   await next('foggy-tunnel');await start();await hold('Space',350);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-foggy-blank');
