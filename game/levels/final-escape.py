@@ -1,28 +1,25 @@
-"""Read the code, compile your change, then play your way to the exit."""
+"""A Code From Scratch mission. Compile, then play with Space."""
 import asyncio
+import random
 import pygame
 import lesson_bridge
-LEVEL_NUMBER = 7
-WIDTH, HEIGHT, FLOOR = (320, 180, 145)
-PUZZLE_NAME = 'escape_plan'
-PUZZLE_ARGUMENTS = ''
+
+LEVEL_NUMBER = 10
+COIN_STORAGE_ID = 7
+WIDTH, HEIGHT = 320, 180
+PROGRAM_NAME = 'escape_room'
+CONCEPT = 'nested-loops'
+LOOP_COMMANDS = ('power_cell',)
+COIN_NAMES = ('first', 'second')
 COLLECTED_COINS = set()
 
 
-def escape_plan():
+def escape_room():
     # EDIT START
-    steps = []
-    for cell in range(2):
-        steps.append("power")
-    if len(steps) == 3:
-        steps.append("open")
-        steps.append("unlock")
-    return steps
+    pass
     # EDIT END
 
 
-GIRL_SPRITE = ['...hhhh....', '..hhhhhh.pp', '.hhhhhhhhpp', '.hhsssshhh.', '.hssessesh.', '..ssssssh..', '...ssss....', '....ss.....', '..dddddd...', '.sdddddds..', '.sdddddds..', '.sdddddds..', '..dddddd...', '..dddddd...', '.dddddddd..', '...s..s....', '...s..s....', '...s..s....', '..bb..bb...', '.bbb..bbb..']
-PALETTE = {'h': (88, 66, 99), 's': (255, 207, 173), 'e': (65, 56, 85), 'd': (237, 160, 185), 'p': (255, 223, 144), 'b': (101, 85, 121)}
 COIN_SPRITE = ['..oooo..', '.offffo.', 'offffffo', 'offhhffo', 'offhhffo', 'offhhffo', 'offhhffo', 'offffffo', '.offffo.', '..oooo..']
 
 def draw_coin(surface, coin, collected):
@@ -32,73 +29,21 @@ def draw_coin(surface, coin, collected):
             if pixel in colors and (not collected or pixel == 'o'):
                 surface.set_at((coin.x + x, coin.y + y), colors[pixel])
 
-def pixel_cloud(surface, x, y):
-    for dx, dy, w, h in [(6, 0, 20, 4), (2, 4, 33, 5), (0, 9, 39, 5), (5, 14, 29, 3)]:
-        pygame.draw.rect(surface, (255, 247, 242), (x + dx, y + dy, w, h))
-
 def remember(name):
     if name not in COLLECTED_COINS:
         COLLECTED_COINS.add(name)
-        lesson_bridge.save_coins(LEVEL_NUMBER, COLLECTED_COINS)
-
-def checked_steps(value, allowed):
-    if not isinstance(value, (list, tuple)) or not 1 <= len(value) <= 64:
-        raise ValueError('Return a sequence of 1 to 64 instruction strings.')
-    if any((not isinstance(step, str) or step not in allowed for step in value)):
-        raise ValueError('Use these instructions: ' + ', '.join(sorted(allowed)))
-    return list(value)
-
-class World:
-
-    def __init__(self, puzzle=None):
-        self.puzzle = puzzle or escape_plan
-        self.x, self.y = (28.0, float(FLOOR))
-        self.elapsed = self.action_time = 0.0
-        self.processing = False
-        self.power, self.unlocked, self.exit_open = (0, False, False)
-        self.sequence, self.sequence_index, self.sequence_time = ([], 0, 0.0)
-        self.message = 'Play to explore. Compile to apply your changes.'
-        self.coins = {'first': pygame.Rect(126, 130, 8, 10), 'second': pygame.Rect(234, 130, 8, 10)}
-        self.sequence = checked_steps(self.puzzle(), {'power', 'unlock', 'open'})
-
-    def update(self, dt, left=False, right=False, action=False):
-        self.elapsed += dt
-        self.action_time = max(0.0, self.action_time - dt)
-        pressed = action and self.action_time <= 0
-        if pressed:
-            self.action_time = 0.25
-        self.x = max(12.0, min(309.0, self.x + (int(right) - int(left)) * 65 * dt))
-        bounds = pygame.Rect(round(self.x) - 5, FLOOR - 20, 10, 20)
-        if pressed and abs(self.x - 64) < 24 and (not self.processing):
-            self.power, self.unlocked, self.exit_open = (0, False, False)
-            self.processing, self.sequence_index, self.sequence_time = (True, 0, 0.0)
-        if self.processing:
-            self.sequence_time += dt
-            if self.sequence_time >= 0.4:
-                self.sequence_time -= 0.4
-                instruction = self.sequence[self.sequence_index]
-                self.sequence_index += 1
-                if instruction == 'power':
-                    self.power = min(3, self.power + 1)
-                    self.message = f'Power cells: {self.power} / 3.'
-                elif instruction == 'unlock':
-                    self.unlocked = self.power == 3
-                    self.message = 'Latch unlocked.' if self.unlocked else 'The latch needs all three power cells.'
-                elif instruction == 'open':
-                    self.exit_open = self.unlocked
-                    self.message = 'Exit open. Walk through it!' if self.exit_open else 'The exit latch is still locked.'
-                if self.sequence_index >= len(self.sequence):
-                    self.processing = False
-        bounds.x = round(self.x) - 5
-        for name, coin in self.coins.items():
-            if bounds.colliderect(coin):
-                remember(name)
-        if self.exit_open and self.x >= 287:
-            return 'won'
-        return None
+        lesson_bridge.save_coins(COIN_STORAGE_ID, COLLECTED_COINS)
 
 def label(surface, font, text, x, y, color=(91, 79, 119)):
     surface.blit(font.render(text, False, color), (x, y))
+
+GIRL_SPRITE = ['...hhhh....', '..hhhhhh.pp', '.hhhhhhhhpp', '.hhsssshhh.', '.hssessesh.', '..ssssssh..', '...ssss....', '....ss.....', '..dddddd...', '.sdddddds..', '.sdddddds..', '.sdddddds..', '..dddddd...', '..dddddd...', '.dddddddd..', '...s..s....', '...s..s....', '...s..s....', '..bb..bb...', '.bbb..bbb..']
+
+PALETTE = {'h': (88, 66, 99), 's': (255, 207, 173), 'e': (65, 56, 85), 'd': (237, 160, 185), 'p': (255, 223, 144), 'b': (101, 85, 121)}
+
+def pixel_cloud(surface, x, y):
+    for dx, dy, w, h in [(6, 0, 20, 4), (2, 4, 33, 5), (0, 9, 39, 5), (5, 14, 29, 3)]:
+        pygame.draw.rect(surface, (255, 247, 242), (x + dx, y + dy, w, h))
 
 def draw_girl(surface, x, y, moving):
     for row, line in enumerate(GIRL_SPRITE):
@@ -107,52 +52,103 @@ def draw_girl(surface, x, y, moving):
                 offset = int(pygame.time.get_ticks() / 110) % 2 if moving and row >= 15 else 0
                 surface.set_at((round(x) - 5 + col, round(y) - 20 + row - offset), PALETTE[pixel])
 
-def draw_door(surface, x, opened, symbol, font, correct=False):
-    pygame.draw.rect(surface, (145, 133, 167), (x - 15, 87, 30, 58))
-    pygame.draw.rect(surface, (116, 105, 144) if opened else (218, 189, 211), (x - 12, 90, 24, 55))
-    if not opened:
-        pygame.draw.rect(surface, (240, 219, 226), (x - 9, 94, 18, 3))
-        pygame.draw.rect(surface, (242, 219, 147), (x + 7, 118, 3, 3))
-    else:
-        pygame.draw.rect(surface, (173, 222, 185) if correct else (182, 162, 198), (x - 10, 94, 20, 49))
-    label(surface, font, symbol, x - 12, 76)
 
-def draw_scene(surface, world, small, title):
-    surface.fill((225, 219, 244))
-    pixel_cloud(surface, 19, 23)
-    pixel_cloud(surface, 185, 18)
-    pygame.draw.rect(surface, (211, 205, 228), (0, 65, WIDTH, 80))
-    for x in range(8, WIDTH, 32):
-        pygame.draw.rect(surface, (228, 217, 235), (x, 71, 23, 3))
-    pygame.draw.rect(surface, (185, 212, 184), (0, FLOOR, WIDTH, 6))
-    pygame.draw.rect(surface, (232, 199, 187), (0, FLOOR + 6, WIDTH, HEIGHT - FLOOR))
-    for x in range(0, WIDTH, 16):
-        pygame.draw.rect(surface, (245, 219, 197), (x + 4, 163, 3, 2))
-    pygame.draw.rect(surface, (143, 131, 173), (49, 111, 30, 34))
-    pygame.draw.rect(surface, (190, 222, 211), (53, 115, 22, 14))
-    label(surface, small, 'SPACE', 52, 154)
-    for index in range(3):
-        pygame.draw.rect(surface, (157, 206, 175) if world.power > index else (176, 163, 196), (110 + index * 35, 86, 22, 30))
-        pygame.draw.rect(surface, (211, 237, 201) if world.power > index else (205, 191, 220), (115 + index * 35, 90, 12, 19))
-    label(surface, small, 'POWER     LATCH     EXIT', 101, 60)
-    draw_door(surface, 288, world.exit_open, 'EXIT', small, True)
-    label(surface, small, 'UNLOCKED' if world.unlocked else 'LOCKED', 244, 155)
-    draw_girl(surface, world.x, world.y, False)
-    for name, coin in world.coins.items():
-        draw_coin(surface, coin, name in COLLECTED_COINS)
-    label(surface, small, f'COINS {len(COLLECTED_COINS)}/{len(world.coins)}', 8, 6)
-    label(surface, small, world.message[:67], 7, 172)
+class World:
+    def __init__(self):
+        self.program = self.generator = None
+        self.elapsed = self.cooldown = 0.0
+        self.actions = 0
+        self.powered = set()
+        self.unlocked = False
+        self.message = 'Two rows of power cells. Charge them, unlock the latch, and escape.'
+    def commands(self): return {'power_cell':self.power_cell,'unlock_exit':self.unlock_exit,'open_exit':self.open_exit}
+    def sensors(self): return {'all_powered':self.all_powered}
+    def power_cell(self,row,column): return ('power',row,column)
+    def unlock_exit(self): return ('unlock',)
+    def open_exit(self): return ('open',)
+    def all_powered(self): return len(self.powered)==6
+    def perform(self,command):
+        if command[0]=='power':
+            row,column=command[1:]
+            if type(row) is not int or type(column) is not int or not (0<=row<2 and 0<=column<3):
+                self.message='That cell is outside the panel. Check both loop counts.'
+                return 'dead'
+            self.powered.add((row,column))
+            if all((0,col) in self.powered for col in range(3)): remember('first')
+            if self.all_powered(): remember('second')
+            self.message=f'Power cells: {len(self.powered)}/6.'
+        elif command[0]=='unlock':
+            if not self.all_powered():
+                self.message='The latch needs all six power cells.'
+                return 'dead'
+            self.unlocked=True
+            self.message='Latch unlocked. Your program can open the exit now.'
+        elif command[0]=='open':
+            if not self.unlocked:
+                self.message='The latch is still locked. Check your sequence.'
+                return 'dead'
+            return 'won'
+        return None
+
+    def update(self, dt, action=False):
+        self.elapsed += dt
+        self.cooldown = max(0.0, self.cooldown - dt)
+        if action and self.cooldown == 0:
+            self.cooldown = 0.24
+            return advance_program(self)
+        return None
+
+    def program_finished(self):
+        self.message = "Add your solution to the green function, then Compile."
+        return None
+
+
+
+def draw_scene(surface,world,small,title):
+    surface.fill((217,212,237))
+    label(surface,title,'THE FINAL ESCAPE',89,21)
+    pygame.draw.rect(surface,(201,194,218),(0,65,320,80))
+    pygame.draw.rect(surface,(180,210,179),(0,145,320,6))
+    pygame.draw.rect(surface,(231,199,186),(0,151,320,29))
+    for row in range(2):
+        for column in range(3):
+            x,y=97+column*39,66+row*36
+            pygame.draw.rect(surface,(169,211,178) if (row,column) in world.powered else (155,141,181),(x,y,27,27))
+            pygame.draw.rect(surface,(211,234,199) if (row,column) in world.powered else (188,173,207),(x+5,y+4,17,18))
+    pygame.draw.rect(surface,(148,133,171),(270,89,30,56))
+    pygame.draw.rect(surface,(178,222,186) if world.unlocked else (218,185,210),(273,92,24,53))
+    label(surface,small,'EXIT',275,78)
+    label(surface,small,'UNLOCKED' if world.unlocked else 'LOCKED',262,155)
+    draw_girl(surface,49,145,False)
+    label(surface,small,world.message[:67],5,174)
+
+
+
+def advance_program(world):
+    if world.program is None:
+        world.message = "Compile your program first."
+        return None
+    if world.generator is None:
+        world.generator = world.program()
+    try:
+        command = next(world.generator)
+    except StopIteration:
+        world.generator = None
+        return world.program_finished()
+    world.actions += 1
+    return world.perform(command)
+
 
 async def main():
     lesson_bridge.emit('loading', phase=4, label='Starting your game', fraction=None, loaded=0, total=0)
     pygame.init()
     screen = pygame.display.set_mode((800, 450))
     surface = pygame.Surface((WIDTH, HEIGHT))
-    small, title = (pygame.font.Font(None, 10), pygame.font.Font(None, 15))
+    small, title = pygame.font.Font(None, 10), pygame.font.Font(None, 16)
     clock = pygame.time.Clock()
     world = World()
-    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in world.coins))
-    state, attempt, has_input, previous_message = ('idle', 0, False, '')
+    COLLECTED_COINS.update(name for name in lesson_bridge.load_coins(COIN_STORAGE_ID) if name in COIN_NAMES)
+    state, attempt, has_input, previous_message = 'idle', 0, False, ''
     lesson_bridge.ready()
     while True:
         dt = min(clock.tick(60) / 1000, 0.04)
@@ -162,10 +158,11 @@ async def main():
         command = lesson_bridge.poll()
         if command:
             try:
-                puzzle = lesson_bridge.compile_puzzle(command['body'], PUZZLE_NAME, PUZZLE_ARGUMENTS)
-                candidate = World(puzzle)
+                candidate = World()
+                candidate.program = lesson_bridge.compile_lesson(command['body'], PROGRAM_NAME,
+                    candidate.commands(), candidate.sensors(), CONCEPT, LOOP_COMMANDS)
                 world = candidate
-                state, has_input, previous_message = ('playing', False, '')
+                state, has_input, previous_message = 'playing', False, ''
                 attempt += 1
                 lesson_bridge.emit('started', attempt=attempt)
             except Exception as error:
@@ -174,11 +171,9 @@ async def main():
         if state == 'playing':
             try:
                 keys = pygame.key.get_pressed()
-                left = bool(keys[pygame.K_LEFT] or keys[pygame.K_a])
-                right = bool(keys[pygame.K_RIGHT] or keys[pygame.K_d])
                 action = bool(keys[pygame.K_SPACE])
-                has_input = has_input or left or right or action
-                result = world.update(dt, left, right, action)
+                has_input = has_input or action
+                result = world.update(dt, action)
                 if world.message != previous_message:
                     previous_message = world.message
                     lesson_bridge.emit('notice', message=world.message)
@@ -192,4 +187,6 @@ async def main():
         pygame.transform.scale(surface, (800, 450), screen)
         pygame.display.flip()
         await asyncio.sleep(0)
+
+
 asyncio.run(main())

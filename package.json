@@ -10,6 +10,8 @@
     "build:game": "python scripts/build_game.py",
     "test:lesson": "python -m unittest discover -s tests",
     "test:browser": "node scripts/check-browser.cjs",
+    "test:workshop": "node scripts/check-workshop.cjs",
+    "test:bonuses": "node scripts/check-bonuses.cjs",
     "test:adventures": "node scripts/check-adventures.cjs",
     "test:sources": "node scripts/check-level-sources.cjs",
     "test:themes": "node scripts/check-themes.cjs"

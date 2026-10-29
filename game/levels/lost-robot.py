@@ -1,19 +1,22 @@
-"""Read the code, compile your change, then play your way to the exit."""
+"""A Code From Scratch mission. Compile, then play with Space."""
 import asyncio
+import random
 import pygame
 import lesson_bridge
+
 LEVEL_NUMBER = 4
-WIDTH, HEIGHT, FLOOR = (320, 180, 145)
-PUZZLE_NAME = 'robot_program'
-PUZZLE_ARGUMENTS = ''
+COIN_STORAGE_ID = 4
+WIDTH, HEIGHT = 320, 180
+PROGRAM_NAME = 'guide_robot'
+CONCEPT = 'for'
+LOOP_COMMANDS = ('move_left', 'move_right', 'move_up', 'move_down')
+COIN_NAMES = ('loop', 'route')
 COLLECTED_COINS = set()
-ROBOT_PATH = {(1, 4), (2, 4), (2, 5), (1, 5), (3, 4), (3, 3), (3, 2), (4, 2), (5, 2), (5, 3), (6, 3), (7, 3), (7, 4), (8, 4), (9, 4)}
-DIRECTIONS = {'right': (1, 0), 'down': (0, 1), 'left': (-1, 0), 'up': (0, -1)}
 
 
-def robot_program():
+def guide_robot():
     # EDIT START
-    return ["right", "down", "left", "up"]
+    pass
     # EDIT END
 
 
@@ -29,96 +32,108 @@ def draw_coin(surface, coin, collected):
 def remember(name):
     if name not in COLLECTED_COINS:
         COLLECTED_COINS.add(name)
-        lesson_bridge.save_coins(LEVEL_NUMBER, COLLECTED_COINS)
-
-def robot_point(cell):
-    return (28 + cell[0] * 24 + 12, 8 + cell[1] * 22 + 11)
-
-def checked_steps(value, allowed):
-    if not isinstance(value, (list, tuple)) or not 1 <= len(value) <= 64:
-        raise ValueError('Return a sequence of 1 to 64 instruction strings.')
-    if any((not isinstance(step, str) or step not in allowed for step in value)):
-        raise ValueError('Use these instructions: ' + ', '.join(sorted(allowed)))
-    return list(value)
-
-class World:
-
-    def __init__(self, puzzle=None):
-        self.puzzle = puzzle or robot_program
-        self.elapsed = self.action_time = 0.0
-        self.cell, self.step = ((1, 4), 0)
-        self.sequence = []
-        self.message = 'Play to explore. Compile to apply your changes.'
-        self.sequence = checked_steps(self.puzzle(), set(DIRECTIONS))
-        self.coins = {'loop': self.cell_coin((2, 5)), 'route': self.cell_coin((5, 2))}
-
-    @staticmethod
-    def cell_coin(cell):
-        x, y = robot_point(cell)
-        return pygame.Rect(x - 4, y - 5, 8, 10)
-
-    def update(self, dt, action=False):
-        self.elapsed += dt
-        self.action_time = max(0.0, self.action_time - dt)
-        pressed = action and self.action_time <= 0
-        if pressed:
-            self.action_time = 0.25
-        if pressed:
-            direction = self.sequence[self.step % len(self.sequence)]
-            dx, dy = DIRECTIONS[direction]
-            destination = (self.cell[0] + dx, self.cell[1] + dy)
-            self.step += 1
-            if destination not in ROBOT_PATH:
-                self.message = 'That instruction leads into a crate. Restart and try another route.'
-                return 'dead'
-            self.cell = destination
-            self.message = f'Step {self.step}: {direction}. Keep going to the green dock.'
-        cx, cy = robot_point(self.cell)
-        bounds = pygame.Rect(cx - 7, cy - 8, 14, 16)
-        for name, coin in self.coins.items():
-            if bounds.colliderect(coin):
-                remember(name)
-        if self.cell == (9, 4):
-            return 'won'
-        return None
+        lesson_bridge.save_coins(COIN_STORAGE_ID, COLLECTED_COINS)
 
 def label(surface, font, text, x, y, color=(91, 79, 119)):
     surface.blit(font.render(text, False, color), (x, y))
 
+
+
+
+ROBOT_PATH = {(8, 5), (7, 5), (6, 5), (5, 5), (5, 4), (5, 3), (4, 3), (3, 3), (2, 3)}
+DIRECTIONS = {'left':(-1,0), 'right':(1,0), 'up':(0,-1), 'down':(0,1)}
+def robot_point(cell): return 28+cell[0]*24+12, 8+cell[1]*22+11
+
+class World:
+    def __init__(self):
+        self.program = self.generator = None
+        self.elapsed = self.cooldown = 0.0
+        self.actions = 0
+        self.cell = (8, 5)
+        self.message = 'Count the tiles. Write your loops, then press Space to step.'
+    def commands(self):
+        return {'move_left':self.move_left,'move_right':self.move_right,'move_up':self.move_up,'move_down':self.move_down}
+    def sensors(self): return {}
+    def move_left(self): return 'left'
+    def move_right(self): return 'right'
+    def move_up(self): return 'up'
+    def move_down(self): return 'down'
+    def perform(self, command):
+        dx,dy = DIRECTIONS[command]
+        next_cell = self.cell[0]+dx, self.cell[1]+dy
+        if next_cell not in ROBOT_PATH:
+            self.message = 'That step hit a crate. Check the direction and repetition count.'
+            return 'dead'
+        self.cell = next_cell
+        if self.cell == (6,5): remember('loop')
+        if self.cell == (5,3): remember('route')
+        self.message = 'Dock reached. Press Space to finish your program.' if self.cell == (2,3) else f'Step {self.actions}. Keep following the path.'
+        return None
+    def program_finished(self):
+        if self.cell == (2,3): return 'won'
+        self.message = 'Your program ended before the dock. Add your movement loops and Compile.'
+        return None
+
+    def update(self, dt, action=False):
+        self.elapsed += dt
+        self.cooldown = max(0.0, self.cooldown - dt)
+        if action and self.cooldown == 0:
+            self.cooldown = 0.24
+            return advance_program(self)
+        return None
+
+
+
+
 def draw_scene(surface, world, small, title):
-    surface.fill((225, 219, 244))
     surface.fill((208, 218, 230))
-    for row in range(1, 7):
+    for row in range(1,7):
         for col in range(11):
-            x, y = (28 + col * 24, 8 + row * 22)
-            walkable = (col, row) in ROBOT_PATH
-            pygame.draw.rect(surface, (244, 231, 211) if walkable else (178, 168, 194), (x, y, 23, 21))
-            if not walkable:
-                pygame.draw.rect(surface, (201, 187, 212), (x + 3, y + 3, 17, 3))
-    gx, gy = robot_point((9, 4))
-    pygame.draw.rect(surface, (156, 204, 177), (gx - 10, gy - 9, 20, 18))
-    label(surface, small, 'DOCK', gx - 9, gy - 2)
-    for name, coin in world.coins.items():
-        draw_coin(surface, coin, name in COLLECTED_COINS)
-    x, y = robot_point(world.cell)
-    pygame.draw.rect(surface, (113, 129, 163), (x - 6, y - 8, 12, 15))
-    pygame.draw.rect(surface, (183, 217, 230), (x - 7, y - 9, 14, 9))
-    pygame.draw.rect(surface, (76, 90, 124), (x - 4, y - 6, 2, 2))
-    pygame.draw.rect(surface, (76, 90, 124), (x + 2, y - 6, 2, 2))
-    pygame.draw.rect(surface, (255, 220, 148), (x, y - 13, 2, 4))
-    label(surface, small, f'STEP {world.step}   HOLD SPACE TO STEP', 31, 163)
-    label(surface, small, f'COINS {len(COLLECTED_COINS)}/{len(world.coins)}', 8, 6)
+            x,y = 28+col*24,8+row*22
+            walkable = (col,row) in ROBOT_PATH
+            pygame.draw.rect(surface,(244,231,211) if walkable else (178,168,194),(x,y,23,21))
+            if not walkable: pygame.draw.rect(surface,(201,187,212),(x+3,y+3,17,3))
+    gx,gy = robot_point((2,3))
+    pygame.draw.rect(surface,(156,204,177),(gx-10,gy-9,20,18))
+    label(surface,small,'DOCK',gx-9,gy-2)
+    for cell,name in [((6,5),'loop'),((5,3),'route')]:
+        x,y=robot_point(cell)
+        draw_coin(surface,pygame.Rect(x-4,y-5,8,10),name in COLLECTED_COINS)
+    x,y=robot_point(world.cell)
+    pygame.draw.rect(surface,(113,129,163),(x-6,y-8,12,15))
+    pygame.draw.rect(surface,(183,217,230),(x-7,y-9,14,9))
+    for dx in (-4,2): pygame.draw.rect(surface,(76,90,124),(x+dx,y-6,2,2))
+    pygame.draw.rect(surface,(255,220,148),(x,y-13,2,4))
+    label(surface,small,'SPACE: NEXT STEP',32,163)
+    label(surface,small,world.message[:65],5,174)
+
+
+
+def advance_program(world):
+    if world.program is None:
+        world.message = "Compile your program first."
+        return None
+    if world.generator is None:
+        world.generator = world.program()
+    try:
+        command = next(world.generator)
+    except StopIteration:
+        world.generator = None
+        return world.program_finished()
+    world.actions += 1
+    return world.perform(command)
+
 
 async def main():
     lesson_bridge.emit('loading', phase=4, label='Starting your game', fraction=None, loaded=0, total=0)
     pygame.init()
     screen = pygame.display.set_mode((800, 450))
     surface = pygame.Surface((WIDTH, HEIGHT))
-    small, title = (pygame.font.Font(None, 10), pygame.font.Font(None, 15))
+    small, title = pygame.font.Font(None, 10), pygame.font.Font(None, 16)
     clock = pygame.time.Clock()
     world = World()
-    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in world.coins))
-    state, attempt, has_input, previous_message = ('idle', 0, False, '')
+    COLLECTED_COINS.update(name for name in lesson_bridge.load_coins(COIN_STORAGE_ID) if name in COIN_NAMES)
+    state, attempt, has_input, previous_message = 'idle', 0, False, ''
     lesson_bridge.ready()
     while True:
         dt = min(clock.tick(60) / 1000, 0.04)
@@ -128,10 +143,11 @@ async def main():
         command = lesson_bridge.poll()
         if command:
             try:
-                puzzle = lesson_bridge.compile_puzzle(command['body'], PUZZLE_NAME, PUZZLE_ARGUMENTS)
-                candidate = World(puzzle)
+                candidate = World()
+                candidate.program = lesson_bridge.compile_lesson(command['body'], PROGRAM_NAME,
+                    candidate.commands(), candidate.sensors(), CONCEPT, LOOP_COMMANDS)
                 world = candidate
-                state, has_input, previous_message = ('playing', False, '')
+                state, has_input, previous_message = 'playing', False, ''
                 attempt += 1
                 lesson_bridge.emit('started', attempt=attempt)
             except Exception as error:
@@ -156,4 +172,6 @@ async def main():
         pygame.transform.scale(surface, (800, 450), screen)
         pygame.display.flip()
         await asyncio.sleep(0)
+
+
 asyncio.run(main())

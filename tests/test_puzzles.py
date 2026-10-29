@@ -14,7 +14,7 @@ import lesson_bridge
 import pygame
 from levels import LEVELS
 
-PUZZLES = {number: slug for number, slug in LEVELS.items() if number >= 3}
+PUZZLES = {number: slug for number, slug in LEVELS.items() if number in (3, 5, 6)}
 
 ROUTE = ["right", "right", "up", "up", "right", "right", "down", "right", "right", "down", "right", "right"]
 FIXES = {
@@ -93,23 +93,8 @@ class PuzzleTests(unittest.TestCase):
         world = self.worlds[3]["World"](lesson_bridge.compile_puzzle('    return "green"\n', "next_light", "current"))
         self.assertEqual(self.run_for(world, 8, right=True), "won")
 
-    def test_robot_starter_repeats_a_circle(self):
-        world = self.world(4)
-        for _ in range(4):
-            self.assertIsNone(world.update(0.25, action=True))
-        self.assertEqual(world.cell, (1, 4))
 
-    def test_robot_follows_fixed_route_and_accepts_optional_detour(self):
-        world = self.world(4, True)
-        self.assertEqual(self.run_for(world, 5, action=True), "won")
-        route = ["right", "down", "left", "up"] + ROUTE
-        world = self.worlds[4]["World"](lesson_bridge.compile_puzzle(f'    return {route!r}\n', "robot_program", ""))
-        self.assertEqual(self.run_for(world, 7, action=True), "won")
-        self.assertEqual(self.worlds[4]["COLLECTED_COINS"], {"loop", "route"})
 
-    def test_robot_crate_collision_ends_attempt(self):
-        world = self.worlds[4]["World"](lambda: ["up"])
-        self.assertEqual(world.update(0.25, action=True), "dead")
 
     def test_broken_collector_runs_past_five_and_door_stays_locked(self):
         world = self.world(5)
@@ -145,26 +130,7 @@ class PuzzleTests(unittest.TestCase):
         self.assertEqual(world.opened, 2)
         self.assertEqual(self.run_for(world, 5, right=True), "won")
 
-    def test_escape_starter_and_wrong_order_both_leave_exit_locked(self):
-        for fixed_order in (False, True):
-            world = self.world(7)
-            if fixed_order:
-                world.sequence = ["power", "power", "power", "open", "unlock"]
-            world.x = 64
-            world.update(0.01, action=True)
-            self.assertIsNone(self.run_for(world, 3))
-            self.assertFalse(world.exit_open)
-            self.assertIsNone(self.run_for(world, 5, right=True))
 
-    def test_escape_loop_condition_sequence_and_manual_exit(self):
-        world = self.world(7, True)
-        world.x = 64
-        world.update(0.01, action=True)
-        self.assertIsNone(self.run_for(world, 3))
-        self.assertEqual(world.power, 3)
-        self.assertTrue(world.unlocked)
-        self.assertTrue(world.exit_open)
-        self.assertEqual(self.run_for(world, 5, right=True), "won")
 
     def test_unbounded_loops_and_runtime_access_are_rejected(self):
         previous = sys.gettrace()

@@ -2,7 +2,8 @@
 import asyncio
 import pygame
 import lesson_bridge
-LEVEL_NUMBER = 3
+LEVEL_NUMBER = 1
+COIN_STORAGE_ID = 3
 WIDTH, HEIGHT, FLOOR = (320, 180, 145)
 PUZZLE_NAME = 'next_light'
 PUZZLE_ARGUMENTS = 'current'
@@ -37,7 +38,7 @@ def pixel_cloud(surface, x, y):
 def remember(name):
     if name not in COLLECTED_COINS:
         COLLECTED_COINS.add(name)
-        lesson_bridge.save_coins(LEVEL_NUMBER, COLLECTED_COINS)
+        lesson_bridge.save_coins(COIN_STORAGE_ID, COLLECTED_COINS)
 
 class World:
 
@@ -117,7 +118,7 @@ async def main():
     small, title = (pygame.font.Font(None, 10), pygame.font.Font(None, 15))
     clock = pygame.time.Clock()
     world = World()
-    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in world.coins))
+    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(COIN_STORAGE_ID) if name in world.coins))
     state, attempt, has_input, previous_message = ('idle', 0, False, '')
     lesson_bridge.ready()
     while True:

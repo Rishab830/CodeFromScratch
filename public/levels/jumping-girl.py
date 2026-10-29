@@ -3,7 +3,8 @@ import asyncio
 import math
 import pygame
 import lesson_bridge
-LEVEL_NUMBER = 1
+LEVEL_NUMBER = 11
+COIN_STORAGE_ID = 1
 WIDTH, HEIGHT = (320, 180)
 FLOOR = 141
 BLUE = pygame.Rect(194, FLOOR, 66, 7)
@@ -53,7 +54,7 @@ def collect_coins(player):
     for name, coin in COINS.items():
         if name not in COLLECTED_COINS and player_bounds(player).colliderect(coin):
             COLLECTED_COINS.add(name)
-            lesson_bridge.save_coins(LEVEL_NUMBER, COLLECTED_COINS)
+            lesson_bridge.save_coins(COIN_STORAGE_ID, COLLECTED_COINS)
 
 def triangle_hits_rect(triangle, rect):
     points = [(float(x), float(y)) for x, y in triangle]
@@ -197,7 +198,7 @@ async def main():
     small = pygame.font.Font(None, 10)
     clock = pygame.time.Clock()
     player = Girl()
-    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(LEVEL_NUMBER) if name in COINS))
+    COLLECTED_COINS.update((name for name in lesson_bridge.load_coins(COIN_STORAGE_ID) if name in COINS))
     state, elapsed, attempt, has_input = ('idle', 0.0, 0, False)
     lesson_bridge.ready()
     while True:

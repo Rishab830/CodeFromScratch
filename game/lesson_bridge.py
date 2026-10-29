@@ -220,6 +220,108 @@ def read_input():
     return str(window.lessonReadInput()) if window is not None else ""
 
 
+def compile_lesson(body, name, commands, sensors, concept, loop_commands=()):
+    """Turn workshop actions into steps that advance only when the player plays."""
+    if not isinstance(body, str) or len(body) > 8000:
+        raise ValueError("Keep your solution under 8,000 characters.")
+    filename = "<your-workshop-code>"
+    try:
+        tree = ast.parse(f"def {name}():\n" + body)
+    except SyntaxError as error:
+        raise ValueError(f"Python syntax error on editable line {max(1, (error.lineno or 2) - 1)}: {error.msg}") from error
+    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
+        raise ValueError("Keep your code inside the provided function.")
+    function = tree.body[0]
+    empty = all(isinstance(node, ast.Pass) for node in function.body)
+    allowed = (ast.Module, ast.FunctionDef, ast.arguments, ast.arg, ast.Expr,
+               ast.Call, ast.Name, ast.Load, ast.Store, ast.Constant, ast.Pass,
+               ast.If, ast.For, ast.While, ast.Compare, ast.Eq, ast.NotEq,
+               ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.BoolOp, ast.And, ast.Or,
+               ast.UnaryOp, ast.Not, ast.USub, ast.UAdd, ast.Assign, ast.AugAssign,
+               ast.BinOp, ast.Add, ast.Sub, ast.Mod)
+    nodes = list(ast.walk(tree))
+    if len(nodes) > 500:
+        raise ValueError("Keep this workshop solution short.")
+    api = {**commands, **sensors}
+    for node in nodes:
+        if not isinstance(node, allowed) or isinstance(node, ast.FunctionDef) and node is not function:
+            raise ValueError("Use the available game functions, conditions, and the loop for this lesson.")
+        if isinstance(node, ast.Name) and node.id.startswith("__"):
+            raise ValueError("Use the game functions shown beside the editor.")
+        if isinstance(node, ast.Call) and (not isinstance(node.func, ast.Name) or node.func.id not in set(api) | {"range"} or node.keywords):
+            raise ValueError("Call only the game functions shown beside the editor, or range().")
+        if isinstance(node, ast.Constant) and not (type(node.value) in (bool, type(None)) or
+                type(node.value) in (int, float) and math.isfinite(node.value) and abs(node.value) <= 100 or
+                isinstance(node.value, str) and len(node.value) <= 40):
+            raise ValueError("Use small numbers and short colour names.")
+        if isinstance(node, ast.For) and concept not in ("for", "nested-loops"):
+            raise ValueError("This mission practises while. For loops are not enabled here." if concept == "while" else "This mission practises conditions; loops are not enabled here.")
+        if isinstance(node, ast.While) and concept != "while":
+            raise ValueError("Use a for loop for this mission." if concept in ("for", "nested-loops") else "This mission practises conditions; loops are not enabled here.")
+    required = {"if": ast.If, "for": ast.For, "while": ast.While,
+                "nested-if": ast.If, "nested-loops": ast.For}[concept]
+    if not empty and not any(isinstance(node, required) for node in nodes):
+        raise ValueError(f"Use {'an if statement' if concept in ('if', 'nested-if') else 'a ' + ('for' if concept == 'nested-loops' else concept) + ' loop'} for this mission.")
+    if not empty and concept in ("nested-if", "nested-loops"):
+        if not any(isinstance(node, required) and any(isinstance(inner, required) for statement in node.body for inner in ast.walk(statement)) for node in nodes):
+            raise ValueError("Put one if inside another if." if concept == "nested-if" else "Put one for loop inside another for loop.")
+    parents = {child: parent for parent in nodes for child in ast.iter_child_nodes(parent)}
+    for node in nodes:
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in loop_commands:
+            parent = parents.get(node)
+            while parent is not None and not isinstance(parent, required):
+                parent = parents.get(parent)
+            if parent is None:
+                raise ValueError(f"Put {node.func.id}() inside your {concept} loop.")
+
+    class StepCommands(ast.NodeTransformer):
+        def visit_Expr(self, node):
+            if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in commands:
+                return ast.copy_location(ast.Expr(ast.Yield(node.value)), node)
+            return node
+    tree = StepCommands().visit(tree)
+    # Even a blank 'pass' starter is a valid preview program, with zero actions.
+    function.body.append(ast.If(ast.Constant(False), [ast.Expr(ast.Yield(ast.Constant(None)))], []))
+    ast.fix_missing_locations(tree)
+
+    def bounded_range(*args):
+        values = range(*args)
+        if len(values) > 32:
+            raise ValueError("Keep each loop to 32 steps or fewer.")
+        return values
+
+    namespace = {"__builtins__": {"range": bounded_range}, **api}
+    exec(compile(tree, filename, "exec"), namespace)
+
+    def play():
+        program = namespace[name]()
+        actions = 0
+        while True:
+            remaining = 1500
+            previous = sys.gettrace()
+
+            def trace(frame, event, argument):
+                nonlocal remaining
+                if frame.f_code.co_filename == filename and event in ("call", "line"):
+                    remaining -= 1
+                    if remaining <= 0:
+                        raise ValueError("That loop is not making progress. Check its condition and the action inside it.")
+                return trace
+
+            sys.settrace(trace)
+            try:
+                command = next(program)
+            except StopIteration:
+                return
+            finally:
+                sys.settrace(previous)
+            actions += 1
+            if actions > 96:
+                raise ValueError("Your program has too many actions. Check the loop's stopping condition.")
+            yield command
+    return play
+
+
 def emit(kind, **data):
     window = browser()
     if window is not None:

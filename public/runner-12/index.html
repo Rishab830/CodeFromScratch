@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><base href="/runner-12/"><script src="/runtime-progress.js"></script><script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type="module" id="site" data-python="python3.12" data-LINES="42" data-COLUMNS="132" data-os="vtx,snd,gui" async defer>#<!--
+import sys
+import asyncio
+import platform
+from pathlib import Path
+
+async def custom_site():
+    import embed
+    import zipfile
+    platform.window.lessonLoadPhase(2)
+    appdir = Path("/data/data/level12-source")
+    appdir.mkdir(exist_ok=True)
+    async with platform.fopen("level12-source.apk", "rb") as archive:
+        with zipfile.ZipFile(archive) as packaged:
+            packaged.extractall(appdir.as_posix())
+    platform.run_main(PyConfig, loaderhome=appdir / "assets", loadermain=None)
+    while embed.counter() < 0:
+        await asyncio.sleep(.1)
+    await TopLevel_async_handler.start_toplevel(platform.shell, console=False)
+    main = appdir / "assets" / "main.py"
+    __import__(__name__).__file__ = main
+    platform.window.lessonLoadPhase(3)
+    await shell.source(main)
+    platform.window.transfer.hidden = True
+    platform.window.infobox.hidden = True
+    platform.window.config.gui_divider = 1
+    platform.window.window_resize()
+
+asyncio.run(custom_site())
+# --></script><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Jumping Girl · Pygame runner</title>
+<script>
+var config = {
+  xtermjs: "1", _sdl2: "canvas", user_canvas: 0,
+  user_canvas_managed: 0, gui_divider: 1, ume_block: 0, can_close: 0,
+  archive: "level12-source", gui_debug: 0,
+  cdn: "https://pygame-web.github.io/cdn/0.9.3/", autorun: 0,
+  PYBUILD: "3.12", fb_ar: 1.7777778,
+  fb_width: 800, fb_height: 450
+};
+let pendingCommand = '';
+let touchKeys = new Set();
+let puzzleInput = '';
+window.lessonReadInput = () => puzzleInput;
+window.lessonReadCoins = (level) => {
+  try { return localStorage.getItem(`cfs:coins:level-${level}:v1`) || '[]'; }
+  catch { return '[]'; }
+};
+window.lessonSaveCoins = (level, collected) => {
+  try { localStorage.setItem(`cfs:coins:level-${level}:v1`, collected); }
+  catch { /* Keep the current run playable when browser storage is unavailable. */ }
+};
+window.lessonTakeCommand = () => { const command = pendingCommand; pendingCommand = ''; return command; };
+window.lessonEvent = (raw) => {
+  const event = JSON.parse(raw);
+  if (event.type === 'ready') window.lessonLoadFinished();
+  parent.postMessage({channel: 'scratch', ...event}, '*');
+};
+window.addEventListener('message', (event) => {
+  if (event.source !== parent || !event.data || event.data.channel !== 'scratch') return;
+  if (event.data.type === 'input') puzzleInput = String(event.data.value || '').slice(0,64);
+  if (event.data.type === 'compile') {
+    pendingCommand = JSON.stringify({body: event.data.body});
+    document.getElementById('canvas').focus();
+  }
+  if (event.data.type === 'key') {
+    const {key, down} = event.data;
+    if (!['ArrowLeft', 'ArrowRight', ' '].includes(key)) return;
+    if (down) touchKeys.add(key); else touchKeys.delete(key);
+    const code = key === ' ' ? 'Space' : key;
+    const keyCode = key === 'ArrowLeft' ? 37 : key === 'ArrowRight' ? 39 : 32;
+    document.getElementById('canvas').dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', {key, code, keyCode, which: keyCode, bubbles:true}));
+  }
+});
+window.addEventListener('keydown', (event) => { if (['ArrowLeft','ArrowRight','ArrowUp',' '].includes(event.key)) event.preventDefault(); });
+window.__canvas_resized = () => {};
+async function custom_onload() {}
+function custom_prerun() {}
+function custom_postrun() {}
+</script>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dad9f6;font-family:system-ui}
+#canvas,#canvas3d{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;border:0;outline:0;object-fit:contain;image-rendering:pixelated}
+#transfer,#infobox,#pyconsole,#system,#box,#info,#crt,#dlg,#html{display:none!important}
+</style></head>
+<body>
+<div id="transfer"><div id="status"></div><progress id="progress"></progress></div>
+<canvas id="canvas" width="800" height="450" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<canvas id="canvas3d" width="800" height="450" hidden></canvas>
+<div id="infobox"></div><div id="html"></div><div id="crt"><div id="system"></div><div id="box"><div id="info"></div><iframe id="iframe" title="Runtime" hidden></iframe></div></div>
+<div id="dlg"><input id="dlg_multifile" type="file" hidden></div>
+<div id="pyconsole"><div id="terminal"></div></div>
+</body></html>

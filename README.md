@@ -1,66 +1,78 @@
 # Code From Scratch
 
-A Next.js website for learning Python through playable Pygame levels. The project lives directly in `CodeFromScratch/`, with seven adventures, from **The Jumping Girl** to **The Final Escape**.
+A Next.js website for a one-hour Python workshop. Students read real Pygame code, edit the green section, compile it in the browser, and play to complete each challenge.
 
-## Run
+## Workshop path
+
+| Lesson | Game | Concept | Starting point |
+| --- | --- | --- | --- |
+| 1 | The Confused Traffic Signal | `if` / `elif` / `else` | Debug the signal sequence, without dictionaries. |
+| 2 | The Parcel Sorter | Conditions in a new setting | Blank function, supplied colour sensors and sorting actions. |
+| 3 | The Bridge Builder | `for` and `range` | Debug how many planks are placed. |
+| 4 | The Lost Robot | Counted movement | Blank function, supplied movement actions; no instruction lists. |
+| 5 | The Charging Station | `while` and a changing sensor | Debug a loop that should run until the battery is full. |
+| 6 | The Foggy Tunnel | Repeat until a live condition changes | Blank function, three hidden, different tunnel lengths. |
+
+Lessons unlock sequentially. Each concept starts with debugging and ends with an editable body containing `pass`. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly seven minutes per core lesson, and the remaining time for discussion or bonuses.
+
+Foggy Tunnel requires `while` and rejects `for`. Students discover each exit as they advance; overshooting or opening early ends the attempt. The same program must handle all three hidden lengths. An unknown stopping point and an explicit lesson constraint teach `while` without relying on a fixed coin count.
+
+## Optional bonuses
+
+All seven unlock together after the six core lessons. Any bonus can be chosen without completing another bonus first.
+
+| Bonus | Game | Focus |
+| --- | --- | --- |
+| 1 | The Wrong Door | Debug nested password checks. |
+| 2 | The Rocket Launch | Build nested conditions using power and fuel sensors. |
+| 3 | The Greenhouse Grid | Debug nested loops over rows and columns. |
+| 4 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
+| 5 | The Jumping Girl | Fix the blue-tile action, then play to the flag. |
+| 6 | The Blue Leap | Edit the entire `Girl` class and find a valid route. |
+| 7 | The Endless Coin Collector | Stop the machine at five, then reach the exit. |
+
+The original two platform maps retain overhead spikes, a 21-pixel floor gap (half the default running-jump distance), and the same blue tile. Blue Leap retains its walkable spike top and locked blue jump action. Small jumps under the spikes and high jumps over them are both valid. Coins leave outlines, persist per game, and appear filled or outlined on completion. Any coin count can clear these arcade levels.
+
+## Run and deploy
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The generated Pygame assets are included in `public/runner`, so Python is not required to serve the site. The first game load downloads its CPython WebAssembly runtime and Pygame from pygame-web's CDN.
+Open http://localhost:3000. Generated game assets are committed, so Python is not needed to serve the site. The first game load downloads CPython WebAssembly and Pygame from pygame-web's CDN. The loader tracks Python, level files, Pygame, and startup, showing real byte counts when available and a retry action on failure or a long wait.
 
-The loading bar follows four startup stages: Python, level files, Pygame, and game startup. It observes actual Fetch streams and XMLHttpRequest progress without changing the runtime responses. It shows transferred bytes and percentages when sizes are available; unknown-size downloads and initialization remain animated rather than using a timer-based percentage. A failed download or a long wait exposes **Retry loading**, which restarts the engine and resets the bar.
+For Vercel, deploy the project root with the Next.js preset and `npm run build`. The app exports to `out/`. Runners live at `/runner/` and `/runner-2/` through `/runner-13/`. Each runner has an absolute base URL so its archive loads correctly when Vercel removes trailing slashes. Preserve both the iframe URL handling and generated runner HTML when updating this fix.
 
-## Vercel hosting
+## Edit, compile, play
 
-Deploy the project root with the Next.js preset and `npm run build`. The app uses `/runner/` and `/runner-2/` through `/runner-7/` for its iframe pages. Vercel can serve directory indexes at `/runner` and `/runner-2` while returning 404 for the explicit `/runner/index.html` URLs. Each generated runner includes its own absolute `<base>` so game archives still load from the correct directory when trailing slashes are removed. No additional CORS or cross-origin isolation headers are needed for this runtime.
+- The entire current game's Python file is visible; only the green section is editable. Blank challenges supply a locked function definition and an editable body.
+- **Compile** validates the edit, applies it, and restarts the game. Compilation or waiting alone cannot finish a level.
+- Use the controls below the game. Traffic and arcade games use movement keys; program challenges use Space or the touch button to step through actions.
+- Sensors reflect the live world at each step. Hold Space to advance repeatedly or tap it to step once.
+- **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
+- Each game awards 100 XP. The six core lessons earn 600 XP and open the optional section. Bonuses are not required for the workshop celebration.
+- Edits, completions, coins, and theme preferences persist in this browser. Progress is client-side, not authoritative grading.
+- Site and code themes have independent controls, both defaulting to dark. The site light palette is white and orange.
 
-After updating the source, redeploy on Vercel. Both the application URL change and the regenerated `public/runner*/index.html` files must be included. Do not fix only the iframe URL: without the explicit base, a slashless page can incorrectly request its archive from `/game.apk` instead of `/runner/game.apk`.
+## Source and runtime
 
-To reproduce production-style URL canonicalization during browser checks:
+`lib/levels.ts` registers display order, concepts, exercises, supplied functions, and progress keys. Display numbers are separate from stable runtime IDs and coin-storage identities, so reordering lessons preserves coins for the correct game.
 
-```powershell
-$env:EMULATE_CLEAN_URLS='1'
-npm run test:browser
-```
+Each game has a complete independent source in `game/levels/<slug>.py`. `scripts/levels.py` maps stable runtime IDs to these files. `scripts/build_game.py` copies normalized source to `public/levels/<slug>.py` and packages it as `assets/main.py` in an isolated Pygbag archive. Each archive contains only its game and the shared `game/lesson_bridge.py`.
 
-## Play, edit, compile
+The bridge validates restricted Python syntax. Core program lessons permit the relevant conditions, assignments, arithmetic, loops, and supplied APIs without requiring lists, dictionaries, imports, or classes. Required constructs are checked; repeated lesson actions must occur inside the appropriate loop. Blank `pass` previews cannot win. Commands become generator steps resumed by manual player input, allowing sensors to change between loop iterations. Action and execution budgets report non-progressing loops without freezing the game.
 
-The **Site** control in the header switches between the default dark palette and the white-and-orange light palette. The **Code** control in the editor header changes only the editor and its surrounding controls. Both default to dark, save their preferences independently on this device, and preserve edits and undo history when switched.
+The older arcade compilers remain available for their lessons, including editing the entire `Girl` class in Blue Leap. This is a bounded educational runner, not a general-purpose Python sandbox.
 
-- Click **Play level** and follow the controls shown below the game. Levels 1-2 use Left / Right or A / D to move and Space / Up / W to jump. Later levels use Space to step or interact. Touch controls are below the game.
-- Landing on blue calls `on_blue(player)`. The starter's `player.jump()` launches Maya into overhead spikes.
-- The first two levels have the same 21-pixel gap after blue and the spikes, on the way to the flag. This is half Maya's default running-jump distance, rounded to a whole pixel: speed 55 × airtime (2 × 178 / 460) gives about 42.6 pixels. The gap stays fixed when students edit her movement. Jump across it; walking off the edge makes Maya fall. A spike collision or falling into the gap ends the attempt and shows **Game over** with **Restart level**.
-- Read the entire Python file; the green on_blue body is editable in Level 1, and the entire green Girl class is editable in Level 2. **Compile** validates and compiles that Python, applies it, and restarts the playable level. It does not run an automated attempt or grade a solution.
-- **Restart** reuses the last successfully compiled code. **Reset code** restores the starter in the editor; Compile is still required to apply those changes.
-- Reach the flag yourself to complete a level and earn 100 XP. Clearing a level unlocks the next one in the adventure map and through **Next adventure**; all seven levels award 100 XP each. Any valid solution, route, or number of jumps is accepted.
-- Level 2 keeps the original map, blue platform, spikes, and flag. Its blue action calls `player.jump()` and remains locked. The complete `Girl` class is editable, including the constructor and movement methods; there is no extra configuration function. Students can clear the level with small jumps below the spikes or a manually timed high jump over them. The mission does not reveal these solutions, and Level 2 has no solution hints.
-- Each level keeps its own edits and completion. Revisit any unlocked lesson from the map.
-- In Level 2, the top of the overhead spike platform is walkable: Maya can land on it, stop, walk along it, or jump off it. Its underside spikes remain lethal, and standing above blue does not trigger the floor tile.
-- Level 1 has a coin below the spikes; Level 2 has coins above and below them. Touch a coin to collect it and leave a hollow outline. Coin progress is saved separately for each level in this browser and survives deaths, restarts, compilation, and return visits. Reaching the flag still clears the level with any coin count.
-- The level-complete screen shows each coin: filled for collected coins and an outline for missing coins, alongside the level's saved count.
-- Edits and completed levels persist locally in this browser. The new manual-play level uses a separate progress key from the old automatic demo.
-
-## Project structure
-
-`lib/levels.ts` registers the lessons and their source, runtime, and storage keys. Every level is maintained as its own complete Pygame file in `game/levels/`. Each file contains only that level's game state, controls, map, art, and editable region. The browser editor shows the level's filename and complete source. There is no shared multi-level game template or level-switching logic in these files.
-
-`scripts/levels.py` is the build manifest. `scripts/build_game.py` copies each dedicated source unchanged to `public/levels/<slug>.py` and into its own Pygbag archive in `public/runner/` through `public/runner-7/`. The internal archive calls its entrypoint `main.py`; that is only Pygbag packaging, not a combined game. The compiler/browser bridge (`game/lesson_bridge.py`) and HTML runner (`game/runner.tmpl`) are shared infrastructure.
-
-`game/lesson_bridge.py` compiles the editable Python. Level 1 permits the player API, simple conditionals, and `pass`. Level 2 compiles one complete `Girl` class with numeric state, methods, conditions, and arithmetic, while keeping world code outside its namespace. Method execution is bounded so recursive mistakes do not hang the game. Levels 3-7 compile a bounded puzzle function with lists, dictionaries, sequences, conditions, and loops. Loops have a step limit and execution budget, so an endless loop reports a Python error instead of freezing the game. Imports and runtime internals are rejected. Reaching the flag still requires manual input after compilation. This is a bounded lesson runner, not a general-purpose Python sandbox. Client-side progress is suitable for this prototype, not authoritative grading.
-
-## Rebuild the game
+After editing Python or the runner template, regenerate assets:
 
 ```powershell
 python -m pip install -r requirements.txt
 npm run build:game
 ```
 
-Edit the appropriate file under `game/levels/`, then rebuild after changing Python or the runner template. Pygbag uses its own CPython inside the browser.
-
-## Verify and build
+## Verification
 
 ```powershell
 npm run test:lesson
@@ -68,24 +80,23 @@ npm run typecheck
 npm run build
 ```
 
-With a local server running, `npm run test:themes` checks the independent defaults, all theme combinations, saved preferences, editor history, level navigation, and mobile layout.
+Serve the exported `out/` directory on port 3001 (or set `TEST_URL`), then use installed Google Chrome for browser checks:
 
-The production static site is exported to `out/`. To run the actual WASM end-to-end checks, serve the app, then set `TEST_URL` to that URL and run `npm run test:browser`. The checks use installed Google Chrome through Playwright and verify manual play, spike death/restart, Python compilation/errors, protected editing, multiple valid solutions, physical flag completion, touch controls, and mobile layout.
+```powershell
+python -m http.server 3001 --bind 127.0.0.1 --directory out
+# In another terminal:
+npm run test:workshop
+npm run test:browser
+npm run test:bonuses
+npm run test:sources
+npm run test:themes
+```
 
-## Later adventures
+`test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:browser` covers both platformers; `test:bonuses` covers the retained door and collector games. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
 
-| Level | Puzzle | Play controls |
-| --- | --- | --- |
-| 3 - The Confused Traffic Signal | Fix an if/elif/else chain that cycles red/yellow so vehicles can move through green. | Left / Right drive; the car waits at the stop line. |
-| 4 - The Lost Robot | Replace a circular instruction sequence with a route to the dock. | Press or hold Space to execute the next grid step. |
-| 5 - The Endless Coin Collector | Stop the machine at exactly five; the exit stays locked while it runs or stops at another count. | Move to the collector, press Space, then walk to the exit. |
-| 6 - The Wrong Door | Fix password-to-door logic; wrong doors lead to a dead end. | Enter a password below the game, use Space at the terminal, walk to the selected door. |
-| 7 - The Final Escape | Combine a loop, a condition, and an ordered power/unlock/open sequence. | Activate the console with Space, observe its states, then walk out. |
+To reproduce Vercel's slashless runner URLs during platformer checks:
 
-Each has a protected world, one green editable function body, complete visible Python source, Compile/Restart, saved edits and coins, and a coin summary on completion. Level 5's machine inventory resets each attempt; its five coin badges remain saved. Completing an adventure requires real player input and reaching its destination, never compiling or waiting alone. Any function producing a working route is accepted.
-
-The traffic lesson's editable code uses only conditions and assignments to `next_color`; its return statement stays locked outside the editable region. Its revised edit-storage version starts students with the condition-based lesson without clearing existing completions or collected coins.
-
-With the static site served locally, `npm run test:adventures` plays every starter and a valid compiled solution through the actual WASM runtime, checks sequential locks, wrong passwords, robot detours, bounded loops, coin results, mobile layout, and the final seven-level celebration. `npm run test:browser` continues to cover the first two adventures.
-
-`npm run test:sources` verifies that all seven editor filenames and visible sources match the dedicated files on disk without overflowing mobile screens. The Python tests also verify that each runtime archive contains only its own game and the compiler bridge, with no branches for other levels.
+```powershell
+$env:EMULATE_CLEAN_URLS='1'
+npm run test:browser
+```
