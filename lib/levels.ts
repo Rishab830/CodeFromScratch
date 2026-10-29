@@ -1,12 +1,12 @@
 export type Level = {
   number: number; runtimeId: number; id: string; title: string; world: string; coins: readonly string[];
   group: 'workshop' | 'bonus'; concept: string; exercise: 'debug' | 'build' | 'arcade';
-  kind: 'program' | 'reactive' | 'arcade'; spaceLabel: string;
+  kind: 'program' | 'reactive' | 'arcade'; playInstruction: string;
   hints: readonly [string, string, string];
   source: string; runtime: string; storage: string; missionTitle: string;
   mission: string; intro: string; death: string; log: string;
-  goal?: string; reference?: string; actions?: readonly (readonly [string,string])[];
-  controls?: readonly (readonly [string,string])[]; codeVersion?: number;
+  goal: string; reference: string; actions: readonly (readonly [string,string])[];
+  controls: readonly (readonly [string,string])[]; keyboardGuide: readonly (readonly [string,string])[]; codeVersion?: number;
 };
 export const LEVELS: readonly Level[] = [
   {
@@ -30,7 +30,7 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "Red. Yellow. Red. Wait a minute\u2026",
     "mission": "The signal keeps switching between red and yellow. Fix its sequence, then drive your car through the crossing to the flag.",
     "intro": "Watch the signal. Drive through the crossing when it turns green.",
-    "goal": "Drive through the crossing",
+    "goal": "Drive through the crossing to the flag",
     "death": "The crossing needs a working signal.",
     "log": "Use Left / Right to drive. The car waits at red and yellow.",
     "reference": "Use if, elif, and else to decide what happens for each light. Set next_color in the matching branch. The game handles the rest; the car is yours to drive.",
@@ -42,10 +42,6 @@ export const LEVELS: readonly Level[] = [
       [
         "next_color",
         "The colour chosen by your conditions."
-      ],
-      [
-        "Left / Right",
-        "Drive the car."
       ]
     ],
     "controls": [
@@ -63,7 +59,13 @@ export const LEVELS: readonly Level[] = [
     "exercise": "debug",
     "group": "workshop",
     "kind": "reactive",
-    "spaceLabel": ""
+    "playInstruction": "Drive right when the light is green. The car waits at red and yellow.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Drive"
+      ]
+    ]
   },
   {
     "number": 2,
@@ -90,9 +92,9 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "A blank sorter. Three delivery bays.",
     "mission": "Write your own if / elif / else decisions. Red parcels belong in the left bay, blue in the middle, and yellow on the right. Deliver all six parcels using the same function.",
     "intro": "Read the parcel colour, write your decisions, then press Space to sort.",
-    "goal": "Parcel Sorter",
+    "goal": "Deliver all six parcels to their matching bays",
     "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
+    "log": "Press or hold Space to sort parcels. Each delivery finishes before the next begins.",
     "reference": "Use if, elif, and else. Loops are not enabled in this mission. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
     "actions": [
       [
@@ -115,10 +117,16 @@ export const LEVELS: readonly Level[] = [
     "controls": [
       [
         " ",
-        "Next action"
+        "Sort parcel"
       ]
     ],
-    "spaceLabel": "Step"
+    "playInstruction": "Press or hold Space to sort parcels. Each delivery finishes before the next begins.",
+    "keyboardGuide": [
+      [
+        "SPACE",
+        "Sort parcel"
+      ]
+    ]
   },
   {
     "number": 3,
@@ -146,7 +154,7 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "Half a bridge won't get you across.",
     "mission": "The river gap is ten planks long, but the starter loop builds only five. Tap Space once to run the whole building loop. Its repetition count determines the bridge's length. Fix the code, build your bridge, then walk across with Left / Right. Missing planks leave gaps you can fall through.",
     "intro": "Tap Space once to build the whole bridge. Left / Right moves Maya at any time.",
-    "goal": "Bridge Builder",
+    "goal": "Build ten planks and walk to the flag",
     "death": "Watch for missing planks in the bridge.",
     "log": "One Space press runs the entire building loop. Each repetition adds a plank. Use Left / Right to walk to the flag yourself.",
     "reference": "Use a for loop with place_plank() inside it. One Space press starts the whole loop, and its planks appear in sequence. The gap needs ten planks. Left / Right moves Maya independently, before, during, and after building. Restart or Compile resets the bridge so you can try again.",
@@ -158,10 +166,6 @@ export const LEVELS: readonly Level[] = [
       [
         "place_plank()",
         "Add one plank to the bridge's length."
-      ],
-      [
-        "Left / Right",
-        "Move Maya yourself, before or after building."
       ]
     ],
     "controls": [
@@ -178,7 +182,17 @@ export const LEVELS: readonly Level[] = [
         "Build bridge"
       ]
     ],
-    "spaceLabel": "Build bridge"
+    "playInstruction": "Tap Space once to build the whole bridge. Walk across with Left / Right.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Move"
+      ],
+      [
+        "SPACE",
+        "Build bridge"
+      ]
+    ]
   },
   {
     "number": 4,
@@ -205,10 +219,10 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "Count the tiles. Write the route.",
     "mission": "Your robot is waiting for instructions. Follow the visible path to the green dock. Write your own for loops to repeat moves along each straight part of the route.",
     "intro": "Write your movement loops. Press or hold Space to step through them.",
-    "goal": "Lost Robot",
+    "goal": "Guide the robot to the green dock",
     "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
-    "reference": "Use for loops for movement. No instruction lists or while loops are needed. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
+    "log": "Press or hold Space to animate one move at a time. At the dock, press once more to finish.",
+    "reference": "Use for loops for movement. Movement actions must be inside for loops. Instruction lists and while loops are not enabled. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
     "actions": [
       [
         "range(n)",
@@ -234,10 +248,16 @@ export const LEVELS: readonly Level[] = [
     "controls": [
       [
         " ",
-        "Next action"
+        "Next move"
       ]
     ],
-    "spaceLabel": "Step"
+    "playInstruction": "Press or hold Space to animate one move at a time. At the dock, press once more to finish.",
+    "keyboardGuide": [
+      [
+        "SPACE",
+        "Next move"
+      ]
+    ]
   },
   {
     "number": 5,
@@ -287,16 +307,38 @@ export const LEVELS: readonly Level[] = [
       ]
     ],
     "controls": [
-      ["ArrowLeft", "Move left"],
-      ["ArrowRight", "Move right"],
-      ["ArrowUp", "Move up"],
-      ["ArrowDown", "Move down"],
+      [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
+        "ArrowUp",
+        "Move up"
+      ],
+      [
+        "ArrowDown",
+        "Move down"
+      ],
       [
         " ",
         "Arm weapon"
       ]
     ],
-    "spaceLabel": "Arm weapon"
+    "playInstruction": "Tap Space once to arm. Fly with the arrows or WASD, dodge shots, then reach the beacon.",
+    "keyboardGuide": [
+      [
+        "\u2191 \u2193 \u2190 \u2192 / WASD",
+        "Fly"
+      ],
+      [
+        "SPACE",
+        "Arm weapon"
+      ]
+    ]
   },
   {
     "number": 6,
@@ -352,7 +394,13 @@ export const LEVELS: readonly Level[] = [
         "Move right"
       ]
     ],
-    "spaceLabel": ""
+    "playInstruction": "Drive right into each tunnel. Your code takes over when the remote loses signal.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Drive outside"
+      ]
+    ]
   },
   {
     "number": 7,
@@ -419,7 +467,17 @@ export const LEVELS: readonly Level[] = [
         "Handle gift"
       ]
     ],
-    "spaceLabel": "Handle gift"
+    "playInstruction": "Move under a falling box. Once caught, tap Space to run the whole handler.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Move basket"
+      ],
+      [
+        "SPACE",
+        "Handle gift"
+      ]
+    ]
   },
   {
     "number": 8,
@@ -446,9 +504,9 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "Power first. Fuel second. Then launch.",
     "mission": "Build nested if statements for the launch checks. If power is off, wait for power. Once it is on, check the fuel: refuel when needed and launch when ready. Run the same function again as the state changes.",
     "intro": "Write your nested checks. Press Space to run one action, then check again.",
-    "goal": "Rocket Launch",
+    "goal": "Power, fuel, and launch the rocket",
     "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
+    "log": "Press or hold Space to run the checks again after each action changes the rocket.",
     "reference": "Use one if inside another if. Loops are not enabled. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
     "actions": [
       [
@@ -475,10 +533,16 @@ export const LEVELS: readonly Level[] = [
     "controls": [
       [
         " ",
-        "Next action"
+        "Run checks"
       ]
     ],
-    "spaceLabel": "Step"
+    "playInstruction": "Press or hold Space to run the checks again after each action changes the rocket.",
+    "keyboardGuide": [
+      [
+        "SPACE",
+        "Run checks"
+      ]
+    ]
   },
   {
     "number": 9,
@@ -505,9 +569,9 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "Every row. Every plant.",
     "mission": "The greenhouse has three rows and three columns. The starter nested loops leave some plants dry. Step through the row and column values, fix the counts, then open the exit.",
     "intro": "Step the nested loops and water every plant.",
-    "goal": "Greenhouse Grid",
+    "goal": "Water all nine plants and open the exit",
     "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
+    "log": "Press or hold Space to water one plant at a time, then open the exit.",
     "reference": "Use a for loop inside another for loop. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
     "actions": [
       [
@@ -529,7 +593,13 @@ export const LEVELS: readonly Level[] = [
         "Next action"
       ]
     ],
-    "spaceLabel": "Step"
+    "playInstruction": "Press or hold Space to water one plant at a time, then open the exit.",
+    "keyboardGuide": [
+      [
+        "SPACE",
+        "Next action"
+      ]
+    ]
   },
   {
     "number": 10,
@@ -556,9 +626,9 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "One room. Build your own escape.",
     "mission": "Two rows of three power cells keep the exit locked. Write nested loops to charge the cells. Then check the power, unlock the latch, and open the exit in the right order.",
     "intro": "Write your escape program. Press Space to step through it.",
-    "goal": "Final Escape",
+    "goal": "Power six cells, unlock, and open the exit",
     "death": "Check your program and try again.",
-    "log": "Press or hold Space to advance one action at a time.",
+    "log": "Press or hold Space to power the cells, release the latch, and open the exit.",
     "reference": "Use nested for loops. Conditions can help you check when to unlock the latch. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
     "actions": [
       [
@@ -588,8 +658,14 @@ export const LEVELS: readonly Level[] = [
         "Next action"
       ]
     ],
-    "spaceLabel": "Step",
-    "codeVersion": 3
+    "codeVersion": 3,
+    "playInstruction": "Press or hold Space to power the cells, release the latch, and open the exit.",
+    "keyboardGuide": [
+      [
+        "SPACE",
+        "Next action"
+      ]
+    ]
   },
   {
     "number": 11,
@@ -617,7 +693,55 @@ export const LEVELS: readonly Level[] = [
     "exercise": "arcade",
     "group": "bonus",
     "kind": "arcade",
-    "spaceLabel": "Jump"
+    "controls": [
+      [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
+        " ",
+        "Jump"
+      ]
+    ],
+    "goal": "Reach the flag on the left",
+    "playInstruction": "Move with Left / Right. Jump across the gap and reach the flag on the left.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Move"
+      ],
+      [
+        "SPACE / \u2191 / W",
+        "Jump"
+      ]
+    ],
+    "reference": "The game calls on_blue(player) when Maya stands on blue. Edit that action; use Left / Right to move and Space, Up, or W to jump across the gap.",
+    "actions": [
+      [
+        "player.jump()",
+        "Jump from the ground."
+      ],
+      [
+        "player.move_left()",
+        "Move toward the left."
+      ],
+      [
+        "player.move_right()",
+        "Move toward the right."
+      ],
+      [
+        "player.stop()",
+        "Stop sideways movement."
+      ],
+      [
+        "pass",
+        "Do nothing. Let the controls do the work."
+      ]
+    ]
   },
   {
     "number": 12,
@@ -646,7 +770,51 @@ export const LEVELS: readonly Level[] = [
     "exercise": "arcade",
     "group": "bonus",
     "kind": "arcade",
-    "spaceLabel": "Jump"
+    "controls": [
+      [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
+        " ",
+        "Jump"
+      ]
+    ],
+    "goal": "Reach the flag on the left",
+    "playInstruction": "Move with Left / Right. Jump across the gap and reach the flag on the left.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Move"
+      ],
+      [
+        "SPACE / \u2191 / W",
+        "Jump"
+      ]
+    ],
+    "reference": "This time, blue WILL make Maya jump. That action is locked. The entire Girl class is editable. Read it, explore the map, and find your own route to the flag.",
+    "actions": [
+      [
+        "Left / Right or A / D",
+        "Move left or right."
+      ],
+      [
+        "Space / Up / W",
+        "Jump from solid ground."
+      ],
+      [
+        "Blue",
+        "Maya will jump."
+      ],
+      [
+        "Girl",
+        "The entire class is editable."
+      ]
+    ]
   },
   {
     "number": 13,
@@ -671,7 +839,7 @@ export const LEVELS: readonly Level[] = [
     "missionTitle": "Five coins. Why is it still counting?",
     "mission": "The collector must stop after exactly five coins to unlock the exit. It keeps going instead. Fix its condition, start the machine, and walk through the unlocked door.",
     "intro": "Walk to the collector and press Space. Watch its count, then reach the exit.",
-    "goal": "Stop at five and unlock the exit",
+    "goal": "Stop at five and reach the unlocked exit",
     "death": "The collector needs another try.",
     "log": "Move with Left / Right. Press Space beside the collector to start it.",
     "reference": "should_collect(count) decides whether the machine collects another coin. Starting the machine commits it to that condition until it stops. Restart clears the machine count; your coin badges stay saved.",
@@ -700,7 +868,7 @@ export const LEVELS: readonly Level[] = [
       ],
       [
         " ",
-        "Interact"
+        "Start collector"
       ]
     ],
     "runtimeId": 5,
@@ -708,7 +876,17 @@ export const LEVELS: readonly Level[] = [
     "exercise": "arcade",
     "group": "bonus",
     "kind": "arcade",
-    "spaceLabel": "Interact"
+    "playInstruction": "Walk to the collector, tap Space to start it, then walk to the exit when it stops at five.",
+    "keyboardGuide": [
+      [
+        "\u2190 \u2192 / A D",
+        "Move"
+      ],
+      [
+        "SPACE",
+        "Start collector"
+      ]
+    ]
   }
 ];
 export const CORE_LEVELS = LEVELS.filter(level => level.group === 'workshop');

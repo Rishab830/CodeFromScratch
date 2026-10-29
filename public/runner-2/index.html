@@ -30,7 +30,7 @@ async def custom_site():
 asyncio.run(custom_site())
 # --></script><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Jumping Girl · Pygame runner</title>
+<title>The Blue Leap · Pygame runner</title>
 <script>
 var config = {
   xtermjs: "1", _sdl2: "canvas", user_canvas: 0,
@@ -41,9 +41,6 @@ var config = {
   fb_width: 800, fb_height: 450
 };
 let pendingCommand = '';
-let touchKeys = new Set();
-let puzzleInput = '';
-window.lessonReadInput = () => puzzleInput;
 window.lessonReadCoins = (level) => {
   try { return localStorage.getItem(`cfs:coins:level-${level}:v1`) || '[]'; }
   catch { return '[]'; }
@@ -60,7 +57,6 @@ window.lessonEvent = (raw) => {
 };
 window.addEventListener('message', (event) => {
   if (event.source !== parent || !event.data || event.data.channel !== 'scratch') return;
-  if (event.data.type === 'input') puzzleInput = String(event.data.value || '').slice(0,64);
   if (event.data.type === 'compile') {
     pendingCommand = JSON.stringify({body: event.data.body});
     document.getElementById('canvas').focus();
@@ -68,7 +64,6 @@ window.addEventListener('message', (event) => {
   if (event.data.type === 'key') {
     const {key, down} = event.data;
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(key)) return;
-    if (down) touchKeys.add(key); else touchKeys.delete(key);
     const code = key === ' ' ? 'Space' : key;
     const keyCode = {ArrowLeft:37, ArrowUp:38, ArrowRight:39, ArrowDown:40, ' ':32}[key];
     document.getElementById('canvas').dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', {key, code, keyCode, which: keyCode, bubbles:true}));

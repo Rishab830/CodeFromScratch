@@ -190,7 +190,7 @@ def draw_scene(surface, player, seconds, small):
         x = max(5, min(WIDTH - 6, round(player.x)))
         pygame.draw.polygon(surface, (237, 160, 185), [(x, 3), (x - 4, 9), (x + 4, 9)])
     surface.blit(small.render('GOAL', False, (112, 112, 142)), (26, 154))
-    surface.blit(small.render('BLUE = ?', False, (107, 134, 171)), (208, 154))
+    surface.blit(small.render('BLUE = JUMP', False, (107, 134, 171)), (208, 154))
     surface.blit(small.render(f'COINS {len(COLLECTED_COINS)}/{len(COINS)}', False, (112, 92, 135)), (8, 8))
 
 async def main():

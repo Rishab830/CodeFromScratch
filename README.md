@@ -53,10 +53,11 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 - The entire current game's Python file is visible; only the green section is editable. Blank challenges supply a locked function definition and an editable body.
 - Every core and bonus level has three optional, progressively revealed hints: an observation, a concept clue, and an approach to try. Hints never change the student's code.
 - **Compile** validates the edit, applies it, and restarts the game. Compilation or waiting alone cannot finish a level.
-- Use the controls below the game. Traffic and arcade games use movement keys; program challenges use Space or the touch button to step through actions.
+- Use each game's displayed controls. Traffic uses Left / Right or A / D; Space Patrol uses all four arrows or WASD. The two platformers also jump with Space, Up, or W. On a phone, use the labelled on-screen buttons.
 - In Bridge Builder, one Space tap runs the whole building loop, adding its planks in sequence after the key is released. The river spans ten plank lengths; the starter uses `range(5)` and builds only halfway. Left / Right controls Maya before, during, and after building. Missing planks leave gaps she can fall through, and reaching the flag still requires a manual crossing.
 - In Lost Robot, each Space action animates one tile move. Further actions wait until it finishes; a wrong move ends the attempt only when the robot's body reaches a wall.
-- Sensors reflect the live world at each step. Hold Space to advance repeatedly or tap it to step once.
+- Space advances Parcel Sorter, Lost Robot, Rocket Launch, Greenhouse Grid, and Final Escape one action at a time; holding it repeats. In Gift Catcher, tap it once per caught box to run the whole handler. In Space Patrol, tap it once to arm the automatic weapon. Foggy Tunnel starts its code automatically on entering a tunnel and has no Space action. In Endless Coin Collector, Space starts the nearby machine.
+- Sensors reflect the live world when the program checks them; the timing depends on the game.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
 - Each game awards 100 XP. The six core lessons earn 600 XP and open the optional section. Bonuses are not required for the workshop celebration.
 - Edits, completions, coins, and theme preferences persist in this browser. Progress is client-side, not authoritative grading.
@@ -68,7 +69,7 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 
 Each game has a complete independent source in `game/levels/<slug>.py`. `scripts/levels.py` maps stable runtime IDs to these files. `scripts/build_game.py` copies normalized source to `public/levels/<slug>.py` and packages it as `assets/main.py` in an isolated Pygbag archive. Each archive contains only its game and the shared `game/lesson_bridge.py`.
 
-The bridge validates restricted Python syntax. Core program lessons permit the relevant conditions, assignments, arithmetic, loops, and supplied APIs without requiring lists, dictionaries, imports, or classes. Required constructs are checked; repeated lesson actions must occur inside the appropriate loop. Blank `pass` previews cannot win. Commands become generator steps resumed by manual player input, allowing sensors to change between loop iterations. Action and execution budgets report non-progressing loops without freezing the game.
+The bridge validates restricted Python syntax. Core program lessons permit the relevant conditions, assignments, arithmetic, loops, and supplied APIs without requiring lists, dictionaries, imports, or classes. Required constructs are checked; repeated lesson actions must occur inside the appropriate loop. Blank `pass` previews cannot win. Commands become generator steps resumed by player input or the game's clock, allowing sensors to change between loop iterations. Action and execution budgets report non-progressing loops without freezing the game.
 
 The older arcade compilers remain available for their lessons, including editing the entire `Girl` class in Blue Leap. This is a bounded educational runner, not a general-purpose Python sandbox.
 

@@ -215,13 +215,8 @@ def compile_puzzle(body, name, arguments, result_name=None):
     return run
 
 
-def read_input():
-    window = browser()
-    return str(window.lessonReadInput()) if window is not None else ""
-
-
 def compile_lesson(body, name, commands, sensors, concept, loop_commands=(), animated_sensors=()):
-    """Turn workshop actions into steps that advance only when the player plays."""
+    """Turn workshop actions into steps advanced by player input or the game clock."""
     if not isinstance(body, str) or len(body) > 8000:
         raise ValueError("Keep your solution under 8,000 characters.")
     filename = "<your-workshop-code>"

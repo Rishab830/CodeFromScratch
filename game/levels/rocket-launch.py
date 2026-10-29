@@ -83,7 +83,7 @@ class World:
         return None
 
     def program_finished(self):
-        self.message = "Add your solution to the green function, then Compile."
+        self.message = "No launch action ran. Check power and fuel, then Compile."
         return None
 
 

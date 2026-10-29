@@ -22,6 +22,8 @@ class LevelSourceTests(unittest.TestCase):
                 archive = "game.apk" if number == 1 else f"level{number}-source.apk"
                 with zipfile.ZipFile(ROOT / "public" / runner / archive) as packed:
                     self.assertEqual(packed.read("assets/main.py").decode("utf-8"), source)
+                    self.assertEqual(packed.read("assets/lesson_bridge.py").decode("utf-8"),
+                                     (ROOT / "game" / "lesson_bridge.py").read_text(encoding="utf-8"))
                     python_files = {name for name in packed.namelist() if name.endswith(".py")}
                     self.assertEqual(python_files, {"assets/main.py", "assets/lesson_bridge.py"})
 
@@ -44,8 +46,7 @@ class LevelSourceTests(unittest.TestCase):
                     self.assertNotIn("SPIKES", names)
                 if number in (3, 4):
                     self.assertNotIn("GIRL_SPRITE", names)
-                if number != 6:
-                    self.assertNotIn("password", names)
+                self.assertNotIn("password", names)
 
 
 if __name__ == "__main__":

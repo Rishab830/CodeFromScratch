@@ -60,7 +60,7 @@ class World:
             self.light_time -= 1.6
             next_color = self.puzzle(self.light)
             if next_color not in ('red', 'yellow', 'green'):
-                raise ValueError('Return red, yellow, or green for the next light.')
+                raise ValueError('Set next_color to red, yellow, or green.')
             self.light = next_color
             self.message = 'Signal: ' + self.light + '. Drive through when it is green.'
         if previous_x <= 119 < self.x and self.light != 'green':

@@ -82,7 +82,7 @@ class World:
         return None
 
     def program_finished(self):
-        self.message = "Add your solution to the green function, then Compile."
+        self.message = "Program ended. Water all nine plants, then open the exit."
         return None
 
 

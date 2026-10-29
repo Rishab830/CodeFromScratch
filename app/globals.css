@@ -20,8 +20,8 @@
 .level-coins{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;color:#718267;font-size:10px}.level-coins>span{display:flex;align-items:center;gap:7px}.level-coins strong{font-family:Consolas,monospace;font-weight:500}.result-coin{width:20px;height:25px;flex-shrink:0}
 @media(max-width:580px){.level-coins{gap:7px;margin-bottom:7px;font-size:8px}.level-coins>span{gap:5px}.result-coin{width:12px;height:15px}.win-overlay h2{font-size:25px;margin-top:5px}.win-overlay p{margin:5px 0 7px}.win-overlay .win-xp{margin-bottom:7px}}
 
-.journey{flex-wrap:wrap;row-gap:24px}.journey-title{min-width:100%}.map-entry{flex:0 1 auto;max-width:100%}.journey-stop{text-align:left}.password-control{display:flex;align-items:center;gap:12px;margin-top:12px;color:var(--muted);font-size:11px}.password-control input{min-width:0;flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);outline-color:var(--lavender)}.touch-controls button:last-child{white-space:nowrap}
-@media(max-width:580px){.password-control{font-size:10px;gap:8px}.password-control input{padding:9px;font-size:11px}.map-entry{flex:1 1 44%}.journey-stop strong{white-space:normal}.journey-line{display:none}.journey-stop small{white-space:normal}.level-coins{gap:5px}.result-coin{width:10px;height:13px}}
+.journey{flex-wrap:wrap;row-gap:24px}.journey-title{min-width:100%}.map-entry{flex:0 1 auto;max-width:100%}.journey-stop{text-align:left}.touch-controls button:last-child{white-space:nowrap}
+@media(max-width:580px){.map-entry{flex:1 1 44%}.journey-stop strong{white-space:normal}.journey-line{display:none}.journey-stop small{white-space:normal}.level-coins{gap:5px}.result-coin{width:10px;height:13px}}
 
 .editor-titlebar>div:first-child{min-width:0}.editor-titlebar>div:first-child>span:first-of-type{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-titlebar>.theme-switch{flex-shrink:0}
 
@@ -29,3 +29,5 @@
 @media(max-width:580px){.function-toolbox{padding:12px;font-size:9px}.function-toolbox dl{gap:9px}.function-toolbox dt{font-size:9px}.function-toolbox dd{font-size:8px}.beginner-tag{font-size:6px}.map-entry{flex:1 1 44%;min-width:0}.journey-title>div>span{white-space:normal}.touch-controls button:only-child{margin-left:0}}
 
 .editor-panel[data-code-theme="dark"] .function-toolbox{background:#171923;color:#9391a6;border-color:#2b2d3d}.editor-panel[data-code-theme="dark"] .function-toolbox dt{color:#eeeaf5}.editor-panel[data-code-theme="light"] .function-toolbox{background:#fffaf2;color:#827568;border-color:#e7dfd1}.editor-panel[data-code-theme="light"] .function-toolbox>strong{color:#618363}.editor-panel[data-code-theme="light"] .function-toolbox dt{color:#423b34}
+
+.game-controls{height:auto;min-height:45px;gap:12px;flex-wrap:wrap}.keyboard-guide{flex-wrap:wrap;row-gap:8px}.keyboard-guide kbd{width:auto;padding:0 6px;white-space:nowrap}
