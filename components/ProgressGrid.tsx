@@ -1,0 +1,8 @@
+import {CheckCircle2,Coins,Code2} from 'lucide-react';
+import {LEVELS,CORE_LEVELS,canPlay} from '../lib/levels';
+import type {SavedLevel} from '../lib/account-types';
+import LevelCoins from './LevelCoins';
+export default function ProgressGrid({progress,showCode=false}:{progress:SavedLevel[];showCode?:boolean}){
+ const cleared=LEVELS.filter(l=>progress.some(p=>p.levelId===l.id&&p.completed)).map(l=>l.number);
+ return <div className="profile-progress">{LEVELS.map(level=>{const row=progress.find(p=>p.levelId===level.id);return <article className={'progress-lesson '+(row?.completed?'complete':'')} key={level.id}><span className="progress-number">{row?.completed?<CheckCircle2 size={19}/>:level.group==='bonus'?'B'+String(level.number-CORE_LEVELS.length).padStart(2,'0'):String(level.number).padStart(2,'0')}</span><div className="progress-lesson-body"><h3>{level.title}</h3><p>{level.concept} <span>·</span> {row?.completed?'Completed':row?.attempts?'In progress':canPlay(level,cleared)?'Ready to explore':'Locked'}</p><div className="progress-lesson-meta"><LevelCoins coins={level.coins} collected={row?.coins??[]}/><span><Code2 size={12}/>{row?.code?'Code saved':'No saved code'}</span>{!!row?.attempts&&<span>{row.attempts} attempts</span>}{showCode&&row&&<span>Hints opened: {(row.hint??-1)+1} / 3</span>}</div>{showCode&&row?.updatedAt&&<p>Last saved: {new Date(row.updatedAt).toLocaleString()}{row.completedAt?' | Completed: '+new Date(row.completedAt).toLocaleString():''}</p>}{showCode&&row?.code&&<details><summary>View saved student code</summary><pre><code>{row.code}</code></pre></details>}</div></article>})}</div>;
+}

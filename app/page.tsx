@@ -7,41 +7,55 @@ import { solutionBody, editableRange, END } from '../components/CodeEditor';
 import { LEVELS, CORE_LEVELS, BONUS_LEVELS, canPlay, type Level } from '../lib/levels';
 import ThemeSwitch, {type Theme} from '../components/ThemeSwitch';
 import LevelCoins from '../components/LevelCoins';
+import {useAccount} from '../components/AccountProvider';
+import AccountNav from '../components/AccountNav';
 
 const CodeEditor = dynamic(() => import('../components/CodeEditor'), { ssr: false });
 type Status = 'loading' | 'ready' | 'compiling' | 'playing' | 'dead' | 'error' | 'won';
 const formatBytes = (bytes:number) => bytes < 1048576 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 
 export default function Home() {
+  const {ready,user}=useAccount();
+  if(!ready)return <div className="account-loading full-page-loading">Opening your adventure...</div>;
+  return <Workshop key={user?.id??'guest'}/>;
+}
+function Workshop() {
+  const account=useAccount();
   const [number, setNumber] = useState(1);
   const [cleared, setCleared] = useState<number[]>([]);
   const [websiteTheme,setWebsiteTheme] = useState<Theme>('dark');
   const [editorTheme,setEditorTheme] = useState<Theme>('dark');
   useEffect(() => {
-    try { setCleared(LEVELS.filter((level) => localStorage.getItem(level.storage + ':complete') === 'yes').map((level) => level.number)); } catch {}
     try {
-      const site = localStorage.getItem('cfs:theme:site') === 'light' ? 'light' : 'dark';
+      const completed=LEVELS.filter(level=>account.user?account.progress.some(row=>row.levelId===level.id&&row.completed):localStorage.getItem(account.storageKey(level.storage+':complete'))==='yes').map(level=>level.number);
+      setCleared(completed);
+      const requested=new URLSearchParams(location.search).get('level')??account.user?.preferences.lastLevel;
+      const resume=LEVELS.find(level=>level.id===requested);if(resume&&canPlay(resume,completed))setNumber(resume.number);
+    } catch {}
+    try {
+      const site = account.user?.preferences.siteTheme??(localStorage.getItem(account.storageKey('cfs:theme:site')) === 'light' ? 'light' : 'dark');
       setWebsiteTheme(site);
-      setEditorTheme(localStorage.getItem('cfs:theme:editor') === 'light' ? 'light' : 'dark');
+      setEditorTheme(account.user?.preferences.editorTheme??(localStorage.getItem(account.storageKey('cfs:theme:editor')) === 'light' ? 'light' : 'dark'));
       document.documentElement.dataset.theme = site;
     } catch {}
   }, []);
   function changeWebsiteTheme(theme:Theme) {
     setWebsiteTheme(theme); document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem('cfs:theme:site',theme); } catch {}
+    account.savePreferences({siteTheme:theme});
   }
   function changeEditorTheme(theme:Theme) {
     setEditorTheme(theme);
-    try { localStorage.setItem('cfs:theme:editor',theme); } catch {}
+    account.savePreferences({editorTheme:theme});
   }
   const level = LEVELS.find((entry) => entry.number === number) ?? LEVELS[0];
   return <Lesson key={level.id} level={level} cleared={cleared} websiteTheme={websiteTheme} editorTheme={editorTheme} onWebsiteTheme={changeWebsiteTheme} onEditorTheme={changeEditorTheme}
-    onNavigate={(target) => { if (LEVELS.some(entry => entry.number === target && canPlay(entry, cleared))) { setNumber(target); window.scrollTo({top:0,behavior:'smooth'}); } }}
+    onNavigate={(target) => { if (LEVELS.some(entry => entry.number === target && canPlay(entry, cleared))) { setNumber(target); account.savePreferences({lastLevel:LEVELS.find(l=>l.number===target)!.id}); window.scrollTo({top:0,behavior:'smooth'}); } }}
     onComplete={() => setCleared((current) => current.includes(number) ? current : [...current,number])}/>;
 }
 
 function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, editorTheme, onWebsiteTheme, onEditorTheme}: {level: Level; cleared: number[]; onNavigate: (number: number) => void; onComplete: () => void; websiteTheme:Theme; editorTheme:Theme; onWebsiteTheme:(theme:Theme)=>void; onEditorTheme:(theme:Theme)=>void}) {
-  const bodyStorage = LEVEL.storage + ':body' + (LEVEL.codeVersion ? ':' + LEVEL.codeVersion : '');
+  const account=useAccount();
+  const bodyStorage = account.storageKey(LEVEL.storage + ':body' + (LEVEL.codeVersion ? ':' + LEVEL.codeVersion : ''));
   const [source, setSource] = useState('');
   const [original, setOriginal] = useState('');
   const [compiledBody, setCompiledBody] = useState('');
@@ -74,7 +88,10 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
       setOriginal(text); setSource(text);
       applied.current = solutionBody(text); setCompiledBody(applied.current);
       try {
-        const saved = localStorage.getItem(bodyStorage);
+        const remote=account.user?account.progress.find(row=>row.levelId===LEVEL.id):undefined;
+        const saved=account.user?(remote?.codeVersion===(LEVEL.codeVersion??0)?remote?.code:null):localStorage.getItem(bodyStorage);
+        const savedHint=account.user?(remote?.hint??-1):Number(localStorage.getItem(account.storageKey(LEVEL.storage+':hint'))??-1);
+        if(Number.isInteger(savedHint)&&savedHint>=-1&&savedHint<=2)setHint(savedHint);
         if (saved && saved.endsWith('\n') && saved.length <= 8000 && !saved.includes(END)) {
           const {start,end} = editableRange(text);
           setSource(text.slice(0, start) + saved + text.slice(end));
@@ -96,6 +113,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
       }
       if (data.type === 'load-error') setLoadingIssue('A game download failed. Check your connection and try again.');
       if (data.type === 'notice') setMessage(String(data.message));
+      if(data.type==='coins'&&data.level===LEVEL.runtimeId&&Array.isArray(data.coins)){account.saveLevel(LEVEL.id,{coins:LEVEL.coins.filter(name=>data.coins.includes(name))});}
       if (data.type === 'ready') {
         setRuntimeReady(true); setStatus('ready');
         setMessage(LEVEL.intro);
@@ -104,6 +122,8 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
         if (requestTimer.current) clearTimeout(requestTimer.current);
         applied.current = pending.current; setCompiledBody(pending.current);
         setAttempt(data.attempt); setStatus('playing');
+        account.saveLevel(LEVEL.id,{attemptIds:[crypto.randomUUID()]});
+        account.savePreferences({lastLevel:LEVEL.id});
         setMessage(LEVEL.log);
       }
       if (data.type === 'dead') {
@@ -114,7 +134,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
         setStatus('won');
         onComplete();
         setMessage('Adventure cleared! Your route, your solution. +100 XP');
-        try { localStorage.setItem(LEVEL.storage + ':complete', 'yes'); } catch {}
+        account.saveLevel(LEVEL.id,{completed:true,coins:LEVEL.coins.filter(name=>Array.isArray(data.coins)&&data.coins.includes(name))});
       }
       if (data.type === 'error') {
         if (requestTimer.current) clearTimeout(requestTimer.current);
@@ -145,10 +165,10 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
   }
   function edit(value: string) {
     setSource(value);
-    try { localStorage.setItem(bodyStorage, solutionBody(value)); } catch {}
+    account.saveLevel(LEVEL.id,{code:solutionBody(value),codeVersion:LEVEL.codeVersion??0});
   }
   function resetCode() {
-    edit(original); setHint(-1); setRevealToken((value) => value + 1);
+    edit(original); setHint(-1); account.saveLevel(LEVEL.id,{hint:-1}); setRevealToken((value) => value + 1);
     setMessage('Starter code restored in the editor. Compile to apply it to the game.');
   }
   function reload() {
@@ -184,7 +204,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
     <header className="site-header">
       <a className="brand" href="/" aria-label="Code From Scratch home"><span className="brand-icon"><Braces size={23}/></span><span>code<span className="brand-middle">from</span>scratch<span className="brand-period">.</span></span></a>
       <nav aria-label="Main navigation"><a className="active" href="#levels">Workshop</a><button onClick={() => setModal('help')}>How to play <HelpCircle size={14}/></button></nav>
-      <div className="profile"><ThemeSwitch scope="website" value={websiteTheme} onChange={onWebsiteTheme}/><span className="xp"><Sparkles size={15}/> {cleared.length * 100} XP</span><span className="avatar">YOU</span></div>
+      <div className="profile"><ThemeSwitch scope="website" value={websiteTheme} onChange={onWebsiteTheme}/><span className="xp"><Sparkles size={15}/> {cleared.length * 100} XP</span><AccountNav/></div>
     </header>
 
     <main>
@@ -195,12 +215,12 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
         <section className="game-panel" aria-label="Playable level">
           <div className="lesson-card"><div className="panel-tabs"><button className={tab === 'mission' ? 'selected' : ''} onClick={() => setTab('mission')}><Flag size={15}/> The mission</button><button className={tab === 'reference' ? 'selected' : ''} onClick={() => setTab('reference')}><BookOpen size={15}/> Player actions</button><span className="beginner-tag">{LEVEL.exercise === 'build' ? 'BUILD' : LEVEL.exercise === 'debug' ? 'DEBUG' : 'ARCADE'} / {LEVEL.concept.toUpperCase()}</span></div>
             {tab === 'mission' ? <div className="mission-content"><div className="mission-story"><span className="story-icon"><span/></span><div><h2>{LEVEL.missionTitle}</h2><p>{LEVEL.mission}</p></div></div><div className="mission-steps"><div><span>01</span><strong>{LEVEL.exercise === 'build' ? 'Explore & plan' : 'Play & notice'}</strong><p>{LEVEL.exercise === 'build' ? 'Understand the goal and available functions.' : 'Find out what goes wrong.'}</p></div><div><span>02</span><strong>{LEVEL.exercise === 'build' ? 'Write & compile' : 'Edit & compile'}</strong><p>{LEVEL.exercise === 'build' ? 'Replace pass with your own solution.' : 'Change the green code section.'}</p></div><div><span>03</span><strong>Find your way</strong><p>{LEVEL.playInstruction}</p></div></div></div> : <div className="reference-content"><p>{LEVEL.reference}</p><div className="api-grid">{LEVEL.actions.map(([code,text]) => <div key={code}><code>{code}</code><p>{text}</p></div>)}</div></div>}
-            <div className="hint-section"><button aria-expanded={hint >= 0} aria-controls="level-hint" onClick={() => setHint((value) => Math.min(LEVEL.hints.length - 1,value + 1))}><Lightbulb size={15}/>{hint < 0 ? 'A little hint, if you need it' : hint === LEVEL.hints.length - 1 ? 'A possible solution' : 'Another little hint'}<ChevronRight size={14}/></button>{hint >= 0 && <p id="level-hint" role="status">{LEVEL.hints[hint]}</p>}</div>
+            <div className="hint-section"><button aria-expanded={hint >= 0} aria-controls="level-hint" onClick={() => {const next=Math.min(LEVEL.hints.length-1,hint+1);setHint(next);account.saveLevel(LEVEL.id,{hint:next});}}><Lightbulb size={15}/>{hint < 0 ? 'A little hint, if you need it' : hint === LEVEL.hints.length - 1 ? 'A possible solution' : 'Another little hint'}<ChevronRight size={14}/></button>{hint >= 0 && <p id="level-hint" role="status">{LEVEL.hints[hint]}</p>}</div>
           </div>
           <div className="game-heading"><span><span className="live-dot"/> {LEVEL.world.toUpperCase()} <i>/</i> {displayNumber}</span><div><span className="attempt">{attempt ? `ATTEMPT ${String(attempt).padStart(2,'0')}` : 'LET’S EXPLORE'}</span><button className="icon-button" aria-label="Fullscreen game" onClick={() => scene.current?.requestFullscreen().catch(() => setMessage('Fullscreen is unavailable in this browser. You can still play here.'))}><Maximize2 size={15}/></button></div></div>
           <div className="scene" ref={scene}>
             <div className="game-viewport">
-            <iframe key={runtimeKey} ref={iframe} src={LEVEL.runtime} onLoad={checkGamePage} title={LEVEL.title + ' playable Pygame level'} allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
+            <iframe key={runtimeKey} ref={iframe} src={LEVEL.runtime+(account.user?'?account='+account.user.id:'')} onLoad={checkGamePage} title={LEVEL.title + ' playable Pygame level'} allow="autoplay; fullscreen" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}/>
             {!runtimeReady && <div className="runtime-loading"><div className="pixel-loader"><Braces size={27}/></div><strong>Building a little adventure...</strong><span className="loading-phase" aria-live="polite">{loading.label}</span><div className="startup-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={loadPercent} aria-valuetext={`Step ${loading.phase} of 4: ${loading.label}. ${downloadDetail}`}><div className="startup-progress-fill" style={{width:`${loadPercent}%`}}/>{loading.fraction === null && <div className="startup-progress-pulse" style={{left:`${(loading.phase - 1) * 25}%`}}/>}</div><div className="loading-numbers"><span>STEP {loading.phase} OF 4</span><span>{loading.fraction !== null ? `${Math.round(loading.fraction * 100)}% - ` : ''}{downloadDetail}</span></div><div className="loading-stages">{['Python','Level','Pygame','Play'].map((label,index) => <span key={label} className={index + 1 < loading.phase ? 'done' : index + 1 === loading.phase ? 'current' : ''}>{index + 1 < loading.phase ? 'OK' : String(index + 1).padStart(2,'0')} {label}</span>)}</div>{loadingIssue ? <div className="loading-retry"><p>{loadingIssue}</p><button onClick={reload}><RotateCcw size={12}/> Retry loading</button></div> : <p className="loading-note">First load is the slowest. Your browser caches the engine for later visits.</p>}</div>}
             {runtimeReady && status === 'ready' && <div className="start-overlay"><span className="pixel-spark">✦</span><span className="scene-eyebrow">WELCOME TO {LEVEL.world.toUpperCase()}</span><h2>Small world.<br/>Big possibilities.</h2><p>{LEVEL.intro}</p><button className="play-button" onClick={() => start(applied.current)}><Play size={15} fill="currentColor"/> Play level</button></div>}
             {status === 'dead' && <div className="outcome-overlay death-overlay" role="dialog" aria-label="Game over"><div className="outcome-symbol"><TriangleAlert size={26}/></div><span className="scene-eyebrow">A BUMP IN THE ADVENTURE</span><h2>Game over<span>!</span></h2><p>{LEVEL.death}<br/>Try again, or give your code a tiny tweak.</p><button className="play-button" onClick={() => start(applied.current)}><RotateCcw size={15}/> Restart level</button><button className="text-button" onClick={() => {setRevealToken((value) => value + 1);document.querySelector('.editor-panel')?.scrollIntoView({block:'nearest',behavior:'smooth'});}}>Take me to the code <ArrowRight size={13}/></button></div>}

@@ -11,3 +11,8 @@ playwright-report/
 /.site-archive.tar.gz
 /*.tar.gz
 /artifacts/
+.env*
+!.env.example
+.open-next/
+.wrangler/
+dist/

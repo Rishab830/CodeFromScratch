@@ -1,0 +1,6 @@
+'use client';
+import {AVATAR_DESIGNS,AVATAR_PALETTES,type Avatar} from '../lib/avatars';
+import PixelAvatar from './PixelAvatar';
+export default function AvatarPicker({value,onChange}:{value:Avatar;onChange:(avatar:Avatar)=>void}){
+  return <div className="avatar-picker"><div className="avatar-preview"><PixelAvatar avatar={value} size={112}/><div><span className="account-eyebrow">YOUR PIXEL PERSONA</span><h2>A little character. All you.</h2><p>Pick a design, then give it your favorite colors.</p></div></div><fieldset><legend>Choose your character</legend><div className="avatar-designs">{AVATAR_DESIGNS.map(d=><button type="button" key={d.id} aria-label={`Choose ${d.name}`} aria-pressed={value.design===d.id} onClick={()=>onChange({...value,design:d.id})}><PixelAvatar avatar={{...value,design:d.id}} size={52}/><span>{d.name}</span></button>)}</div></fieldset><fieldset><legend>Choose your palette</legend><div className="avatar-palettes">{AVATAR_PALETTES.map(p=><button type="button" key={p.id} aria-label={`Choose ${p.name} palette`} aria-pressed={value.palette===p.id} title={p.name} onClick={()=>onChange({...value,palette:p.id})}><span style={{background:p.primary}}/><span style={{background:p.secondary}}/><span style={{background:p.light}}/><small>{p.name}</small></button>)}</div></fieldset></div>;
+}

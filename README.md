@@ -37,16 +37,42 @@ The original two platform maps retain overhead spikes, a 21-pixel floor gap (hal
 
 Gift Catcher uses only nested `if` statements in its editable handler; `for` and `while` are disabled. Move the basket with Left / Right or A / D, then tap Space once per caught gift. The outer check guards opening a box. Its contents cannot be inspected until the opening animation finishes. The inner check then drops a bomb or collects an egg or coin. A bomb allows one further action, which must be `drop()`; sensor reads do not spend that action. A wrong next action or ending the handler without dropping it plays an explosion before game over. Collect five eggs to win. Coin gifts contribute to saved level coins, including their filled/outline result icons.
 
-## Run and deploy
+## Accounts and Atlas setup
+
+The app runs as a Next.js server application, with registration, login, logout, a profile at `/profile`, and an admin directory at `/admin`. Guests can still play locally. Signing up offers an explicit option to import this device's guest progress; logging into another account never silently imports it.
+
+Create an Atlas cluster and a database user that can read and write the app database. Allow network access from your app runtime, then copy the Node.js driver connection string. See the [official driver connection guide](https://www.mongodb.com/docs/drivers/node/current/connect/).
+
+Copy `.env.example` to `.env.local`. Set the server-only `MONGODB_URI` and `MONGODB_DB` (default: `codefromscratch`). URL-encode special characters in the database password. These variables must never use a `NEXT_PUBLIC_` prefix.
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Generated game assets are committed, so Python is not needed to serve the site. The first game load downloads CPython WebAssembly and Pygame from pygame-web's CDN. The loader tracks Python, level files, Pygame, and startup, showing real byte counts when available and a retry action on failure or a long wait.
+Open http://localhost:3000 and create your account at `/register`. Choose one of six pixel designs and six palettes. The selected avatar appears in the header and opens your profile when clicked. Name and avatar can be changed on the profile page. Code, coins, completions, attempts, hints, themes, and last lesson are saved per account. Pending drafts remain in that account's device cache across reloads and retry after a dropped connection.
 
-For Vercel, deploy the project root with the Next.js preset and `npm run build`. The app exports to `out/`. Runners live at `/runner/` and `/runner-2/` through `/runner-13/`. Each runner has an absolute base URL so its archive loads correctly when Vercel removes trailing slashes. Preserve both the iframe URL handling and generated runner HTML when updating this fix.
+Passwords are salted and hashed with bcrypt. Session cookies are HttpOnly and SameSite=Lax, with Secure on HTTPS. Only token hashes are stored in MongoDB, with expiring session indexes. Write endpoints verify the request origin and validate lesson/coin IDs. Client account IDs cannot authorize access to another account. Coins and completions merge monotonically; XP is computed from completed lessons.
+
+### Grant admin access
+
+New registrations are always students. After creating your own account, run this command from a trusted terminal configured with the same Atlas database:
+
+```powershell
+npm run admin:grant -- your@email.com
+```
+
+Reload or log in again, then open `/admin`. Admins can search and paginate accounts and inspect names, emails, avatars, preferences, signup/login dates, completions, coins, saved code, attempts, hint usage, and save dates. Password hashes and session tokens are never returned. Public signup and profile requests cannot grant admin rights.
+
+### Deployment
+
+For Vercel, use the Next.js preset from this repository root with `npm run build`. Remove any old `out` output-directory override: accounts require the Next.js server and API routes. Add `MONGODB_URI` and `MONGODB_DB` to the project's server environment and redeploy. An optional `APP_ORIGIN` can pin writes to one exact origin; otherwise the app uses the incoming host and protocol. No Atlas credentials are committed, and remote account saving requires Atlas configuration.
+
+The first game load still downloads CPython WebAssembly and Pygame from pygame-web's CDN. The loader shows download progress and retry controls. Generated game assets are committed, so Python is not needed to serve the app.
+
+Runners live at `/runner/` and `/runner-2/` through `/runner-13/`. Absolute base URLs and server rewrites preserve slashless Vercel URLs and per-account coin caches. Preserve these when changing the runner.
+
+The existing private Sites preview uses `npm run build:preview`, packaging the same Next.js app with OpenNext into `dist/server/index.js` and `dist/client`. Configure Atlas in that preview's runtime environment separately to enable account saving there. Its audience and project identity are retained.
 
 ## Edit, compile, play
 
@@ -60,7 +86,7 @@ For Vercel, deploy the project root with the Next.js preset and `npm run build`.
 - Sensors reflect the live world when the program checks them; the timing depends on the game.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
 - Each game awards 100 XP. The seven core lessons earn 700 XP and open the optional section. Bonuses are not required for the workshop celebration.
-- Edits, completions, coins, and theme preferences persist in this browser. Progress is client-side, not authoritative grading.
+- Signed-in progress persists in MongoDB and is cached separately per account on the device. Guest progress stays local. Game completion remains reported by the browser, not an authoritative examination or grading system.
 - Site and code themes have independent controls, both defaulting to dark. The site light palette is white and orange.
 
 ## Source and runtime
@@ -92,10 +118,10 @@ npm run typecheck
 npm run build
 ```
 
-Serve the exported `out/` directory on port 3001 (or set `TEST_URL`), then use installed Google Chrome for browser checks:
+Build first, then run Next.js on port 3001 (or set `TEST_URL`). Browser checks use installed Google Chrome:
 
 ```powershell
-python -m http.server 3001 --bind 127.0.0.1 --directory out
+npm run start -- --hostname 127.0.0.1 --port 3001
 # In another terminal:
 npm run test:workshop
 npm run test:patrol
@@ -106,6 +132,8 @@ npm run test:themes
 ```
 
 `test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:patrol` checks the centered spawn, surrounding enemy groups, four-direction flight, both weapon solutions, and manual exit in the browser. `test:browser` covers both platformers; `test:bonuses` covers Gift Catcher and the retained collector game. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
+
+`npm run test:accounts` creates an isolated temporary MongoDB instance and a Next.js server on port 3010. It checks registration, cookies, login/logout, role isolation, real Pygame coin syncing, cross-device restores, offline drafts, profile updates, and admin access. It does not use or alter Atlas data. The first run may download a MongoDB test binary.
 
 To reproduce Vercel's slashless runner URLs during platformer checks:
 

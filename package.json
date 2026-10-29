@@ -15,23 +15,35 @@
     "test:bonuses": "node scripts/check-bonuses.cjs",
     "test:adventures": "node scripts/check-adventures.cjs",
     "test:sources": "node scripts/check-level-sources.cjs",
-    "test:themes": "node scripts/check-themes.cjs"
+    "test:themes": "node scripts/check-themes.cjs",
+    "admin:grant": "node --env-file-if-exists=.env.local scripts/grant-admin.mjs",
+    "build:preview": "node scripts/build-preview.mjs",
+    "test:accounts": "node scripts/check-accounts.cjs"
   },
   "dependencies": {
-    "next": "^16.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "lucide-react": "^0.468.0",
-    "@uiw/react-codemirror": "^4.23.0",
     "@codemirror/lang-python": "^6.1.6",
     "@codemirror/state": "^6.5.0",
-    "@codemirror/view": "^6.36.0"
+    "@codemirror/view": "^6.36.0",
+    "@uiw/react-codemirror": "^4.23.0",
+    "bcryptjs": "^3.0.3",
+    "lucide-react": "^0.468.0",
+    "mongodb": "^7.7.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
+    "@opennextjs/cloudflare": "^1.20.14",
+    "@playwright/test": "^1.56.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@playwright/test": "^1.56.0"
+    "mongodb-memory-server": "^11.3.0",
+    "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "^10.5.0"
+    }
   }
 }
