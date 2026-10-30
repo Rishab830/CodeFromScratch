@@ -146,16 +146,16 @@ export const LEVELS: readonly Level[] = [
     "runtime": "/runner-6/",
     "storage": "cfs:bonus:gift-catcher:v1",
     "missionTitle": "Open the surprise. Then decide.",
-    "mission": "Move the basket under falling gifts and collect five eggs. Every box is sealed: you must open it before checking what is inside. A revealed bomb gives your code one action to drop it safely. Eggs and coins should be collected. The starter mixes up those two actions.",
-    "intro": "Left / Right moves the basket. Catch a wrapped gift, then tap Space to run your handler once.",
-    "goal": "Collect five eggs. Drop every bomb.",
-    "death": "Keep eggs safe, catch the falling gifts, and drop bombs immediately after opening them.",
-    "log": "Arrows or A / D moves the basket. Space runs the nested-if handler once. Open first, then drop a bomb or collect a safe gift.",
-    "reference": "The outer if checks gift_in_basket(). Only open a box when that is true. Inside that branch, open_gift() reveals the contents, then a nested if can use gift_is_bomb(). A bomb must be dropped as the very next action; reading a sensor does not use that action. The else branch collects either an egg or a coin. For and while loops are not enabled here.",
+    "mission": "Gifts rain continuously. Move the basket to catch every box and collect five eggs. Your handle_gift() code runs automatically, even while the basket is empty. Open each box before checking its contents, then immediately drop a bomb or collect an egg or coin. Missing even one falling gift ends the run. The starter mixes up the two actions.",
+    "intro": "Left / Right moves the basket. Your handler runs automatically. Catch every falling gift; one miss ends the run.",
+    "goal": "Catch every gift and collect five eggs",
+    "death": "Catch every falling gift. Keep eggs and drop bombs immediately; one missed gift ends the run.",
+    "log": "Arrows or A / D moves the basket. Your nested-if handler repeats automatically. Do not let a single gift hit the ground.",
+    "reference": "The game repeatedly calls handle_gift() automatically, so the outer if must check gift_in_basket() before opening anything. Inside that branch, open_gift() reveals the contents; only then can the nested if use gift_is_bomb(). A bomb must be dropped as the very next action; reading a sensor does not use that action. The else branch collects an egg or a coin. Gifts keep falling during every animation, and one missed gift ends the run. For and while loops are not enabled here.",
     "hints": [
-      "Watch the two checks at the top of the game. The inner question stays locked while the box is sealed. Which actions should follow a bomb reveal and a safe reveal?",
+      "Watch the rain and the two checks at the top. Your code also runs when the basket is empty. Which actions should follow a bomb reveal and a safe reveal?",
       "Keep open_gift() inside if gift_in_basket(). Put the bomb check after opening, inside that same outer branch. A bomb must be dropped; the else branch can collect both eggs and coins.",
-      "Inside if gift_in_basket(): call open_gift(). Then write if gift_is_bomb(): with drop() inside it, and else: with collect() inside it. Compile, catch gifts with Left / Right, and tap Space for each one."
+      "Inside if gift_in_basket(): call open_gift(). Then write if gift_is_bomb(): with drop() inside it, and else: with collect() inside it. Compile, then move with Left / Right to catch every gift. The game runs your handler automatically."
     ],
     "actions": [
       [
@@ -187,21 +187,13 @@ export const LEVELS: readonly Level[] = [
       [
         "ArrowRight",
         "Move right"
-      ],
-      [
-        " ",
-        "Handle gift"
       ]
     ],
-    "playInstruction": "Move under a falling box. Once caught, tap Space to run the whole handler.",
+    "playInstruction": "Catch every falling gift with Left / Right. Your handler runs automatically; one miss ends the run.",
     "keyboardGuide": [
       [
         "\u2190 \u2192 / A D",
         "Move basket"
-      ],
-      [
-        "SPACE",
-        "Handle gift"
       ]
     ]
   },

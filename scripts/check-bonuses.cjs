@@ -31,20 +31,30 @@ let browser,page;
   }
   await choose('gift-catcher');await start();
   assert.equal(await page.getByRole('textbox',{name:'Terminal password'}).count(),0);
-  await hold('Space',70);assert.match(await page.locator('.console-message').innerText(),/No gift in the basket/);
+  assert.equal(await page.locator('.touch-controls button').count(),2);
+  assert.equal(await page.getByRole('button',{name:'Handle gift',exact:true}).count(),0);
+  assert(!/SPACE/i.test(await page.locator('.keyboard-guide').innerText()));
+  await compile(GIFT_SOLUTION);
+  await hold('ArrowLeft',1800);
+  await page.getByRole('dialog',{name:'Game over',exact:true}).waitFor({timeout:10000});
+  assert.match(await page.locator('.console-message').innerText(),/one missed|every falling/i);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),null);
+  await compile('    if gift_in_basket():\n        open_gift()\n        if gift_is_bomb():\n            collect()\n        else:\n            drop()\n');
   await playGifts(page,'dead');
   assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),null);
   await compile('    if gift_in_basket():\n        if gift_is_bomb():\n            drop()\n        else:\n            collect()\n');
   await playGifts(page,'error');
   assert.match(await page.locator('.console-message').innerText(),/Open the gift before checking/);
   // The inner sensor cannot inspect a sealed gift. Opening must precede it.
-  // The complete solution runs once per Space press and contains no loops.
+  // Only movement is supplied: the nested-if handler runs automatically.
   await compile(GIFT_SOLUTION);await page.waitForTimeout(400);
   assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
-  await playGifts(page);
+  let captured=false;
+  const rain=await playGifts(page,'won',async positions=>{if(!captured&&positions.gifts.length>=2){captured=true;await page.screenshot({path:path.join(__dirname,'..','artifacts','qa','gift-catcher-continuous-rain.png'),fullPage:true})}});
+  assert(rain.maxFalling>=2,'Several gifts must fall at the same time');
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Next lesson',exact:true}).count(),1);
-  console.log('PASS: Gift Catcher requires manual catching and nested-if handling, hides contents until opening, drops bombs and collects eggs plus saved coins');
+  console.log('PASS: continuous rain and automatic nested-if handling need only movement; one missed gift is fatal, bombs stay hidden until opened, and eggs plus saved coins are collected');
 
   await choose('endless-coin-collector');await start();
   await hold('ArrowRight',650);await hold('Space',180);await page.waitForTimeout(2400);await hold('ArrowRight',3500);

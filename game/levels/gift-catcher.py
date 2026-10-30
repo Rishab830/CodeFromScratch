@@ -13,7 +13,9 @@ CONCEPT = 'nested-if'
 LOOP_COMMANDS = ()
 COIN_NAMES = ('gift-1', 'gift-2')
 COLLECTED_COINS = set()
-OPEN_SECONDS, DECISION_SECONDS, RESOLVE_SECONDS = 0.5, 0.35, 0.55
+OPEN_SECONDS, DECISION_SECONDS, RESOLVE_SECONDS = 0.38, 0.28, 0.30
+SPAWN_SECONDS, FALL_SPEED = 1.2, 36
+HANDLER_SECONDS = 0.08
 
 
 def handle_gift():
@@ -52,17 +54,20 @@ class World:
         self.elapsed=self.phase_time=0.0
         self.x=160.0
         self.eggs=self.handled=self.actions=0
-        self.lives=3
+        self.missed=0
         self.phase='waiting'
-        self.cargo=self.falling=None
-        self.processing=self.last_action=self.ended=False
+        self.cargo=None
+        self.falling=[]
+        self.last_spawn_x=None
+        self.processing=self.ended=False
         self.outer_result=self.inner_result=None
-        self.spawn_timer=0.4
+        self.spawn_timer=0.35
+        self.handler_timer=0.0
         self.gift_plan=list(gifts) if gifts is not None else None
         self.plan_index=0
         self.bag=[]
         self.effect_x=self.effect_direction=0
-        self.message='Left / Right catches gifts. Space runs your handler once.'
+        self.message='Move to catch every gift. Your handler runs automatically.'
 
     def commands(self): return {'open_gift':self.open_gift,'drop':self.drop,'collect':self.collect}
     def sensors(self): return {'gift_in_basket':self.gift_in_basket,'gift_is_bomb':self.gift_is_bomb}
@@ -88,9 +93,15 @@ class World:
                 random.shuffle(self.bag)
                 self.bag.append('egg')
             kind=self.bag.pop(0)
+        if self.last_spawn_x is None:
+            x=random.randint(35,285)
+        else:
+            # Consecutive landings require movement but remain reachable at 112 px/s.
+            x=random.choice([position for position in range(35,286) if 48<=abs(position-self.last_spawn_x)<=88])
+        self.last_spawn_x=x
         return {'kind':'coin' if kind in COIN_NAMES else kind,
                 'coin_id':kind if kind in COIN_NAMES else None,
-                'x':float(random.randint(35,285)), 'y':56.0, 'opened':False}
+                'x':float(x), 'y':56.0, 'opened':False}
 
     def explode(self,message):
         self.phase,self.phase_time='exploding',0.0
@@ -134,7 +145,8 @@ class World:
             return 'won'
         else:
             self.phase='waiting'
-            self.message='No gift in the basket. Catch one, then press Space.' if self.outer_result is False else 'Ready for the next gift. Keep catching!'
+            self.message='Automatic handler running. Catch every gift!'
+        self.handler_timer=HANDLER_SECONDS
         return None
 
     def resolve_gift(self):
@@ -143,29 +155,48 @@ class World:
             if kind=='egg': self.eggs+=1
             elif kind=='coin': remember(self.cargo['coin_id'])
         elif kind=='egg':
-            self.lives-=1
+            self.ended=True
             self.message='An egg was dropped. Collect eggs; only bombs need dropping.'
+            return 'dead'
         self.handled+=1
         self.cargo=None
         self.phase,self.phase_time='settle',0.0
-        self.spawn_timer=0.45
-        if self.lives==0:
-            self.ended=True
-            return 'dead'
         return None
 
-    def update(self,dt,action=False,left=False,right=False):
+    def update_rain(self,dt):
+        # Rain has its own clock. Opening a box never pauses falling or spawning.
+        self.spawn_timer-=dt
+        while self.spawn_timer<=0:
+            self.falling.append(self.next_gift())
+            self.spawn_timer+=SPAWN_SECONDS
+        for gift in list(self.falling):
+            previous_y=gift['y']
+            gift['y']+=FALL_SPEED*dt
+            if previous_y+6<=133<=gift['y']+6 and abs(gift['x']-self.x)<=21 and self.cargo is None:
+                self.cargo=gift
+                self.falling.remove(gift)
+                self.phase,self.phase_time='waiting',0.0
+                self.handler_timer=0.0
+                self.message='Gift caught! Your nested if is handling it.'
+            elif gift['y']>=160:
+                self.missed+=1
+                self.ended=True
+                self.message='Missed a gift! Every falling box must be caught.'
+                return 'dead'
+        return None
+
+    def update(self,dt,left=False,right=False):
         if self.ended: return None
         self.elapsed+=dt
         self.x=max(22.0,min(298.0,self.x+(int(right)-int(left))*112*dt))
-        pressed=action and not self.last_action
-        self.last_action=action
         self.phase_time+=dt
         if self.phase=='exploding':
             if self.phase_time>=0.65:
                 self.ended=True
                 return 'dead'
             return None
+        result=self.update_rain(dt)
+        if result: return result
         if self.phase=='opening':
             if self.phase_time>=OPEN_SECONDS:
                 self.cargo['opened']=True
@@ -175,33 +206,13 @@ class World:
         if self.phase in ('collecting','dropping'):
             if self.phase_time>=RESOLVE_SECONDS: return self.resolve_gift()
             return None
-        if pressed and not self.processing:
+        self.handler_timer=max(0.0,self.handler_timer-dt)
+        if not self.processing and self.handler_timer==0:
             self.generator=self.program() if self.program is not None else None
             self.processing=True
             self.outer_result=self.inner_result=None
-        if self.processing and (self.phase=='waiting' or self.phase=='deciding' and self.phase_time>=DECISION_SECONDS or self.phase=='settle' and self.phase_time>=0.12):
-            result=advance_program(self)
-            if result: return result
-        if self.processing or self.cargo is not None: return None
-        if self.falling is None:
-            self.spawn_timer-=dt
-            if self.spawn_timer<=0: self.falling=self.next_gift()
-        else:
-            previous_y=self.falling['y']
-            self.falling['y']+=30*dt
-            if previous_y+6<=133<=self.falling['y']+6 and abs(self.falling['x']-self.x)<=21:
-                self.cargo=self.falling
-                self.falling=None
-                self.phase,self.phase_time='waiting',0.0
-                self.message='Gift in the basket! Press Space to run your nested if.'
-            elif self.falling['y']>=160:
-                self.falling=None
-                self.spawn_timer=0.45
-                self.lives-=1
-                self.message='Missed a gift! Move the basket under the falling boxes.'
-                if self.lives==0:
-                    self.ended=True
-                    return 'dead'
+        if self.processing and (self.phase=='waiting' or self.phase=='deciding' and self.phase_time>=DECISION_SECONDS or self.phase=='settle' and self.phase_time>=0.06):
+            return advance_program(self)
         return None
 
 
@@ -240,7 +251,7 @@ def draw_scene(surface,world,small,title):
     for x in range(6,320,22): pygame.draw.rect(surface,(179,207,174),(x,166,5,2))
     label(surface,title,'GIFT CATCHER',111,6)
     label(surface,small,f'EGGS {world.eggs}/5',8,10)
-    label(surface,small,f'LIVES {world.lives}',229,10)
+    label(surface,small,'NO MISSES',229,10)
     for i,name in enumerate(COIN_NAMES): draw_coin(surface,286+i*13,6,name in COLLECTED_COINS)
     outer='--' if world.outer_result is None else 'YES' if world.outer_result else 'NO'
     label(surface,small,'IF GIFT IN BASKET: '+outer,8,28)
@@ -251,7 +262,7 @@ def draw_scene(surface,world,small,title):
     if world.cargo is not None and world.cargo['opened']:
         text=('BOMB EXPLODED' if world.phase=='exploding' else 'BOMB: DROPPING SAFELY' if world.phase=='dropping' else 'BOMB - 1 ACTION TO DROP') if world.cargo['kind']=='bomb' else 'OPENED: '+world.cargo['kind'].upper()
         label(surface,small,text,151,39,(183,102,137) if world.cargo['kind']=='bomb' else (107,130,104))
-    if world.falling is not None: draw_wrapped_gift(surface,world.falling['x'],world.falling['y'])
+    for gift in world.falling: draw_wrapped_gift(surface,gift['x'],gift['y'])
     # Maya carries the basket; its front rim hides contents as they are collected.
     for y,row in enumerate(GIRL_SPRITE):
         for x,pixel in enumerate(row):
@@ -308,7 +319,7 @@ async def main():
     small,title=pygame.font.Font(None,10),pygame.font.Font(None,16)
     clock=pygame.time.Clock();world=World()
     COLLECTED_COINS.update(name for name in lesson_bridge.load_coins(COIN_STORAGE_ID) if name in COIN_NAMES)
-    state,attempt,has_input,previous_message='idle',0,False,''
+    state,attempt,previous_message='idle',0,''
     lesson_bridge.ready()
     while True:
         dt=min(clock.tick(60)/1000,0.04)
@@ -319,19 +330,18 @@ async def main():
             try:
                 candidate=World()
                 candidate.program=lesson_bridge.compile_lesson(command['body'],PROGRAM_NAME,candidate.commands(),candidate.sensors(),CONCEPT)
-                world=candidate;state,has_input,previous_message='playing',False,'';attempt+=1
+                world=candidate;state,previous_message='playing','';attempt+=1
                 lesson_bridge.emit('started',attempt=attempt)
             except Exception as error:
                 state='idle';lesson_bridge.emit('error',message=str(error))
         if state=='playing':
             try:
                 keys=pygame.key.get_pressed()
-                left=bool(keys[pygame.K_LEFT] or keys[pygame.K_a]);right=bool(keys[pygame.K_RIGHT] or keys[pygame.K_d]);action=bool(keys[pygame.K_SPACE])
-                has_input=has_input or left or right or action
-                result=world.update(dt,action,left,right)
+                left=bool(keys[pygame.K_LEFT] or keys[pygame.K_a]);right=bool(keys[pygame.K_RIGHT] or keys[pygame.K_d])
+                result=world.update(dt,left=left,right=right)
                 if world.message!=previous_message:
                     previous_message=world.message;lesson_bridge.emit('notice',message=world.message)
-                if result and (result!='won' or has_input):
+                if result:
                     state=result;lesson_bridge.emit(result,seconds=round(world.elapsed,1),coins=sorted(COLLECTED_COINS))
             except Exception as error:
                 state='idle';lesson_bridge.emit('error',message=str(error))
