@@ -50,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 and create your account at `/register`. Choose one of six pixel designs and six palettes. The selected avatar appears in the header and opens your profile when clicked. Name and avatar can be changed on the profile page. Code, coins, completions, attempts, hints, themes, and last lesson are saved per account. Pending drafts remain in that account's device cache across reloads and retry after a dropped connection.
+Open http://localhost:3000 and create your account at `/register`. Choose one of six pixel designs and seven themes. The selected avatar appears in the header and opens your profile when clicked. Name and avatar can be changed on the profile page. Code, coins, completions, attempts, hints, themes, and last lesson are saved per account. Pending drafts remain in that account's device cache across reloads and retry after a dropped connection.
 
 Passwords are salted and hashed with bcrypt. Session cookies are HttpOnly and SameSite=Lax, with Secure on HTTPS. Only token hashes are stored in MongoDB, with expiring session indexes. Write endpoints verify the request origin and validate lesson/coin IDs. Client account IDs cannot authorize access to another account. Coins and completions merge monotonically; XP is computed from completed lessons.
 
@@ -87,7 +87,7 @@ The existing private Sites preview uses `npm run build:preview`, packaging the s
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
 - Each game awards 100 XP. The seven core lessons earn 700 XP and open the optional section. Bonuses are not required for the workshop celebration.
 - Signed-in progress persists in MongoDB and is cached separately per account on the device. Guest progress stays local. Game completion remains reported by the browser, not an authoritative examination or grading system.
-- Site and code themes have independent controls, both defaulting to dark. The site light palette is white and orange.
+- The website and profile icon share one of seven themes: Lavender (dark by default), Mint, Peach, Ocean, Candy, Sunshine, or Light (white and orange). Choose a theme in the header or avatar picker; it applies across workshop, sign-up, profile, and admin pages and saves to the account. The code editor retains its own independent dark/light toggle, defaulting to dark.
 
 ## Source and runtime
 

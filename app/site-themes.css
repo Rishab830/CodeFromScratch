@@ -1,0 +1,78 @@
+/* The website and avatar share a palette. The editor owns its own variables. */
+:root,html[data-theme=lavender]{color-scheme:dark;--bg:#13141d;--panel:#1b1d29;--panel-deep:#171923;--line:#454252;--text:#eeeaf5;--muted:#b2adbf;--lavender:#c2aff1;--mint:#b6dec7;--peach:#f2beab;--on-accent:#201b2c;--danger:#f3a9bd}
+html[data-theme=mint]{--bg:#111d19;--panel:#1a2c25;--panel-deep:#16251f;--line:#40594c;--text:#effaf2;--muted:#b0c6b8;--lavender:#a7d9b1;--mint:#b9e6d7;--peach:#f3ce90;--on-accent:#152b1c}
+html[data-theme=peach]{--bg:#21171b;--panel:#302228;--panel-deep:#291d22;--line:#644750;--text:#fff2ea;--muted:#d4b9bd;--lavender:#f0b18d;--mint:#c8dcb6;--peach:#e1b9f4;--on-accent:#352018}
+html[data-theme=ocean]{--bg:#111b29;--panel:#1b2a3e;--panel-deep:#162334;--line:#405974;--text:#eef8ff;--muted:#b1c5dc;--lavender:#8bc7ec;--mint:#a8e0d4;--peach:#d1c0f5;--on-accent:#152a3e}
+html[data-theme=candy]{--bg:#211627;--panel:#302039;--panel-deep:#291b31;--line:#64476c;--text:#fff0fa;--muted:#d1b6d6;--lavender:#eda1cd;--mint:#b7dddf;--peach:#d1bcf9;--on-accent:#371e32}
+html[data-theme=sunshine]{--bg:#211e13;--panel:#302b1b;--panel-deep:#292417;--line:#665d3d;--text:#fff8e2;--muted:#cfc4a1;--lavender:#efd17c;--mint:#c1dfb7;--peach:#edb8bb;--on-accent:#302711}
+html[data-theme=light]{color-scheme:light;--bg:#faf7f1;--panel:#ffffff;--panel-deep:#f4eee4;--line:#d6c8b5;--text:#231f1b;--muted:#5c5148;--lavender:#a13d16;--mint:#35603c;--peach:#855018;--on-accent:#ffffff;--danger:#a32a45}
+:root{--accent-soft:color-mix(in srgb,var(--lavender) 12%,var(--panel));--success-soft:color-mix(in srgb,var(--mint) 12%,var(--panel))}
+.site-header{background:var(--panel-deep);border-color:var(--line)}
+.brand-icon{background:var(--lavender);color:var(--on-accent);box-shadow:3px 3px 0 var(--accent-soft)}
+.brand-middle,.site-header nav,.site-header nav>button,.breadcrumbs,.title-row p,.attempt,.game-heading i,.icon-button,.keyboard-guide>span,.game-footnote,.pixel-note,.beginner-tag,.page-footer,.account-footer{color:var(--muted)}
+.brand-period,.site-header nav>a.active,.eyebrow,.breadcrumb-current,.site-header nav>button:hover,.panel-tabs button.selected,.footer-star,.page-footer button{color:var(--lavender)}
+.site-header nav>a.active:after,.eyebrow>span{background:var(--lavender)}
+.avatar,.level-tag,.journey-icon,.modal-icon,.role-label,.progress-number{background:var(--accent-soft);border-color:var(--line);color:var(--lavender)}
+.level-reward,.journey,.info-modal,.api-grid>div,.next-preview{background:var(--panel);border-color:var(--line)}
+.level-reward strong,.mission-story h2,.mission-steps strong,.journey-title strong,.journey-stop strong,.next-preview strong{color:var(--text)}
+.reward-icon,.journey-stop.done>span,.progress-lesson.complete .progress-number{background:var(--success-soft);border-color:var(--line);color:var(--mint)}
+.xp,.reward-xp,.hint-section button,.hint-section p{color:var(--peach)}
+.level-reward>div>span,.game-heading>span,.mission-story p,.mission-steps p,.reference-content>p,.api-grid p,.journey-title>div>span,.journey-stop small,.journey-stop.active small,.journey-stop.done small,.info-modal>p,.next-preview p{color:var(--muted)}
+.live-dot{background:var(--mint);box-shadow:none}
+.scene{border-color:var(--line)}
+.keyboard-guide kbd,.restart-button,.touch-controls button{background:var(--panel);border-color:var(--line);color:var(--text)}
+.restart-button:hover,.touch-controls button:not(:disabled):hover{background:var(--accent-soft);color:var(--lavender)}
+.panel-tabs button{color:var(--muted)}
+.panel-tabs button.selected{border-color:var(--lavender)}
+.mission-steps{border-color:var(--line)}
+.mission-steps>div>span,.reference-content code,.journey-stop.active strong,.journey-stop.next.active strong,.journey-stop:not(:disabled):hover strong,.info-modal>p strong{color:var(--lavender)}
+.hint-section{background:var(--panel-deep)}
+.api-grid>div{background:var(--panel-deep)}
+.journey-stop>span{background:var(--panel-deep);border-color:var(--line);color:var(--muted)}
+.journey-stop:disabled,.journey-stop.next:disabled{opacity:1}
+.journey-stop.active>span,.journey-stop.unlocked>span{background:var(--accent-soft);border-color:var(--lavender);color:var(--lavender)}
+.journey-line{background:repeating-linear-gradient(to right,var(--line) 0 4px,transparent 4px 8px)}
+.map-dots i{background:var(--line)}
+.map-dots i:first-child{background:var(--lavender)}
+.reset-button{color:var(--text);border-color:var(--line)}
+.reset-button:hover{background:var(--accent-soft)}
+.compile-button{background:var(--lavender);color:var(--on-accent);border-color:var(--lavender);box-shadow:0 3px 0 var(--line)}
+.compile-button:hover{background:var(--lavender);filter:brightness(1.08)}
+.modal-close{color:var(--muted)}
+.modal-icon{box-shadow:4px 4px 0 var(--bg)}
+.next-preview>span{background:var(--success-soft);color:var(--mint);border-color:var(--line)}
+.runtime-loading,.start-overlay,.outcome-overlay{background:color-mix(in srgb,var(--panel) 96%,transparent);color:var(--text)}
+.runtime-loading>span,.runtime-loading .loading-note,.loading-numbers,.loading-stages,.loading-retry p,.start-overlay p,.outcome-overlay p{color:var(--muted)}
+.start-overlay h2,.outcome-overlay h2{color:var(--text)}
+.scene-eyebrow,.pixel-spark,.outcome-overlay h2>span,.win-overlay h2>span,.loading-stages .current{color:var(--lavender)}
+.win-overlay .scene-eyebrow,.win-xp,.loading-stages .done,.level-coins{color:var(--mint)}
+.pixel-loader,.outcome-symbol{background:var(--accent-soft);border-color:var(--line);color:var(--lavender)}
+.play-button,.win-overlay .play-button,.loading-retry button{background:var(--lavender);color:var(--on-accent);border-color:var(--lavender);box-shadow:2px 2px 0 var(--line)}
+.play-button:hover{background:var(--lavender)}
+.text-button,.win-overlay .text-button{color:var(--lavender)}
+.runtime-loading .startup-progress{background:var(--panel-deep);border-color:var(--line)}
+.startup-progress-fill,.startup-progress-pulse{background:var(--lavender)}
+.form-error{color:var(--danger)!important}
+.form-success,.sync-detail.saved,.account-sync.saved{color:var(--mint)!important}
+.account-sync.offline{color:var(--peach)}
+.auth-story,.avatar-preview{background:var(--accent-soft);border-color:var(--line)}
+.auth-story h2{color:var(--text)}
+.auth-story p,.auth-perks,.avatar-preview p{color:var(--muted)}
+.avatar-designs button[aria-pressed=true],.avatar-palettes button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--lavender);color:var(--text)}
+.avatar-designs button,.avatar-palettes button{color:var(--muted)}
+.theme-explainer{font-size:10px;line-height:1.8;color:var(--muted);margin-bottom:18px}
+input::placeholder{color:var(--muted);opacity:1}
+.site-theme-picker{position:relative;display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--panel);border:1px solid var(--line);border-radius:7px;color:var(--text);flex-shrink:0}
+.theme-swatch{width:9px;height:9px;border:1px solid var(--line);border-radius:50%;flex-shrink:0}
+.theme-picker-label{font-size:9px;color:var(--muted)}
+.site-theme-picker select{font:inherit;font-size:10px;font-weight:550;color:var(--text);background:var(--panel);border:0;max-width:150px;cursor:pointer}
+.site-theme-picker select:focus-visible{outline:2px solid var(--lavender);outline-offset:3px}
+.theme-switch{display:flex;align-items:center;gap:7px;flex-shrink:0;color:var(--muted)}
+.theme-switch-label{font-size:9px;font-weight:500}
+.theme-switch-options{display:flex;gap:2px;padding:3px;border:1px solid var(--line);background:var(--panel-deep);border-radius:7px}
+.theme-switch-options button{width:25px;height:24px;padding:0;border-radius:4px;background:transparent;color:var(--muted)}
+.theme-switch-options button:hover{background:var(--accent-soft);color:var(--text)}
+.theme-switch-options button[aria-pressed=true]{background:var(--lavender);color:var(--on-accent)}
+@media(max-width:850px){.site-header .profile{gap:10px}.site-header nav{gap:15px}}
+@media(max-width:650px){.site-theme-picker{padding:7px 5px;gap:4px}.theme-picker-label,.header-login{display:none}.site-theme-picker select{max-width:87px;font-size:9px}.site-header .profile{gap:8px}.theme-swatch{width:7px;height:7px}}
+@media(max-width:370px){.site-header .brand{font-size:18px!important;gap:6px!important}.site-header .brand-middle{font-size:12px!important;padding:0 2px}.site-header .brand-icon{width:28px;height:28px}.site-theme-picker select{max-width:75px}.site-theme-picker{padding:6px 4px}.site-header .profile{gap:7px}}

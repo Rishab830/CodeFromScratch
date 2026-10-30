@@ -4,14 +4,18 @@ import {hash,compare} from 'bcryptjs';
 import {ObjectId,type Document} from 'mongodb';
 import {database,withDatabaseScope} from './database';
 import {LEVELS} from '../levels';
-import {DEFAULT_AVATAR,validAvatar} from '../avatars';
+import {DEFAULT_AVATAR,validAvatar,validSiteTheme,siteThemeFrom} from '../avatars';
 import type {AccountUser,SavedLevel,Preferences} from '../account-types';
 
 const COOKIE='cfs_session',SESSION_SECONDS=60*60*24*30;
 const digest=(text:string)=>createHash('sha256').update(text).digest('hex');
 const admin=(user:Document)=>user.role==='admin';
 class ApiError extends Error{constructor(public status:number,message:string){super(message)}}
-function userDto(user:Document):AccountUser{return {id:String(user._id),name:user.name,email:user.email,avatar:validAvatar(user.avatar)?user.avatar:DEFAULT_AVATAR,role:admin(user)?'admin':'student',createdAt:user.createdAt.toISOString(),lastLoginAt:user.lastLoginAt.toISOString(),preferences:user.preferences??{siteTheme:'dark',editorTheme:'dark'}}}
+function userDto(user:Document):AccountUser{
+  const avatar=validAvatar(user.avatar)?user.avatar:DEFAULT_AVATAR;
+  const siteTheme=siteThemeFrom(user.preferences?.siteTheme,avatar);
+  return {id:String(user._id),name:user.name,email:user.email,avatar:{...avatar,palette:siteTheme},role:admin(user)?'admin':'student',createdAt:user.createdAt.toISOString(),lastLoginAt:user.lastLoginAt.toISOString(),preferences:{...user.preferences,siteTheme,editorTheme:user.preferences?.editorTheme==='light'?'light':'dark'}};
+}
 function progressDto(row:Document):SavedLevel{return {levelId:row.levelId,completed:!!row.completed,coins:[...(row.coins??[])].sort(),...(typeof row.code==='string'?{code:row.code,codeVersion:row.codeVersion}:{}),hint:row.hint??-1,attempts:row.attemptIds?.length??0,updatedAt:row.updatedAt.toISOString(),...(row.completedAt?{completedAt:row.completedAt.toISOString()}: {})}}
 function json(data:unknown,status=200){return Response.json(data,{status,headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}})}
 function cookie(token:string,request:Request,clear=false){return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${clear?0:SESSION_SECONDS}${new URL(request.url).protocol==='https:'?'; Secure':''}`}
@@ -48,7 +52,8 @@ async function issueSession(user:Document,request:Request){
 function preferencesFrom(value:unknown):Partial<Preferences>{
   if(!value||typeof value!=='object'||Array.isArray(value))throw new ApiError(400,'Choose valid preferences.');
   const raw=value as Record<string,unknown>,result:Partial<Preferences>={};
-  for(const key of ['siteTheme','editorTheme'] as const)if(raw[key]!==undefined){if(raw[key]!=='dark'&&raw[key]!=='light')throw new ApiError(400,'Choose a valid theme.');result[key]=raw[key]}
+  if(raw.siteTheme!==undefined){if(raw.siteTheme!=='dark'&&!validSiteTheme(raw.siteTheme))throw new ApiError(400,'Choose a valid website theme.');result.siteTheme=siteThemeFrom(raw.siteTheme)}
+  if(raw.editorTheme!==undefined){if(raw.editorTheme!=='dark'&&raw.editorTheme!=='light')throw new ApiError(400,'Choose a valid code theme.');result.editorTheme=raw.editorTheme}
   if(raw.lastLevel!==undefined){if(typeof raw.lastLevel!=='string'||!LEVELS.some(l=>l.id===raw.lastLevel))throw new ApiError(400,'Choose a valid lesson.');result.lastLevel=raw.lastLevel}
   return result;
 }
@@ -62,7 +67,7 @@ async function routeRequest(request:Request):Promise<Response>{
       const body=await input(request),email=emailFrom(body.email),name=nameFrom(body.name),password=passwordFrom(body.password);
       if(!validAvatar(body.avatar))throw new ApiError(400,'Choose one of the available avatars.');
       await limit(request,email,'register');const db=await database();
-      const now=new Date(),user={_id:new ObjectId(),email,name,role:'student',passwordHash:await hash(password,12),avatar:body.avatar,createdAt:now,lastLoginAt:now,updatedAt:now,preferences:{siteTheme:'dark',editorTheme:'dark'}};
+      const now=new Date(),user={_id:new ObjectId(),email,name,role:'student',passwordHash:await hash(password,12),avatar:body.avatar,createdAt:now,lastLoginAt:now,updatedAt:now,preferences:{siteTheme:body.avatar.palette,editorTheme:'dark'}};
       try{await db.collection('users').insertOne(user)}catch(error){if((error as {code?:number}).code===11000)throw new ApiError(409,'An account with that email already exists. Try logging in.');throw error}
       return issueSession(user,request);
     }
@@ -87,6 +92,12 @@ async function routeRequest(request:Request):Promise<Response>{
       if(body.name!==undefined)changes.name=nameFrom(body.name);
       if(body.avatar!==undefined){if(!validAvatar(body.avatar))throw new ApiError(400,'Choose a valid avatar.');changes.avatar=body.avatar}
       if(body.preferences!==undefined)for(const [key,value] of Object.entries(preferencesFrom(body.preferences)))changes['preferences.'+key]=value;
+      // One palette controls both the website and the profile icon, in one write.
+      if(changes.avatar)changes['preferences.siteTheme']=changes.avatar.palette;
+      else if(changes['preferences.siteTheme']){
+        if(validAvatar(user.avatar))changes['avatar.palette']=changes['preferences.siteTheme'];
+        else changes.avatar={...DEFAULT_AVATAR,palette:changes['preferences.siteTheme']};
+      }
       const updated=await (await database()).collection('users').findOneAndUpdate({_id:user._id},{$set:changes},{returnDocument:'after'});return json({user:userDto(updated!)});
     }
     if(path.startsWith('/api/progress/')&&method==='PATCH'){

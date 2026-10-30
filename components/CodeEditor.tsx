@@ -63,7 +63,7 @@ export default function CodeEditor({ source, onChange, revealToken, theme = 'dar
       '&': { backgroundColor: light ? '#fffdf9' : '#1b1c27', color: light ? '#373a34' : '#ddd2e8', fontSize: '12px', height: '100%' },
       '.cm-scroller': { fontFamily: '"Cascadia Code", "Consolas", monospace', lineHeight: '1.9', overflow: 'auto' },
       '.cm-content': { padding: '18px 0 100px', caretColor: light ? '#a55c34' : '#d5b5f5' },
-      '.cm-gutters': { backgroundColor: light ? '#faf8f3' : '#1b1c27', color: light ? '#8a8c7f' : '#746780', border: 'none', paddingRight: '12px' },
+      '.cm-gutters': { backgroundColor: light ? '#faf8f3' : '#1b1c27', color: light ? '#636558' : '#b3a3c3', border: 'none', paddingRight: '12px' },
       '.cm-line': { paddingLeft: '12px' },
       '.cm-activeLine': { backgroundColor: 'transparent' },
       '.cm-activeLineGutter': { backgroundColor: 'transparent' },
@@ -72,7 +72,7 @@ export default function CodeEditor({ source, onChange, revealToken, theme = 'dar
       // CodeMirror draws selections behind the text. Keep this line tint
       // translucent so it cannot cover the selection layer underneath.
       '.editable-line': { backgroundColor: light ? 'rgba(100, 184, 105, 0.14)' : 'rgba(100, 184, 105, 0.2)', boxShadow: light ? 'inset 3px 0 #83a97d' : 'inset 3px 0 #b3d9bb' },
-      '.protected-line': { opacity: light ? '.85' : '.75' },
+      '.protected-line': { opacity: '1' },
       '.cm-matchingBracket': { backgroundColor: light ? '#dcebd7 !important' : '#57634c !important' }
     })], [light]);
   useEffect(() => {

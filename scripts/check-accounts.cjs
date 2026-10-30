@@ -6,6 +6,7 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const fs=require('node:fs'),path=require('node:path');
 const {levels}=require('./level-fixtures.cjs');
+const {checkContrast}=require('./theme-contrast.cjs');
 const url='http://127.0.0.1:3010',qa=path.join(__dirname,'..','artifacts','qa');fs.mkdirSync(qa,{recursive:true});
 let mongo,client,server,browser,activePage,logs='';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
@@ -31,11 +32,19 @@ async function expectStatus(response,status){assert.equal(response.status(),stat
  await page.getByRole('button',{name:'Create my account',exact:true}).click();await page.waitForURL(url+'/');await page.locator('.cm-content').waitFor();
  assert.equal(await page.locator('.site-header .pixel-avatar').getAttribute('aria-label'),'Ocean Froggy');
  let session=await (await context.request.get(url+'/api/session')).json();const ada=session.user;
+ assert.equal(ada.preferences.siteTheme,'ocean');assert.equal(await page.locator('html').getAttribute('data-theme'),'ocean');
  assert.equal(session.progress.length,0,'Guest progress must not be silently imported');assert.equal(ada.role,'student');assert(!JSON.stringify(session).includes('passwordHash'));
  const cookies=await context.cookies();const sessionCookie=cookies.find(c=>c.name==='cfs_session');assert(sessionCookie.httpOnly);assert.equal(sessionCookie.sameSite,'Lax');
  const stored=await db.collection('users').findOne({email:ada.email});assert(stored.passwordHash.startsWith('$2'));assert.notEqual(stored.passwordHash,'A-long-test-password-42');assert(!await db.collection('sessions').findOne({_id:sessionCookie.value}));
  console.log('PASS: registration, avatar palettes, protected cookies, hashed passwords and tokens, CSRF rejection, and isolated guest progress.');
  const base={accountId:ada.id},attemptId=crypto.randomUUID();
+ for(const theme of ['lavender','mint','peach','ocean','candy','sunshine','light']){
+   const result=await expectStatus(await context.request.patch(url+'/api/profile',{headers:{Origin:url},data:{...base,preferences:{siteTheme:theme}}}),200);
+   assert.equal(result.user.avatar.palette,theme);assert.equal(result.user.preferences.siteTheme,theme);
+   const saved=await db.collection('users').findOne({_id:stored._id});assert.equal(saved.avatar.palette,theme);assert.equal(saved.preferences.siteTheme,theme);
+ }
+ await expectStatus(await context.request.patch(url+'/api/profile',{headers:{Origin:url},data:{...base,preferences:{siteTheme:'unknown'}}}),400);
+ await expectStatus(await context.request.patch(url+'/api/profile',{headers:{Origin:url},data:{...base,preferences:{siteTheme:'ocean'}}}),200);
  await expectStatus(await context.request.patch(url+'/api/profile',{headers:{Origin:url},data:{...base,role:'admin',email:'changed@workshop.test'}}),200);
  await expectStatus(await context.request.get(url+'/api/admin/users'),403);
  await expectStatus(await guest.post('/api/auth/register',{data:{name:'Duplicate',email:'ADA@WORKSHOP.TEST',password:'A-second-valid-password',avatar:{design:'robot',palette:'mint'}}}),409);
@@ -59,11 +68,14 @@ async function expectStatus(response,status){assert.equal(response.status(),stat
  await expectStatus(await patch({completed:false,coins:[]}),200);const merged=await (await context.request.get(url+'/api/session')).json();assert(merged.progress.find(p=>p.levelId===traffic.id).completed);assert.equal(merged.progress.find(p=>p.levelId===traffic.id).coins.length,2);
  await page.getByRole('link',{name:'Open profile',exact:true}).click();await page.getByLabel('Display name',{exact:true}).fill('Ada Starlight');await page.getByRole('button',{name:'Choose Byte Ghost',exact:true}).click();await page.getByRole('button',{name:'Choose Candy palette',exact:true}).click();await page.getByRole('button',{name:'Save profile',exact:true}).click();await page.getByText('Your new look is saved.',{exact:true}).waitFor();
  assert.equal(await page.locator('.site-header .pixel-avatar').getAttribute('aria-label'),'Candy Byte Ghost');
+ assert.equal(await page.locator('html').getAttribute('data-theme'),'candy');
+ for(const theme of ['lavender','mint','peach','ocean','sunshine','light','candy']){await page.getByLabel('Website and avatar theme').selectOption(theme);await checkContrast(page)}
  for(const width of [320,390,1440]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Profile overflow at '+width)}
  await page.screenshot({path:path.join(qa,'account-profile.png'),fullPage:true});
  console.log('PASS: real Pygame coin pickups, code drafts, attempts, and completed levels reach MongoDB; profile edits update the header.');
  const second=await browser.newContext({viewport:{width:1440,height:1100}}),otherPage=await second.newPage();await otherPage.goto(url+'/login');await otherPage.getByLabel('Email address',{exact:true}).fill(ada.email);await otherPage.getByLabel('Password',{exact:true}).fill('A-long-test-password-42');await otherPage.getByRole('button',{name:'Log in',exact:true}).click();await otherPage.waitForURL(url+'/');await otherPage.locator('.cm-content').waitFor();
  assert.equal(await otherPage.locator('.site-header .pixel-avatar').getAttribute('aria-label'),'Candy Byte Ghost');assert.match(await otherPage.locator('.xp').innerText(),/100/);
+ assert.equal(await otherPage.locator('html').getAttribute('data-theme'),'candy');
  const scope='cfs:user:'+ada.id+':';assert.equal(await otherPage.evaluate(k=>localStorage.getItem(k),scope+'cfs:coins:level-3:v1'),'["first","second"]');
  await otherPage.route('**/api/progress/**',route=>route.abort());
  const offlineCode=solution+'    # My offline draft\n';await otherPage.locator('.cm-content').evaluate((node,body)=>{const v=node.cmTile.root.view,t=v.state.doc.toString(),m=/^[ \t]*# EDIT START\n/m.exec(t),start=m.index+m[0].length,end=start+/^[ \t]*# EDIT END/m.exec(t.slice(start)).index;v.dispatch({changes:{from:start,to:end,insert:body}})},offlineCode);
@@ -84,6 +96,7 @@ async function expectStatus(response,status){assert.equal(response.status(),stat
  const grant=spawnSync(process.execPath,['scripts/grant-admin.mjs',ada.email],{cwd:path.join(__dirname,'..'),env:{...process.env,MONGODB_URI:mongo.getUri(),MONGODB_DB:'account_test'},windowsHide:true,encoding:'utf8'});assert.equal(grant.status,0,grant.stderr);
  await page.goto(url+'/admin');await page.getByRole('heading',{name:'A little progress, everywhere.',exact:true}).waitFor();await page.getByRole('button',{name:'View profile',exact:true}).first().waitFor();
  let directory=await expectStatus(await context.request.get(url+'/api/admin/users'),200);assert.equal(directory.totalUsers,2);assert(!JSON.stringify(directory).includes('passwordHash'));
+ for(const theme of ['lavender','mint','peach','ocean','sunshine','light','candy']){await page.getByLabel('Website and avatar theme').selectOption(theme);await checkContrast(page)}
  await db.collection('users').insertMany(Array.from({length:21},(_,i)=>({name:'Workshop Student '+i,email:`student${i}@qa.test`,role:'student',createdAt:new Date(),lastLoginAt:new Date(),preferences:{siteTheme:'dark',editorTheme:'dark'}})));
  directory=await expectStatus(await context.request.get(url+'/api/admin/users?page=2'),200);assert.equal(directory.users.length,3);assert.equal(directory.totalUsers,23);assert.equal(directory.pages,2);
  await page.getByRole('textbox',{name:'Search students',exact:true}).fill('Ada Starlight');await page.waitForTimeout(700);await page.getByRole('button',{name:'View profile',exact:true}).click();await page.getByRole('dialog',{name:'Student details',exact:true}).waitFor();await page.getByText('View saved student code',{exact:true}).click();assert((await page.getByRole('dialog').innerText()).includes('My offline draft'));await page.screenshot({path:path.join(qa,'account-admin-details.png'),fullPage:true});

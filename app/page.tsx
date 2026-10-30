@@ -6,6 +6,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Braces, Check, Che
 import { solutionBody, editableRange, END } from '../components/CodeEditor';
 import { LEVELS, CORE_LEVELS, BONUS_LEVELS, canPlay, type Level } from '../lib/levels';
 import ThemeSwitch, {type Theme} from '../components/ThemeSwitch';
+import ThemeSelector from '../components/ThemeSelector';
 import LevelCoins from '../components/LevelCoins';
 import {useAccount} from '../components/AccountProvider';
 import AccountNav from '../components/AccountNav';
@@ -23,7 +24,6 @@ function Workshop() {
   const account=useAccount();
   const [number, setNumber] = useState(1);
   const [cleared, setCleared] = useState<number[]>([]);
-  const [websiteTheme,setWebsiteTheme] = useState<Theme>('dark');
   const [editorTheme,setEditorTheme] = useState<Theme>('dark');
   useEffect(() => {
     try {
@@ -33,27 +33,20 @@ function Workshop() {
       const resume=LEVELS.find(level=>level.id===requested);if(resume&&canPlay(resume,completed))setNumber(resume.number);
     } catch {}
     try {
-      const site = account.user?.preferences.siteTheme??(localStorage.getItem(account.storageKey('cfs:theme:site')) === 'light' ? 'light' : 'dark');
-      setWebsiteTheme(site);
       setEditorTheme(account.user?.preferences.editorTheme??(localStorage.getItem(account.storageKey('cfs:theme:editor')) === 'light' ? 'light' : 'dark'));
-      document.documentElement.dataset.theme = site;
     } catch {}
   }, []);
-  function changeWebsiteTheme(theme:Theme) {
-    setWebsiteTheme(theme); document.documentElement.dataset.theme = theme;
-    account.savePreferences({siteTheme:theme});
-  }
   function changeEditorTheme(theme:Theme) {
     setEditorTheme(theme);
     account.savePreferences({editorTheme:theme});
   }
   const level = LEVELS.find((entry) => entry.number === number) ?? LEVELS[0];
-  return <Lesson key={level.id} level={level} cleared={cleared} websiteTheme={websiteTheme} editorTheme={editorTheme} onWebsiteTheme={changeWebsiteTheme} onEditorTheme={changeEditorTheme}
+  return <Lesson key={level.id} level={level} cleared={cleared} editorTheme={editorTheme} onEditorTheme={changeEditorTheme}
     onNavigate={(target) => { if (LEVELS.some(entry => entry.number === target && canPlay(entry, cleared))) { setNumber(target); account.savePreferences({lastLevel:LEVELS.find(l=>l.number===target)!.id}); window.scrollTo({top:0,behavior:'smooth'}); } }}
     onComplete={() => setCleared((current) => current.includes(number) ? current : [...current,number])}/>;
 }
 
-function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, editorTheme, onWebsiteTheme, onEditorTheme}: {level: Level; cleared: number[]; onNavigate: (number: number) => void; onComplete: () => void; websiteTheme:Theme; editorTheme:Theme; onWebsiteTheme:(theme:Theme)=>void; onEditorTheme:(theme:Theme)=>void}) {
+function Lesson({level: LEVEL, cleared, onNavigate, onComplete, editorTheme, onEditorTheme}: {level: Level; cleared: number[]; onNavigate: (number: number) => void; onComplete: () => void; editorTheme:Theme; onEditorTheme:(theme:Theme)=>void}) {
   const account=useAccount();
   const bodyStorage = account.storageKey(LEVEL.storage + ':body' + (LEVEL.codeVersion ? ':' + LEVEL.codeVersion : ''));
   const [source, setSource] = useState('');
@@ -204,7 +197,7 @@ function Lesson({level: LEVEL, cleared, onNavigate, onComplete, websiteTheme, ed
     <header className="site-header">
       <a className="brand" href="/" aria-label="Code From Scratch home"><span className="brand-icon"><Braces size={23}/></span><span>code<span className="brand-middle">from</span>scratch<span className="brand-period">.</span></span></a>
       <nav aria-label="Main navigation"><a className="active" href="#levels">Workshop</a><button onClick={() => setModal('help')}>How to play <HelpCircle size={14}/></button></nav>
-      <div className="profile"><ThemeSwitch scope="website" value={websiteTheme} onChange={onWebsiteTheme}/><span className="xp"><Sparkles size={15}/> {cleared.length * 100} XP</span><AccountNav/></div>
+      <div className="profile"><ThemeSelector/><span className="xp"><Sparkles size={15}/> {cleared.length * 100} XP</span><AccountNav/></div>
     </header>
 
     <main>

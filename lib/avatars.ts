@@ -13,7 +13,14 @@ export const AVATAR_PALETTES = [
   {id:'ocean',name:'Ocean',primary:'#8bc7ec',secondary:'#a8e0d4',light:'#ecfbff',background:'#263b54',blue:'#b1b2ee',outline:'#25354b',skin:'#ffddbf'},
   {id:'candy',name:'Candy',primary:'#eda1cd',secondary:'#bba8f0',light:'#fff0f9',background:'#492c50',blue:'#9bd7ec',outline:'#432a49',skin:'#ffdfc4'},
   {id:'sunshine',name:'Sunshine',primary:'#efd17c',secondary:'#e5a4a7',light:'#fff8d8',background:'#49412b',blue:'#b7d5b3',outline:'#44352e',skin:'#ffe0c1'},
+  {id:'light',name:'Light',primary:'#dd7543',secondary:'#e8b379',light:'#fff7e9',background:'#fff2dd',blue:'#5686a0',outline:'#4c362c',skin:'#ffe0c1'},
 ] as const;
+export type SiteTheme = (typeof AVATAR_PALETTES)[number]['id'];
+export function validSiteTheme(value:unknown):value is SiteTheme{return AVATAR_PALETTES.some(p=>p.id===value)}
+export function siteThemeFrom(value:unknown,avatar?:Avatar):SiteTheme{
+  if(validSiteTheme(value))return value;
+  return avatar&&validSiteTheme(avatar.palette)?avatar.palette:'lavender';
+}
 export type Avatar = {design:string;palette:string};
 export const DEFAULT_AVATAR:Avatar={design:'robot',palette:'lavender'};
 export function validAvatar(value:unknown):value is Avatar {
