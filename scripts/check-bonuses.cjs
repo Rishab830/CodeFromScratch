@@ -14,6 +14,7 @@ let browser,page;
     if(u.pathname.endsWith('/'))await route.fulfill({status:308,headers:{location:u.pathname.slice(0,-1)}});
     else await route.fulfill({response:await route.fetch({url:u.origin+u.pathname+'/index.html'})});
   });
+  await page.addInitScript(()=>{try{localStorage.setItem('cfs:guest:chosen','yes')}catch{}});
   await page.goto(process.env.TEST_URL||'http://127.0.0.1:3001');
   const playing=()=>page.waitForFunction(()=>document.querySelector('.status-pill').textContent==='PLAYING');
   async function hold(key,ms){await page.keyboard.down(key);await page.waitForTimeout(ms);await page.keyboard.up(key);}

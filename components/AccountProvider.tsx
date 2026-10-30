@@ -6,7 +6,7 @@ import type {AccountUser,LevelPatch,Preferences,SavedLevel,SessionData} from '..
 type Job={revision:string;patch:LevelPatch&{preferences?:Partial<Preferences>}};
 type Queue=Record<string,Job>;
 declare global {interface Window {cfsReadCoins?:(runtimeId:number,accountId:string)=>string}}
-type ContextValue={ready:boolean;user:AccountUser|null;progress:SavedLevel[];syncState:string;siteTheme:SiteTheme;storageKey:(key:string)=>string;saveLevel:(id:string,patch:LevelPatch)=>void;savePreferences:(preferences:Partial<Preferences>)=>void;login:(email:string,password:string)=>Promise<void>;register:(name:string,email:string,password:string,avatar:Avatar,importGuest:boolean)=>Promise<void>;logout:()=>Promise<void>;updateProfile:(name:string,avatar:Avatar)=>Promise<void>;importGuest:()=>Promise<void>};
+type ContextValue={ready:boolean;user:AccountUser|null;guestMode:boolean;playAsGuest:()=>void;progress:SavedLevel[];syncState:string;siteTheme:SiteTheme;storageKey:(key:string)=>string;saveLevel:(id:string,patch:LevelPatch)=>void;savePreferences:(preferences:Partial<Preferences>)=>void;login:(email:string,password:string)=>Promise<void>;register:(name:string,email:string,password:string,avatar:Avatar,importGuest:boolean)=>Promise<void>;logout:()=>Promise<void>;updateProfile:(name:string,avatar:Avatar)=>Promise<void>;importGuest:()=>Promise<void>};
 const AccountContext=createContext<ContextValue|null>(null);
 const prefix=(user:AccountUser|null)=>user?`cfs:user:${user.id}:`:'';
 function read<T>(key:string,fallback:T):T{try{const raw=localStorage.getItem(key);return raw===null?fallback:JSON.parse(raw)}catch{return fallback}}
@@ -26,6 +26,8 @@ async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{const r
 export function AccountProvider({children}:{children:ReactNode}){
   const [ready,setReady]=useState(false),[user,setUser]=useState<AccountUser|null>(null),[progress,setProgress]=useState<SavedLevel[]>([]),[syncState,setSyncState]=useState('local');
   const [siteTheme,setSiteTheme]=useState<SiteTheme>('lavender');
+  const [guestMode,setGuestMode]=useState(false);
+  function playAsGuest(){setGuestMode(true);put('cfs:guest:chosen','yes')}
   function applyTheme(theme:SiteTheme){setSiteTheme(theme);document.documentElement.dataset.theme=theme;put('cfs:theme:active',theme)}
   const current=useRef<AccountUser|null>(null),queue=useRef<Queue>({}),memory=useRef<Record<string,SavedLevel>>({}),busy=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const queueKey=(u:AccountUser)=>prefix(u)+'outbox';
@@ -79,6 +81,9 @@ export function AccountProvider({children}:{children:ReactNode}){
     publish();setSyncState(data.user?(Object.keys(queue.current).length?'saving':'saved'):'local');setReady(true);if(data.user)schedule();
   }
   useEffect(()=>{
+    let guest=new URLSearchParams(location.search).get('guest')==='1';
+    try{guest=guest||localStorage.getItem('cfs:guest:chosen')==='yes'}catch{}
+    if(guest)playAsGuest();
     let alive=true;api<SessionData>('/api/session').then(data=>{if(alive)applySession(data)}).catch(()=>{if(alive){applySession({user:null,progress:[]});setSyncState('offline')}});
     const online=()=>{void flush()},hidden=()=>{if(document.visibilityState==='hidden')void flush()};
     window.addEventListener('online',online);window.addEventListener('pagehide',online);document.addEventListener('visibilitychange',hidden);
@@ -109,6 +114,6 @@ export function AccountProvider({children}:{children:ReactNode}){
   async function register(name:string,email:string,password:string,avatar:Avatar,bringGuest:boolean){applySession(await api<SessionData>('/api/auth/register','POST',{name,email,password,avatar}));if(bringGuest)await importGuest()}
   async function logout(){await flush();await api('/api/auth/logout','POST',{});applySession({user:null,progress:[]})}
   async function updateProfile(name:string,avatar:Avatar){const owner=current.current;if(!owner)return;await flush();const result=await api<{user:AccountUser}>('/api/profile','PATCH',{accountId:owner.id,name,avatar});if(current.current?.id===owner.id){const updated={...result.user,preferences:{...result.user.preferences,...queue.current.preferences?.patch.preferences}};current.current=updated;setUser(updated);applyTheme(updated.preferences.siteTheme)}}
-  return <AccountContext.Provider value={{ready,user,progress,syncState,siteTheme,storageKey:key=>prefix(user)+key,saveLevel,savePreferences,login,register,logout,updateProfile,importGuest}}>{children}</AccountContext.Provider>;
+  return <AccountContext.Provider value={{ready,user,guestMode,playAsGuest,progress,syncState,siteTheme,storageKey:key=>prefix(user)+key,saveLevel,savePreferences,login,register,logout,updateProfile,importGuest}}>{children}</AccountContext.Provider>;
 }
 export function useAccount(){const value=useContext(AccountContext);if(!value)throw new Error('AccountProvider is required');return value}

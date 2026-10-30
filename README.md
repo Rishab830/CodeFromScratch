@@ -39,7 +39,7 @@ Gift Catcher uses only nested `if` statements in its editable handler; `for` and
 
 ## Accounts and Atlas setup
 
-The app runs as a Next.js server application, with registration, login, logout, a profile at `/profile`, and an admin directory at `/admin`. Guests can still play locally. Signing up offers an explicit option to import this device's guest progress; logging into another account never silently imports it.
+The app runs as a Next.js server application, with registration, login, logout, a profile at `/profile`, and an admin directory at `/admin`. First-time visitors see login, account creation, and Play as guest before the game loads. The device remembers guest play; returning signed-in users enter the workshop directly. Guests can still play locally. Signing up offers an explicit option to import this device's guest progress; logging into another account never silently imports it.
 
 Create an Atlas cluster and a database user that can read and write the app database. Allow network access from your app runtime, then copy the Node.js driver connection string. See the [official driver connection guide](https://www.mongodb.com/docs/drivers/node/current/connect/).
 
@@ -130,6 +130,7 @@ npm run test:bonuses
 npm run test:sources
 npm run test:themes
 npm run test:greenhouse
+npm run test:entry
 ```
 
 `test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:patrol` checks the centered spawn, surrounding enemy groups, four-direction flight, both weapon solutions, and manual exit in the browser. `test:browser` covers both platformers; `test:bonuses` covers Gift Catcher and the retained collector game. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.

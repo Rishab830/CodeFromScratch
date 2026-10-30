@@ -34,6 +34,7 @@ async function enemyPositions(){
   page=await browser.newPage({viewport:{width:1440,height:1100}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(keys=>{try{keys.forEach(k=>localStorage.setItem(k+':complete','yes'))}catch{}},core.slice(0,5).map(l=>l.storage));
+  await page.addInitScript(()=>{try{localStorage.setItem('cfs:guest:chosen','yes')}catch{}});
   await page.goto(process.env.TEST_URL||'http://127.0.0.1:3001');
   await page.locator('button[data-level-id="space-patrol"]').click();
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:180000});

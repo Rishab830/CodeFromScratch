@@ -9,6 +9,7 @@ let browser;
   const page=await browser.newPage({viewport:{width:390,height:844}});
   await page.addInitScript(keys=>{try{keys.forEach(key=>localStorage.setItem(key+':complete','yes'))}catch{}},core.map(l=>l.storage));
   await page.route('**/runner*/',route=>route.abort());
+  await page.addInitScript(()=>{try{localStorage.setItem('cfs:guest:chosen','yes')}catch{}});
   await page.goto(process.env.TEST_URL||'http://127.0.0.1:3001');
   for(const level of levels){
     await page.locator(`button[data-level-id="${level.id}"]`).click();

@@ -17,6 +17,7 @@
     "test:sources": "node scripts/check-level-sources.cjs",
     "test:themes": "node scripts/check-themes.cjs",
     "test:greenhouse": "node scripts/check-greenhouse.cjs",
+    "test:entry": "node scripts/check-entry.cjs",
     "admin:grant": "node --env-file-if-exists=.env.local scripts/grant-admin.mjs",
     "build:preview": "node scripts/build-preview.mjs",
     "test:accounts": "node scripts/check-accounts.cjs"

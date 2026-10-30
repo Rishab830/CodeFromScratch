@@ -10,14 +10,16 @@ import ThemeSelector from '../components/ThemeSelector';
 import LevelCoins from '../components/LevelCoins';
 import {useAccount} from '../components/AccountProvider';
 import AccountNav from '../components/AccountNav';
+import LoginScreen from '../components/LoginScreen';
 
 const CodeEditor = dynamic(() => import('../components/CodeEditor'), { ssr: false });
 type Status = 'loading' | 'ready' | 'compiling' | 'playing' | 'dead' | 'error' | 'won';
 const formatBytes = (bytes:number) => bytes < 1048576 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 
 export default function Home() {
-  const {ready,user}=useAccount();
+  const {ready,user,guestMode}=useAccount();
   if(!ready)return <div className="account-loading full-page-loading">Opening your adventure...</div>;
+  if(!user&&!guestMode)return <LoginScreen firstVisit/>;
   return <Workshop key={user?.id??'guest'}/>;
 }
 function Workshop() {

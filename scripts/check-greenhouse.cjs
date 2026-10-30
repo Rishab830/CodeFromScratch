@@ -10,6 +10,7 @@ let browser,page;
   page=await browser.newPage({viewport:{width:1440,height:1100}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(keys=>keys.forEach(key=>localStorage.setItem(key+':complete','yes')),core.map(l=>l.storage));
+  await page.addInitScript(()=>{try{localStorage.setItem('cfs:guest:chosen','yes')}catch{}});
   await page.goto((process.env.TEST_URL||'http://127.0.0.1:3001')+'/?level=greenhouse-grid');
   await page.getByRole('heading',{name:'The Greenhouse',exact:false}).waitFor();
   await page.getByRole('button',{name:'Play level',exact:true}).waitFor({timeout:180000});

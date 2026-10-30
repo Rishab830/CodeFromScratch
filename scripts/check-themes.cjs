@@ -15,6 +15,7 @@ let browser;
   await page.addInitScript(()=>{try{localStorage.setItem('cfs:traffic:v1:complete','yes')}catch{}});
   await page.route('**/runner*/',route=>route.abort());
   const url=process.env.TEST_URL || 'http://127.0.0.1:3001';
+  await page.addInitScript(()=>{try{localStorage.setItem('cfs:guest:chosen','yes')}catch{}});
   await page.goto(url);
   await page.locator('.editable-line').first().waitFor();
   const site=()=>page.getByLabel('Website and avatar theme',{exact:true});
