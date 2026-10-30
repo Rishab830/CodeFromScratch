@@ -540,12 +540,13 @@ export const LEVELS: readonly Level[] = [
     "number": 9,
     "runtimeId": 13,
     "id": "greenhouse-grid",
+    "codeVersion": 1,
     "hints": [
-      "Step through the starter. Is it missing a whole row, or a plant from every row? Count the rows and columns in the greenhouse.",
-      "The outer loop chooses a row and the inner loop visits its columns. range(3) gives the indexes 0, 1, and 2. Both dimensions have three cells.",
-      "Change the outer loop to for row in range(3): and keep the inner for column in range(3):. Leave water_cell(row, column) inside both loops and open_exit() outside them. Compile and step through all nine plants."
+      "Pull the lever and watch which plants grow. Each plant needs three separate waterings. Which plant does the starter never reach?",
+      "The outer loop selects the plant (0, 1, or 2). For each plant, the inner loop repeats the three growth stages. A loop inside a loop finishes all the inner repeats before moving on.",
+      "Use for plant in range(3): with for stage in range(3): inside it, and water_plant(plant) inside both. Compile, walk to the lever, and tap Space once. Then collect the right plant's key, tap Space at the door, and walk through."
     ],
-    "title": "The Greenhouse Grid",
+    "title": "The Greenhouse",
     "world": "Sage Garden",
     "concept": "nested-loops",
     "exercise": "debug",
@@ -558,38 +559,46 @@ export const LEVELS: readonly Level[] = [
     "source": "/levels/greenhouse-grid.py",
     "runtime": "/runner-13/",
     "storage": "cfs:bonus:greenhouse:v1",
-    "missionTitle": "Every row. Every plant.",
-    "mission": "The greenhouse has three rows and three columns. The starter nested loops leave some plants dry. Step through the row and column values, fix the counts, then open the exit.",
-    "intro": "Step the nested loops and water every plant.",
-    "goal": "Water all nine plants and open the exit",
-    "death": "Check your program and try again.",
-    "log": "Press or hold Space to water one plant at a time, then open the exit.",
-    "reference": "Use a for loop inside another for loop. The function header and game code are locked. Use the supplied functions in the green area. Compile, then press Space to play.",
+    "missionTitle": "Three plants. Three little stages.",
+    "mission": "Walk to the lever and tap Space to start the overhead watering machine. It follows your nested loops, watering one plant at a time. Grow all three plants through three stages. The left and middle plants send coins to the counter; the right plant drops a key. Pick it up, use it at the door, and walk out.",
+    "intro": "Move with Left / Right or A / D. Tap Space beside the lever to start the machine.",
+    "goal": "Grow all three plants, collect the key, and escape",
+    "death": "The machine stopped before the greenhouse was ready. Check both loop counts and try again.",
+    "log": "One lever press runs the whole program. Keep moving while the machine works.",
+    "reference": "The outer for loop selects one of three plants. The inner for loop waters that plant three times, growing it through three stages. Machine actions animate automatically after one lever press. You control the girl throughout; the key and exit still need you.",
     "actions": [
       [
         "range(n)",
-        "Repeat a loop n times."
+        "Repeat a loop n times. Plant indexes are 0, 1, and 2."
       ],
       [
-        "water_cell(row, column)",
-        "Water one cell using its row and column."
-      ],
-      [
-        "open_exit()",
-        "Leave once all nine plants have been watered."
+        "water_plant(plant)",
+        "Water the selected plant once, growing it by one stage. Each needs three waterings."
       ]
     ],
     "controls": [
       [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
         " ",
-        "Next action"
+        "Use lever / door"
       ]
     ],
-    "playInstruction": "Press or hold Space to water one plant at a time, then open the exit.",
+    "playInstruction": "Walk to the lever and tap Space once. After all plants grow, pick up the key, tap Space beside the door, and walk through.",
     "keyboardGuide": [
       [
+        "← → / A D",
+        "Move"
+      ],
+      [
         "SPACE",
-        "Next action"
+        "Use lever / door"
       ]
     ]
   },

@@ -4,6 +4,7 @@ const path=require('node:path');
 const fs=require('node:fs');
 const {core,bonus}=require('./level-fixtures.cjs');
 const {GIFT_SOLUTION,playGifts}=require('./gift-catcher-fixture.cjs');
+const {runGreenhouse,exitGreenhouse}=require('./greenhouse-fixture.cjs');
 const {shipPosition,pilotSector,flyToBeacon}=require('./space-patrol-fixture.cjs');
 const qa=path.join(__dirname,'..','artifacts','qa');fs.mkdirSync(qa,{recursive:true});
 let browser,page;
@@ -15,7 +16,7 @@ const fixes={
  'space-patrol':'    while enemy_visible():\n        shoot()\n',
  'foggy-tunnel':'    while not exit_detected():\n        move_forward()\n    open_exit()\n',
  'rocket-launch':'    if power_on():\n        if fuel_ready():\n            launch()\n        else:\n            refuel()\n    else:\n        wait_for_power()\n',
- 'greenhouse-grid':'    for row in range(3):\n        for column in range(3):\n            water_cell(row, column)\n    open_exit()\n',
+ 'greenhouse-grid':'    for plant in range(3):\n        for stage in range(3):\n            water_plant(plant)\n',
  'final-escape':'    for row in range(2):\n        for column in range(3):\n            power_cell(row, column)\n    if all_powered():\n        unlock_exit()\n        open_exit()\n',
 };
 (async()=>{
@@ -177,7 +178,9 @@ const fixes={
   console.log('PASS: core 7 switches from remote driving to autonomous while code, animates sensor checks and gates, and resets its single opening allowance across three tunnels');
 
   for(const [id,duration] of [['rocket-launch',1100],['greenhouse-grid',3000],['final-escape',2600]]){
-    await stop(id).click();await ready(id);await fixed(id);await hold('Space',duration);await won();
+    await stop(id).click();await ready(id);await fixed(id);
+    if(id==='greenhouse-grid'){await runGreenhouse(page);await exitGreenhouse(page)}
+    else {await hold('Space',duration);await won()}
     assert.equal(await page.getByRole('button',{name:'Choose another bonus',exact:true}).count(),1);
   }
   assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),'yes');

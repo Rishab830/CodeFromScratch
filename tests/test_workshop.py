@@ -18,7 +18,7 @@ SOLUTIONS = {
  'lost-robot': '    for i in range(3):\n        move_left()\n    for i in range(2):\n        move_up()\n    for i in range(3):\n        move_left()\n',
  'foggy-tunnel': '    while not exit_detected():\n        move_forward()\n    open_exit()\n',
  'rocket-launch': '    if power_on():\n        if fuel_ready():\n            launch()\n        else:\n            refuel()\n    else:\n        wait_for_power()\n',
- 'greenhouse-grid': '    for row in range(3):\n        for column in range(3):\n            water_cell(row, column)\n    open_exit()\n',
+ 'greenhouse-grid': '    for plant in range(3):\n        for stage in range(3):\n            water_plant(plant)\n',
  'final-escape': '    for row in range(2):\n        for column in range(3):\n            power_cell(row, column)\n    if all_powered():\n        unlock_exit()\n        open_exit()\n',
 }
 
@@ -51,7 +51,19 @@ class WorkshopTests(unittest.TestCase):
         for slug,body in SOLUTIONS.items():
             with self.subTest(slug=slug):
                 world=self.make(slug,body)
+                if slug=='greenhouse-grid': world.x=49
                 result=self.finish(world,drive=slug=='foggy-tunnel')
+                if slug=='greenhouse-grid':
+                    self.assertIsNone(result)
+                    self.assertEqual(world.stages,[3,3,3])
+                    for _ in range(55): world.update(0.05,right=True)
+                    self.assertTrue(world.has_key)
+                    for _ in range(13): world.update(0.05,right=True)
+                    world.update(0.01,True)
+                    for _ in range(20): world.update(0.05)
+                    for _ in range(15):
+                        result=world.update(0.05,right=True)
+                        if result: break
                 if slug=='bridge-builder':
                     self.assertIsNone(result)
                     for _ in range(80):
@@ -80,6 +92,7 @@ class WorkshopTests(unittest.TestCase):
         for slug in ('greenhouse-grid',):
             with self.subTest(slug=slug):
                 world=self.make(slug)
+                world.x=49
                 self.assertEqual(self.finish(world),'dead')
 
     def test_bridge_movement_is_independent_of_building_and_stops_on_key_release(self):
@@ -331,7 +344,7 @@ class WorkshopTests(unittest.TestCase):
 
     def test_nested_bonus_rules_are_explicit(self):
         with self.assertRaises(ValueError): self.make('rocket-launch','    if power_on() and fuel_ready():\n        launch()\n')
-        with self.assertRaises(ValueError): self.make('greenhouse-grid','    for row in range(3):\n        water_cell(row,0)\n')
+        with self.assertRaises(ValueError): self.make('greenhouse-grid','    for plant in range(3):\n        water_plant(plant)\n')
 
     def test_invalid_runtime_access_is_rejected(self):
         for body in ('    import os\n','    return []\n','    launch.__class__\n','    eval("1")\n'):

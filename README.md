@@ -27,7 +27,7 @@ All six unlock together after the seven core lessons. Any bonus can be chosen wi
 | Bonus | Game | Focus |
 | --- | --- | --- |
 | 1 | The Rocket Launch | Build nested conditions using power and fuel sensors. |
-| 2 | The Greenhouse Grid | Debug nested loops over rows and columns. |
+| 2 | The Greenhouse | Debug nested loops: three plants, three growth stages; use a lever, collect two animated coins and a key, then unlock and walk through the exit. |
 | 3 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
 | 4 | The Jumping Girl | Fix the blue-tile action, then play to the flag. |
 | 5 | The Blue Leap | Edit the entire `Girl` class and find a valid route. |
@@ -82,7 +82,7 @@ The existing private Sites preview uses `npm run build:preview`, packaging the s
 - Use each game's displayed controls. Traffic uses Left / Right or A / D; Space Patrol uses all four arrows or WASD. The two platformers also jump with Space, Up, or W. On a phone, use the labelled on-screen buttons.
 - In Bridge Builder, one Space tap runs the whole building loop, adding its planks in sequence after the key is released. The river spans ten plank lengths; the starter uses `range(5)` and builds only halfway. Left / Right controls Maya before, during, and after building. Missing planks leave gaps she can fall through, and reaching the flag still requires a manual crossing.
 - In Lost Robot, each Space action animates one tile move. Further actions wait until it finishes; a wrong move ends the attempt only when the robot's body reaches a wall.
-- Space advances Parcel Sorter, Lost Robot, Rocket Launch, Greenhouse Grid, and Final Escape one action at a time; holding it repeats. Gift Catcher has no Space action: its handler runs automatically while the player catches continuous rain with movement keys. In Space Patrol, tap it once to arm the automatic weapon. Foggy Tunnel starts its code automatically on entering a tunnel and has no Space action. In Endless Coin Collector, Space starts the nearby machine.
+- Space advances Parcel Sorter, Lost Robot, Rocket Launch, and Final Escape one action at a time; holding it repeats. In The Greenhouse, move with Left/Right or A/D and tap Space beside the lever once to run the whole watering program; the right plant drops a key to pick up and use with Space beside the exit. Gift Catcher has no Space action: its handler runs automatically while the player catches continuous rain with movement keys. In Space Patrol, tap it once to arm the automatic weapon. Foggy Tunnel starts its code automatically on entering a tunnel and has no Space action. In Endless Coin Collector, Space starts the nearby machine.
 - Sensors reflect the live world when the program checks them; the timing depends on the game.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
 - Each game awards 100 XP. The seven core lessons earn 700 XP and open the optional section. Bonuses are not required for the workshop celebration.
@@ -129,6 +129,7 @@ npm run test:browser
 npm run test:bonuses
 npm run test:sources
 npm run test:themes
+npm run test:greenhouse
 ```
 
 `test:workshop` plays the core path and three new nested challenges through actual WASM, checking blank starters, errors, concept constraints, independent bonuses, coins, and mobile layout. `test:adventures` aliases it. `test:patrol` checks the centered spawn, surrounding enemy groups, four-direction flight, both weapon solutions, and manual exit in the browser. `test:browser` covers both platformers; `test:bonuses` covers Gift Catcher and the retained collector game. Source checks cover all 13 editor files and isolated archives. Theme checks cover independent settings, persistence, editor history, and mobile controls.
