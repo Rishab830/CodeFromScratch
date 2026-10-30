@@ -5,7 +5,7 @@ import random
 import pygame
 import lesson_bridge
 
-LEVEL_NUMBER = 7
+LEVEL_NUMBER = 8
 COIN_STORAGE_ID = 11
 WIDTH, HEIGHT = 320, 180
 PROGRAM_NAME = 'escape'

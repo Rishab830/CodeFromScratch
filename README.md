@@ -11,10 +11,11 @@ A Next.js website for a one-hour Python workshop. Students read real Pygame code
 | 3 | The Gift Catcher | Nested `if` | Catch falling gifts; open each box, then drop a bomb or collect a safe gift. |
 | 4 | The Bridge Builder | `for` and `range` | Debug how many planks are placed. |
 | 5 | The Lost Robot | Counted movement | Blank function, supplied movement actions; no instruction lists. |
-| 6 | Space Patrol | `while`, or `for` with `if` | Pilot a ship and fix a weapon that wastes its limited ammunition. |
-| 7 | The Foggy Tunnel | Repeat until a live condition changes | Drive an RC car into three tunnels; its blank onboard function must take over when signal is lost. |
+| 6 | The Greenhouse | Nested `for` loops | Debug three plants with three growth stages, collect the key, and unlock the exit. |
+| 7 | Space Patrol | `while`, or `for` with `if` | Pilot a ship and fix a weapon that wastes its limited ammunition. |
+| 8 | The Foggy Tunnel | Repeat until a live condition changes | Drive an RC car into three tunnels; its blank onboard function must take over when signal is lost. |
 
-Lessons unlock sequentially. Conditions, for, and while have a debugging lesson followed by an editable body containing `pass`. Gift Catcher adds nested-if debugging after the two initial condition lessons. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly six minutes per core lesson, and the remaining time for discussion or bonuses.
+Lessons unlock sequentially. Conditions, for, and while have a debugging lesson followed by an editable body containing `pass`. Gift Catcher adds nested-if debugging after the two initial condition lessons. The Greenhouse extends counted movement into nested loops before Space Patrol introduces conditional repetition. Supplied functions and sensors are visible above the editor. Allow five minutes for orientation, roughly six minutes per core lesson, and the remaining time for discussion or bonuses.
 
 Space Patrol starts with an unconditional `for` loop. Space arms the weapon once, then the student pilots with all four arrows or WASD while their code chooses when to shoot. The ship starts in the center. Ten enemies spawn around the player in three simultaneous groups of four, three, and three; each needs three auto-aimed hits, and the magazine holds exactly thirty bullets. Auto-aim selects the nearest live enemy, and each projectile follows its own target. Empty shots waste ammunition. Enemies fire back; after clearing the sector, fly to the exit beacon. Either a live `while` condition or a `for` loop containing an `if` check works. Foggy Tunnel then requires `while` specifically.
 
@@ -22,16 +23,15 @@ Foggy Tunnel requires `while` and rejects `for`. Left / Right or A / D drives th
 
 ## Optional bonuses
 
-All six unlock together after the seven core lessons. Any bonus can be chosen without completing another bonus first.
+All five unlock together after the eight core lessons. Any bonus can be chosen without completing another bonus first.
 
 | Bonus | Game | Focus |
 | --- | --- | --- |
 | 1 | The Rocket Launch | Build nested conditions using power and fuel sensors. |
-| 2 | The Greenhouse | Debug nested loops: three plants, three growth stages; use a lever, collect two animated coins and a key, then unlock and walk through the exit. |
-| 3 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
-| 4 | The Jumping Girl | Fix the blue-tile action, then play to the flag. |
-| 5 | The Blue Leap | Edit the entire `Girl` class and find a valid route. |
-| 6 | The Endless Coin Collector | Stop the machine at five, then reach the exit. |
+| 2 | The Final Escape | Build nested loops and conditions to power, unlock, and open an exit. |
+| 3 | The Jumping Girl | Fix the blue-tile action, then play to the flag. |
+| 4 | The Blue Leap | Edit the entire `Girl` class and find a valid route. |
+| 5 | The Endless Coin Collector | Stop the machine at five, then reach the exit. |
 
 The original two platform maps retain overhead spikes, a 21-pixel floor gap (half the default running-jump distance), and the same blue tile. Blue Leap retains its walkable spike top and locked blue jump action. Small jumps under the spikes and high jumps over them are both valid. Coins leave outlines, persist per game, and appear filled or outlined on completion. Any coin count can clear these arcade levels.
 
@@ -85,7 +85,7 @@ The existing private Sites preview uses `npm run build:preview`, packaging the s
 - Space advances Parcel Sorter, Lost Robot, Rocket Launch, and Final Escape one action at a time; holding it repeats. In The Greenhouse, move with Left/Right or A/D and tap Space beside the lever once to run the whole watering program; the right plant drops a key to pick up and use with Space beside the exit. Gift Catcher has no Space action: its handler runs automatically while the player catches continuous rain with movement keys. In Space Patrol, tap it once to arm the automatic weapon. Foggy Tunnel starts its code automatically on entering a tunnel and has no Space action. In Endless Coin Collector, Space starts the nearby machine.
 - Sensors reflect the live world when the program checks them; the timing depends on the game.
 - **Restart** uses the last compiled program. **Reset code** restores the starter in the editor; Compile applies it.
-- Each game awards 100 XP. The seven core lessons earn 700 XP and open the optional section. Bonuses are not required for the workshop celebration.
+- Each game awards 100 XP. The eight core lessons earn 800 XP and open the optional section. Bonuses are not required for the workshop celebration.
 - Signed-in progress persists in MongoDB and is cached separately per account on the device. Guest progress stays local. Game completion remains reported by the browser, not an authoritative examination or grading system.
 - The website and profile icon share one of seven themes: Lavender (dark by default), Mint, Peach, Ocean, Candy, Sunshine, or Light (white and orange). Choose a theme in the header or avatar picker; it applies across workshop, sign-up, profile, and admin pages and saves to the account. The code editor retains its own independent dark/light toggle, defaulting to dark.
 

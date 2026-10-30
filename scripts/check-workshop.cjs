@@ -20,7 +20,7 @@ const fixes={
  'final-escape':'    for row in range(2):\n        for column in range(3):\n            power_cell(row, column)\n    if all_powered():\n        unlock_exit()\n        open_exit()\n',
 };
 (async()=>{
-  assert.deepEqual(Array.from(core,l=>l.id),['confused-traffic-signal','parcel-sorter','gift-catcher','bridge-builder','lost-robot','space-patrol','foggy-tunnel']);
+  assert.deepEqual(Array.from(core,l=>l.id),['confused-traffic-signal','parcel-sorter','gift-catcher','bridge-builder','lost-robot','greenhouse-grid','space-patrol','foggy-tunnel']);
   browser=await chromium.launch({channel:'chrome',headless:true});
   page=await browser.newPage({viewport:{width:1440,height:1100}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -126,6 +126,11 @@ const fixes={
   await hold('Space',4500);await won();
   console.log('PASS: core 5 animates the robot route, stops at walls on wrong moves, and reaches the dock with valid for loops');
 
+  await next('greenhouse-grid');await fixed('greenhouse-grid');
+  await runGreenhouse(page);await exitGreenhouse(page);
+  assert.equal(await page.getByRole('button',{name:'Next lesson',exact:true}).count(),1);
+  console.log('PASS: core 6 grows the greenhouse with nested loops and requires collecting the key and using the door before Space Patrol unlocks');
+
   await next('space-patrol');await start();
   const shipStart=await shipPosition(page);
   await hold('ArrowUp',150);assert((await shipPosition(page)).y<shipStart.y-6);
@@ -141,7 +146,7 @@ const fixes={
   assert.equal(await page.getByRole('group',{name:'Coins collected: 2 of 2',exact:true}).count(),1);
   await compile('    for bullet in range(30):\n        if enemy_visible():\n            shoot()\n');await playing();
   await pilotSector(page);await flyToBeacon(page);await won();
-  console.log('PASS: core 6 has four-way flight, a finite auto-aimed magazine, enemy fire, and accepts while or for/if; manual flight to the beacon finishes it');
+  console.log('PASS: core 7 has four-way flight, a finite auto-aimed magazine, enemy fire, and accepts while or for/if; manual flight to the beacon finishes it');
 
   await next('foggy-tunnel');await start();await hold('Space',350);assert.equal(await page.getByRole('dialog',{name:'Level complete',exact:true}).count(),0);
   await screenshot('workshop-foggy-blank');
@@ -176,12 +181,11 @@ const fixes={
   await screenshot('workshop-complete');
   await page.getByRole('button',{name:'Workshop complete',exact:true}).click();await page.getByRole('heading',{name:'Workshop complete!',exact:true}).waitFor();
   await page.getByRole('button',{name:'Close',exact:true}).click();
-  console.log('PASS: core 7 switches from remote driving to autonomous while code, animates sensor checks and gates, and resets its single opening allowance across three tunnels');
+  console.log('PASS: core 8 switches from remote driving to autonomous while code, animates sensor checks and gates, and resets its single opening allowance across three tunnels');
 
-  for(const [id,duration] of [['rocket-launch',1100],['greenhouse-grid',3000],['final-escape',2600]]){
+  for(const [id,duration] of [['rocket-launch',1100],['final-escape',2600]]){
     await stop(id).click();await ready(id);await fixed(id);
-    if(id==='greenhouse-grid'){await runGreenhouse(page);await exitGreenhouse(page)}
-    else {await hold('Space',duration);await won()}
+    await hold('Space',duration);await won();
     assert.equal(await page.getByRole('button',{name:'Choose another bonus',exact:true}).count(),1);
   }
   assert.equal(await page.evaluate(()=>localStorage.getItem('cfs:bonus:gift-catcher:v1:complete')),'yes');

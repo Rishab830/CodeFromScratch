@@ -5,7 +5,7 @@ import random
 import pygame
 import lesson_bridge
 
-LEVEL_NUMBER = 6
+LEVEL_NUMBER = 7
 COIN_STORAGE_ID = 10
 WIDTH, HEIGHT = 320, 180
 PROGRAM_NAME = 'defend_sector'

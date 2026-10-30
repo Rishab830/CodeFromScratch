@@ -330,6 +330,72 @@ export const LEVELS: readonly Level[] = [
   },
   {
     "number": 6,
+    "runtimeId": 13,
+    "id": "greenhouse-grid",
+    "codeVersion": 1,
+    "hints": [
+      "Pull the lever and watch which plants grow. Each plant needs three separate waterings. Which plant does the starter never reach?",
+      "The outer loop selects the plant (0, 1, or 2). For each plant, the inner loop repeats the three growth stages. A loop inside a loop finishes all the inner repeats before moving on.",
+      "Use for plant in range(3): with for stage in range(3): inside it, and water_plant(plant) inside both. Compile, walk to the lever, and tap Space once. Then collect the right plant's key, tap Space at the door, and walk through."
+    ],
+    "title": "The Greenhouse",
+    "world": "Sage Garden",
+    "concept": "nested-loops",
+    "exercise": "debug",
+    "group": "workshop",
+    "kind": "program",
+    "coins": [
+      "row",
+      "garden"
+    ],
+    "source": "/levels/greenhouse-grid.py",
+    "runtime": "/runner-13/",
+    "storage": "cfs:bonus:greenhouse:v1",
+    "missionTitle": "Three plants. Three little stages.",
+    "mission": "Walk to the lever and tap Space to start the overhead watering machine. It follows your nested loops, watering one plant at a time. Grow all three plants through three stages. The left and middle plants send coins to the counter; the right plant drops a key. Pick it up, use it at the door, and walk out.",
+    "intro": "Move with Left / Right or A / D. Tap Space beside the lever to start the machine.",
+    "goal": "Grow all three plants, collect the key, and escape",
+    "death": "The machine stopped before the greenhouse was ready. Check both loop counts and try again.",
+    "log": "One lever press runs the whole program. Keep moving while the machine works.",
+    "reference": "The outer for loop selects one of three plants. The inner for loop waters that plant three times, growing it through three stages. Machine actions animate automatically after one lever press. You control the girl throughout; the key and exit still need you.",
+    "actions": [
+      [
+        "range(n)",
+        "Repeat a loop n times. Plant indexes are 0, 1, and 2."
+      ],
+      [
+        "water_plant(plant)",
+        "Water the selected plant once, growing it by one stage. Each needs three waterings."
+      ]
+    ],
+    "controls": [
+      [
+        "ArrowLeft",
+        "Move left"
+      ],
+      [
+        "ArrowRight",
+        "Move right"
+      ],
+      [
+        " ",
+        "Use lever / door"
+      ]
+    ],
+    "playInstruction": "Walk to the lever and tap Space once. After all plants grow, pick up the key, tap Space beside the door, and walk through.",
+    "keyboardGuide": [
+      [
+        "← → / A D",
+        "Move"
+      ],
+      [
+        "SPACE",
+        "Use lever / door"
+      ]
+    ]
+  },
+  {
+    "number": 7,
     "runtimeId": 10,
     "id": "space-patrol",
     "hints": [
@@ -410,7 +476,7 @@ export const LEVELS: readonly Level[] = [
     ]
   },
   {
-    "number": 7,
+    "number": 8,
     "runtimeId": 11,
     "id": "foggy-tunnel",
     "hints": [
@@ -472,7 +538,7 @@ export const LEVELS: readonly Level[] = [
     ]
   },
   {
-    "number": 8,
+    "number": 9,
     "runtimeId": 12,
     "id": "rocket-launch",
     "hints": [
@@ -533,72 +599,6 @@ export const LEVELS: readonly Level[] = [
       [
         "SPACE",
         "Run checks"
-      ]
-    ]
-  },
-  {
-    "number": 9,
-    "runtimeId": 13,
-    "id": "greenhouse-grid",
-    "codeVersion": 1,
-    "hints": [
-      "Pull the lever and watch which plants grow. Each plant needs three separate waterings. Which plant does the starter never reach?",
-      "The outer loop selects the plant (0, 1, or 2). For each plant, the inner loop repeats the three growth stages. A loop inside a loop finishes all the inner repeats before moving on.",
-      "Use for plant in range(3): with for stage in range(3): inside it, and water_plant(plant) inside both. Compile, walk to the lever, and tap Space once. Then collect the right plant's key, tap Space at the door, and walk through."
-    ],
-    "title": "The Greenhouse",
-    "world": "Sage Garden",
-    "concept": "nested-loops",
-    "exercise": "debug",
-    "group": "bonus",
-    "kind": "program",
-    "coins": [
-      "row",
-      "garden"
-    ],
-    "source": "/levels/greenhouse-grid.py",
-    "runtime": "/runner-13/",
-    "storage": "cfs:bonus:greenhouse:v1",
-    "missionTitle": "Three plants. Three little stages.",
-    "mission": "Walk to the lever and tap Space to start the overhead watering machine. It follows your nested loops, watering one plant at a time. Grow all three plants through three stages. The left and middle plants send coins to the counter; the right plant drops a key. Pick it up, use it at the door, and walk out.",
-    "intro": "Move with Left / Right or A / D. Tap Space beside the lever to start the machine.",
-    "goal": "Grow all three plants, collect the key, and escape",
-    "death": "The machine stopped before the greenhouse was ready. Check both loop counts and try again.",
-    "log": "One lever press runs the whole program. Keep moving while the machine works.",
-    "reference": "The outer for loop selects one of three plants. The inner for loop waters that plant three times, growing it through three stages. Machine actions animate automatically after one lever press. You control the girl throughout; the key and exit still need you.",
-    "actions": [
-      [
-        "range(n)",
-        "Repeat a loop n times. Plant indexes are 0, 1, and 2."
-      ],
-      [
-        "water_plant(plant)",
-        "Water the selected plant once, growing it by one stage. Each needs three waterings."
-      ]
-    ],
-    "controls": [
-      [
-        "ArrowLeft",
-        "Move left"
-      ],
-      [
-        "ArrowRight",
-        "Move right"
-      ],
-      [
-        " ",
-        "Use lever / door"
-      ]
-    ],
-    "playInstruction": "Walk to the lever and tap Space once. After all plants grow, pick up the key, tap Space beside the door, and walk through.",
-    "keyboardGuide": [
-      [
-        "← → / A D",
-        "Move"
-      ],
-      [
-        "SPACE",
-        "Use lever / door"
       ]
     ]
   },

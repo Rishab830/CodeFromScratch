@@ -4,7 +4,7 @@ import random
 import pygame
 import lesson_bridge
 
-LEVEL_NUMBER = 8
+LEVEL_NUMBER = 9
 COIN_STORAGE_ID = 12
 WIDTH, HEIGHT = 320, 180
 PROGRAM_NAME = 'launch_rocket'
